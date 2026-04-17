@@ -1,13 +1,12 @@
 import type { Language, Translation } from "@repo/types/types";
 import { api } from "@/lib/api";
-import { endpoints } from "@/config/endpoints";
-import { project } from "@/config/project";
+import { config } from "@/config";
 import { LanguageSwitcher } from "./components/language-switcher";
 
 export default async function Home() {
     const [langResponse, translationResponse] = await Promise.all([
-        api.get<Language[]>(endpoints.languages.list),
-        api.get<Translation[]>(endpoints.translations.list, { locale: project.defLang }),
+        api.get<Language[]>(config.endpoints.languages.list),
+        api.get<Translation[]>(config.endpoints.translations.list, { locale: config.project.defLang }),
     ]);
 
     if (!langResponse.success || !langResponse.data) {

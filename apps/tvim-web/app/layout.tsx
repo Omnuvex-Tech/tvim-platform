@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
+import { config } from "@/config";
 import "./globals.css";
 
 const inter = localFont({
@@ -19,8 +20,9 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-    title: "Tvim | Tikinti MateriallarÄ± vÉ™ Ä°nÅŸaat MateriallarÄ±",
-    description: "Tvim | Tikinti MateriallarÄ± vÉ™ Ä°nÅŸaat MateriallarÄ±",
+    title: config.project.projectName,
+    description: config.project.projectDescription,
+    keywords: [...config.project.keywords],
 };
 
 export default function RootLayout({

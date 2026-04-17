@@ -4,8 +4,7 @@ import { useCallback } from "react";
 import type { Language, Translation } from "@repo/types/types";
 import { LanguageSwitcher as LanguageSwitcherUI } from "@repo/ui";
 import { api } from "@/lib/api";
-import { endpoints } from "@/config/endpoints";
-import { project } from "@/config/project";
+import { config } from "@/config";
 
 const LanguageSwitcher = ({
     languages,
@@ -15,7 +14,7 @@ const LanguageSwitcher = ({
     initialTranslations: Translation[];
 }) => {
     const fetchTranslations = useCallback(async (locale: string): Promise<Translation[]> => {
-        const response = await api.get<Translation[]>(endpoints.translations.list, {
+        const response = await api.get<Translation[]>(config.endpoints.translations.list, {
             locale,
         });
 
@@ -26,7 +25,7 @@ const LanguageSwitcher = ({
         <LanguageSwitcherUI
             languages={languages}
             initialTranslations={initialTranslations}
-            defLang={project.defLang}
+            defLang={config.project.defLang}
             fetchTranslations={fetchTranslations}
         />
     );
