@@ -4,10 +4,11 @@ import type { ApiResponseBody } from "@repo/types/types";
 
 type RequestOptions = RequestInit & {
     params?: Record<string, string>;
+    locale?: string;
 };
 
 const request = async <T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> => {
-    const { params, ...init } = options;
+    const { params, locale, ...init } = options;
 
     const url = new URL(`${config.api.url}${endpoint}`);
 
@@ -26,6 +27,7 @@ const request = async <T>(endpoint: string, options: RequestOptions = {}): Promi
         headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
+            ...(locale && { "Content-Language": locale }),
             ...init.headers,
         },
     });

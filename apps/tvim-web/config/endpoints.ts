@@ -6,6 +6,14 @@ export const endpoints = {
         me: "/auth/me",
     },
 
+    languages: {
+        list: "/languages",
+    },
+
+    translations: {
+        list: "/translations",
+    },
+
     products: {
         list: "/products",
         detail: (slug: string) => `/products/${slug}`,

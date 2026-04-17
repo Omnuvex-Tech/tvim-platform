@@ -1,4 +1,4 @@
-import type { ErrorDetail } from "./error";
+import type { ErrorDetail } from "../Error/error";
 
 export type ApiResponseBody<T = unknown> = {
     success: boolean;

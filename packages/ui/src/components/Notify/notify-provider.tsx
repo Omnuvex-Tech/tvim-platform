@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 import type { NotifyItem, NotifyVariant } from "@repo/types/types";
 
 type NotifyContextValue = {
@@ -10,7 +10,7 @@ type NotifyContextValue = {
     dismiss: (id: string) => void;
 };
 
-const NotifyContext = React.createContext<NotifyContextValue | null>(null);
+const NotifyContext = createContext<NotifyContextValue | null>(null);
 
 const NOTIFY_DURATION = 5000;
 
@@ -18,14 +18,14 @@ const generateId = (): string => {
     return Math.random().toString(36).substring(2, 9);
 };
 
-const NotifyProvider = ({ children }: { children: React.ReactNode }) => {
-    const [items, setItems] = React.useState<NotifyItem[]>([]);
+const NotifyProvider = ({ children }: { children: ReactNode }) => {
+    const [items, setItems] = useState<NotifyItem[]>([]);
 
-    const dismiss = React.useCallback((id: string) => {
+    const dismiss = useCallback((id: string) => {
         setItems((prev) => prev.filter((item) => item.id !== id));
     }, []);
 
-    const addItem = React.useCallback(
+    const addItem = useCallback(
         (variant: NotifyVariant, message: string) => {
             const id = generateId();
             setItems((prev) => [...prev, { id, variant, message }]);
@@ -37,17 +37,17 @@ const NotifyProvider = ({ children }: { children: React.ReactNode }) => {
         [dismiss]
     );
 
-    const success = React.useCallback(
+    const success = useCallback(
         (message: string) => addItem("success", message),
         [addItem]
     );
 
-    const error = React.useCallback(
+    const error = useCallback(
         (message: string) => addItem("error", message),
         [addItem]
     );
 
-    const value = React.useMemo(
+    const value = useMemo(
         () => ({ items, success, error, dismiss }),
         [items, success, error, dismiss]
     );
@@ -60,7 +60,7 @@ const NotifyProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 const useNotify = (): NotifyContextValue => {
-    const context = React.useContext(NotifyContext);
+    const context = useContext(NotifyContext);
 
     if (!context) {
         throw new Error("useNotify must be used within a NotifyProvider");

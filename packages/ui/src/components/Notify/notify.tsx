@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cva } from "class-variance-authority";
 
@@ -23,7 +23,7 @@ const notifyVariants = cva(
     }
 );
 
-const icons: Record<NotifyVariant, React.ReactNode> = {
+const icons: Record<NotifyVariant, ReactNode> = {
     success: (
         <svg className="size-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
             <path
