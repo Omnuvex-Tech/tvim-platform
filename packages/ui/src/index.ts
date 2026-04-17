@@ -1,13 +1,13 @@
-// Components
-export { Button, buttonVariants } from "./components/button";
+export { Button, buttonVariants } from "./components/Button";
 export {
-  Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "./components/card";
+    Card,
+    CardHeader,
+    CardFooter,
+    CardTitle,
+    CardDescription,
+    CardContent,
+} from "./components/Card";
+export { NotifyProvider, useNotify } from "./components/Notify";
+export { NotifyContainer, notifyVariants } from "./components/Notify";
 
-// Utilities
 export { cn } from "./lib/utils";

@@ -1,0 +1,16 @@
+{
+    "name": "@repo/types",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        "./types": "./src/types/index.ts",
+        "./interfaces": "./src/interfaces/index.ts"
+    },
+    "scripts": {
+        "check-types": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@repo/typescript-config": "*",
+        "typescript": "^5.9.2"
+    }
+}
