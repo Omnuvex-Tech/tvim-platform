@@ -1,5 +1,5 @@
 {
-  "name": "omnuvex-platform",
+  "name": "tvim-platform",
   "private": true,
   "scripts": {
     "build": "turbo run build",
