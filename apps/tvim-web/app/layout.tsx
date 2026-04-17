@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
+import { NotifyProvider, NotifyContainer } from "@repo/ui";
 import { config } from "@/config";
 import "./globals.css";
 
@@ -42,7 +43,10 @@ export default function RootLayout({
                 />
             </head>
             <body className={inter.variable}>
-                <main>{children}</main>
+                <NotifyProvider>
+                    <main>{children}</main>
+                    <NotifyContainer />
+                </NotifyProvider>
             </body>
         </html>
     );
