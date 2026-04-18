@@ -7,3 +7,5 @@ export const config = {
     api,
     endpoints,
 } as const;
+
+export { system } from "./system";

@@ -8,19 +8,24 @@ const LanguageSwitcher = ({
     initialTranslations,
     defLang,
     fetchTranslations: fetchTranslationsFn,
-}: LanguageSwitcherProps) => {
-    const defaultLang = languages.find((l) => l.code === defLang) ?? languages[0]!;
-    const [active, setActive] = useState<Language>(defaultLang);
+    locale,
+    onLocaleChange,
+}: LanguageSwitcherProps & {
+    locale: string;
+    onLocaleChange: (locale: string) => void;
+}) => {
+    const activeLocale = locale || defLang;
+    const active = languages.find((l) => l.code === activeLocale) ?? languages[0]!;
     const [translations, setTranslations] = useState<Translation[]>(initialTranslations);
 
-    const fetchTranslations = useCallback(async (locale: string) => {
-        const result = await fetchTranslationsFn(locale);
+    const fetchTranslations = useCallback(async (code: string) => {
+        const result = await fetchTranslationsFn(code);
         setTranslations(result);
     }, [fetchTranslationsFn]);
 
     useEffect(() => {
         fetchTranslations(active.code);
-    }, [active, fetchTranslations]);
+    }, [active.code, fetchTranslations]);
 
     const t = (key: string): string => {
         const found = translations.find((item) => item.key === key);
@@ -39,7 +44,7 @@ const LanguageSwitcher = ({
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-secondary text-secondary-foreground hover:bg-accent"
                         }`}
-                        onClick={() => setActive(lang)}
+                        onClick={() => onLocaleChange(lang.code)}
                     >
                         {lang.native_name}
                     </button>

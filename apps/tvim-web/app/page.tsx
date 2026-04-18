@@ -1,7 +1,7 @@
 import type { Language, Translation } from "@repo/types/types";
 import { api } from "@/lib/api";
 import { config } from "@/config";
-import { LanguageSwitcher } from "./components/language-switcher";
+import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
 
 export default async function Home() {
     const [langResponse, translationResponse] = await Promise.all([
