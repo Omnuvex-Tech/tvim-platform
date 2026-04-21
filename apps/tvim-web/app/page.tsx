@@ -2,6 +2,7 @@ import type { Language, Translation } from "@repo/types/types";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
+import { RequestForm } from "@repo/ui/components/RequestForm/request-form";
 
 export default async function Home() {
     const [langResponse, translationResponse] = await Promise.all([
@@ -19,6 +20,7 @@ export default async function Home() {
 
     return (
         <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-8">
+            <RequestForm />
             <LanguageSwitcher
                 languages={langResponse.data}
                 initialTranslations={translationResponse.data ?? []}
