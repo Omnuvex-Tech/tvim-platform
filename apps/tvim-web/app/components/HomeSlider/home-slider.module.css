@@ -1,0 +1,95 @@
+.btn {
+  color: var(--slideshow-btn-c);
+  background: var(--slideshow-btn-bg);
+  border: 1px solid white !important;
+  border-radius: 20px !important;
+  font-size: 18px !important;
+  padding: 20px 50px !important;
+  line-height: 0 !important;
+  font-weight: 600 !important;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover,
+.btn:focus {
+  background: var(--slideshow-btn-bg);
+}
+
+.title {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+}
+
+.description {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 500px) {
+  .smallViewport {
+    height: 200px !important;
+    max-height: 350px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .smallViewport {
+    height: 160px !important;
+    max-height: 300px !important;
+  }
+}
+
+/* Controls (prev / counter / next) positioning and responsive sizing */
+.controls {
+  position: absolute;
+  bottom: 40px;
+  right: 56px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controlButton {
+  height: 44px !important;
+  width: 44px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px !important;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.counter {
+  min-width: 56px;
+  text-align: center;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  font-size: 14px;
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    bottom: 12px;
+    right: 12px;
+    gap: 6px;
+  }
+
+  .controlButton {
+    height: 36px !important;
+    width: 36px !important;
+  }
+
+  .counter {
+    min-width: 40px;
+    font-size: 13px;
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Slider } from "@repo/types/types";
+import styles from "./home-slider.module.css";
 
 type HomeSliderProps = {
     slides: Slider[];
@@ -23,6 +24,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     const [index, setIndex] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [autoplayKey, setAutoplayKey] = useState(0);
 
     useEffect(() => {
         setIndex(0);
@@ -38,7 +40,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         }, AUTOPLAY_MS);
 
         return () => window.clearInterval(timer);
-    }, [activeSlides.length]);
+    }, [activeSlides.length, autoplayKey]);
 
     if (activeSlides.length === 0) {
         return null;
@@ -46,6 +48,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
     const goTo = (nextIndex: number) => {
         setIndex((nextIndex + activeSlides.length) % activeSlides.length);
+        setAutoplayKey((k) => k + 1);
     };
 
     const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -85,6 +88,12 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
             goTo(index - 1);
         }
 
+        // If the user interacted (drag end) but didn't cause a swipe change,
+        // reset the autoplay timer so it starts counting from 0 again.
+        if (!hasSwipe) {
+            setAutoplayKey((k) => k + 1);
+        }
+
         suppressClickRef.current = hasSwipe;
 
         setIsDragging(false);
@@ -104,8 +113,12 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     };
 
     return (
-        <section className={`relative w-full select-none overflow-hidden rounded-[28px] ${className}`} aria-label="Home slider">
-            <div className="relative h-[200px] max-h-[300px] w-full sm:h-[260px] lg:h-[300px]">
+        <section
+            className={`relative w-full select-none overflow-hidden rounded-[28px] ${className}`}
+            aria-label="Home slider"
+            style={{ ['--slideshow-btn-bg' as any]: '#ffda03', ['--slideshow-btn-c' as any]: '#ffffff' }}
+        >
+            <div className={`relative h-[260px] max-h-[500px] w-full sm:h-[320px] md:h-[360px] lg:h-[300px] ${styles.smallViewport}`}>
                 <div
                     ref={viewportRef}
                     className="h-full w-full cursor-grab select-none overflow-hidden active:cursor-grabbing"
@@ -154,14 +167,16 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                                             }`}
                                         >
                                             <div className="max-w-[560px] text-white">
-                                                {slide.title ? <h2 className="text-2xl font-semibold leading-tight sm:text-3xl lg:text-4xl">{slide.title}</h2> : null}
+                                                {slide.title ? (
+                                                    <h2 className={`text-[34px] sm:text-[36px] font-bold leading-tight ${styles.title}`}>{slide.title}</h2>
+                                                ) : null}
                                                 {slide.description ? (
-                                                    <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/90 sm:text-base">{slide.description}</p>
+                                                    <p className={`mt-3 whitespace-pre-line text-[22px] leading-relaxed text-white/90 ${styles.description}`}>{slide.description}</p>
                                                 ) : null}
                                                 {slide.button_text && isLinkAction ? (
                                                     <a
                                                         href={slide.button_link!}
-                                                        className="pointer-events-auto mt-5 inline-flex items-center rounded-md bg-[#ffd400] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffde33]"
+                                                        className={`pointer-events-auto mt-5 inline-flex items-center rounded-md transition ${styles.btn}`}
                                                     >
                                                         {slide.button_text}
                                                     </a>
@@ -177,22 +192,22 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
             </div>
 
             {activeSlides.length > 1 ? (
-                <div className="absolute bottom-10 right-14 z-20 flex items-center gap-2">
+                <div className={styles.controls}>
                     <button
                         type="button"
                         onClick={() => goTo(index - 1)}
-                        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white text-lg text-black shadow-sm"
+                        className={`flex items-center justify-center rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
                         aria-label="Previous slide"
                     >
                         <i className="fas fa-arrow-left" aria-hidden="true" />
                     </button>
-                    <span className="min-w-[56px] text-center text-sm font-semibold text-white drop-shadow-sm">
+                    <span className={`${styles.counter}`}>
                         {index + 1} / {activeSlides.length}
                     </span>
                     <button
                         type="button"
                         onClick={() => goTo(index + 1)}
-                        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white text-lg text-black shadow-sm"
+                        className={`flex items-center justify-center rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
                         aria-label="Next slide"
                     >
                         <i className="fas fa-arrow-right" aria-hidden="true" />
