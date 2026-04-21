@@ -28,7 +28,7 @@ export default async function HomePage({
     const translationResponse = await api.get<Translation[]>(config.endpoints.translations.list, { locale });
 
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 py-8">
+        <div className="flex min-h-svh w-full flex-col items-center justify-center gap-6 py-8">
             <LanguageSwitcher
                 languages={langResponse.data}
                 initialTranslations={translationResponse.data ?? []}

@@ -1,5 +1,7 @@
 .section {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
   background: #1633e8;
   border-radius: 18px;
   padding: 44px 48px;
