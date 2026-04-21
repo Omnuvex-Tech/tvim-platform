@@ -1,8 +1,9 @@
-import type { Language, Translation } from "@repo/types/types";
+import type { Language, Slider, Translation } from "@repo/types/types";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher/language-switcher";
+import { HomeSlider } from "@/app/components/HomeSlider/home-slider";
 
 export default async function HomePage({
     params,
@@ -26,9 +27,11 @@ export default async function HomePage({
     }
 
     const translationResponse = await api.get<Translation[]>(config.endpoints.translations.list, { locale });
+    const sliderResponse = await api.get<Slider[]>(config.endpoints.sliders.list, { locale });
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-center gap-6 py-8">
+            <HomeSlider slides={sliderResponse.data ?? []} />
             <LanguageSwitcher
                 languages={langResponse.data}
                 initialTranslations={translationResponse.data ?? []}
