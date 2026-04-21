@@ -46,7 +46,7 @@ export default function RootLayout({
             <body className={inter.variable}>
                 <QueryProvider>
                     <NotifyProvider>
-                        <main>{children}</main>
+                        <main className="mx-auto w-full px-4 sm:px-6 lg:px-8">{children}</main>
                         <NotifyContainer />
                     </NotifyProvider>
                 </QueryProvider>
