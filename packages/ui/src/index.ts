@@ -22,5 +22,10 @@ export {
     type NavbarProps,
     type NavbarMenuItem,
 } from "./components/Navbar";
+export {
+    RequestForm,
+    type RequestFormProps,
+    type RequestFormData,
+} from "./components/RequestForm";
 
 export { cn } from "./lib/utils";

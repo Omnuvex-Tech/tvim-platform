@@ -4,6 +4,7 @@ export * from "./LanguageSwitcher";
 export * from "./Footer";
 export * from "./Menu";
 export * from "./Notify";
+export * from "./RequestForm";
 export * from "./Response";
 export * from "./Settings";
 export * from "./Translation";

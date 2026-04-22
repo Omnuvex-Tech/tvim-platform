@@ -2,9 +2,10 @@ import type { FooterMenusData, Language, ProjectSettingsData, ProjectSettingsRes
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
-import { RequestForm } from "@repo/ui/components/RequestForm/request-form";
+import { RequestForm } from "./components/RequestForm/request-form";
 import { Navbar } from "@repo/ui";
 import { Footer } from "./components/Footer/footer";
+
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
