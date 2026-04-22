@@ -84,8 +84,8 @@ const DiagonalLines = () => (
 );
 
 export const RequestForm: React.FC<RequestFormProps> = ({
-  heading = "We provide professionally supporting you in choosing products needed for repair and construction!",
-  subheading = "Send a request and contact you as soon as possible",
+  heading = "Təmir və tikinti üçün lazım olan məhsulları seçməkdə sizə peşəkar dəstək veririk!",
+  subheading = "Bir sorğu göndərin və ən qısa zamanda sizinlə əlaqə saxlayaq",
   onSubmit,
   className = "",
 }) => {
@@ -96,7 +96,6 @@ export const RequestForm: React.FC<RequestFormProps> = ({
     description: "",
   });
 
-  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const set =
@@ -105,7 +104,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async () => {
-    if (!agreed || loading) return;
+    if (loading) return;
 
     setLoading(true);
     try {
@@ -131,7 +130,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               <input
                 className={styles.input}
                 type="text"
-                placeholder="Your name *"
+                placeholder="Adınız *"
                 value={form.name}
                 onChange={set("name")}
                 autoComplete="name"
@@ -142,7 +141,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
               <input
                 className={styles.input}
                 type="tel"
-                placeholder="Phone *"
+                placeholder="Telefon *"
                 value={form.phone}
                 onChange={set("phone")}
                 autoComplete="tel"
@@ -158,7 +157,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({
             <FormField icon={<EditIcon />} isTextarea>
               <textarea
                 className={`${styles.input} ${styles.textarea}`}
-                placeholder="Describe the project ... *"
+                placeholder="Layihəni təsvir edin... *"
                 value={form.description}
                 onChange={set("description")}
                 rows={3}
@@ -167,21 +166,13 @@ export const RequestForm: React.FC<RequestFormProps> = ({
           </div>
 
           <div className={styles.footerRow}>
-            <label className={styles.agree}>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-              />
-              <span>
-                By clicking, you agree to the processing of personal data
-              </span>
-            </label>
+            <p className={styles.agreeText}>
+              Göndər düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz
+            </p>
 
             <SendButton
               loading={loading}
-              disabled={!agreed}
+              disabled={false}
               onClick={handleSubmit}
             />
           </div>

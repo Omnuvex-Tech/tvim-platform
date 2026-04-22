@@ -29,7 +29,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     >
       <span className={styles.fieldIcon}>{icon}</span>
       <span className={styles.fileLabel}>
-        {file ? file.name : "Select the file"}
+        {file ? file.name : "Fayl seç"}
       </span>
       <input
         ref={inputRef}

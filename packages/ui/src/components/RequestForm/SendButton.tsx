@@ -30,7 +30,7 @@ export const SendButton: React.FC<SendButtonProps> = ({
       onClick={onClick}
       aria-busy={loading}
     >
-      {loading ? <Spinner /> : "Send"}
+      {loading ? <Spinner /> : "Göndər"}
     </button>
   );
 };

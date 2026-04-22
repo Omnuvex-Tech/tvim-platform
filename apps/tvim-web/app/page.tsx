@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
 import { RequestForm } from "@repo/ui/components/RequestForm/request-form";
+import { Footer } from "@repo/ui";
 
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -27,6 +28,7 @@ export default async function Home() {
                 initialTranslations={translationResponse.data ?? []}
             />
             <RequestForm />
+            <Footer />
         </div>
     );
 }
