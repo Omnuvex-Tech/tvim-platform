@@ -71,18 +71,6 @@ const EditIcon = () => (
   </svg>
 );
 
-const DiagonalLines = () => (
-  <div className={styles.lines} aria-hidden="true">
-    {Array.from({ length: 7 }).map((_, i) => (
-      <span
-        key={i}
-        className={styles.line}
-        style={{ left: `${i * 16 + 2}%` }}
-      />
-    ))}
-  </div>
-);
-
 export const RequestForm: React.FC<RequestFormProps> = ({
   heading = "Təmir və tikinti üçün lazım olan məhsulları seçməkdə sizə peşəkar dəstək veririk!",
   subheading = "Bir sorğu göndərin və ən qısa zamanda sizinlə əlaqə saxlayaq",
@@ -116,10 +104,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({
 
   return (
     <section className={`${styles.section} ${className}`}>
-      <DiagonalLines />
-
-      <div className={styles.inner}>
-        <div className={styles.left}>
+      <div className={styles.formWrapper}>
+        <div className={styles.leftSection}>
           <h2 className={styles.heading}>{heading}</h2>
           <p className={styles.subheading}>{subheading}</p>
         </div>
