@@ -3,8 +3,8 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
 import { RequestForm } from "@repo/ui/components/RequestForm/request-form";
+import { Navbar } from "@repo/ui";
 import { Footer } from "./components/Footer/footer";
-
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -39,7 +39,8 @@ export default async function Home() {
     }
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-center gap-6 py-8">
+        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
+            <Navbar />
             <LanguageSwitcher
                 languages={langResponse.data}
                 initialTranslations={translationResponse.data ?? []}

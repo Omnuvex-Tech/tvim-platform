@@ -17,5 +17,10 @@ export {
     type FooterContactItem,
     type FooterSocialItem,
 } from "./components/Footer";
+export {
+    Navbar,
+    type NavbarProps,
+    type NavbarMenuItem,
+} from "./components/Navbar";
 
 export { cn } from "./lib/utils";
