@@ -14,6 +14,14 @@ export const endpoints = {
         list: "/translations",
     },
 
+    menus: {
+        list: "/menus",
+    },
+
+    settings: {
+        get: "/settings",
+    },
+
     products: {
         list: "/products",
         detail: (slug: string) => `/products/${slug}`,

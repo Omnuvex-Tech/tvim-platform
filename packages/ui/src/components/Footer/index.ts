@@ -3,5 +3,5 @@ export type {
     FooterLinkItem,
     FooterContactItem,
     FooterSocialItem,
-} from "./footer";
+} from "@repo/types/types";
 export { Footer } from "./footer";
