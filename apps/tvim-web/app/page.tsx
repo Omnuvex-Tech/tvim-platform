@@ -2,9 +2,11 @@ import type { FooterMenusData, Language, ProjectSettingsData, ProjectSettingsRes
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
+import { CategoryStrip } from "./components/CategoryStrip/category-strip";
 import { RequestForm } from "./components/RequestForm/request-form";
 import { Navbar } from "@repo/ui";
 import { Footer } from "./components/Footer/footer";
+import { BenefitsStrip } from "./components/BenefitsStrip/benefits-strip";
 
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -46,6 +48,8 @@ export default async function Home() {
                 languages={langResponse.data}
                 initialTranslations={translationResponse.data ?? []}
             />
+            <CategoryStrip />
+            <BenefitsStrip />
             <RequestForm />
             <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
         </div>
