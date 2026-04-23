@@ -22,6 +22,10 @@ export const endpoints = {
         get: "/settings",
     },
 
+    mainPage: {
+        list: "/main-page",
+    },
+
     products: {
         list: "/products",
         detail: (slug: string) => `/products/${slug}`,

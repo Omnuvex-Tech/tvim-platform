@@ -1,36 +1,51 @@
 type CategoryItem = {
     label: string;
-    icon: string;
+    href: string;
+    iconClass?: string;
+    iconImageUrl?: string;
+    iconEmoji?: string;
 };
 
-const categoryItems: CategoryItem[] = [
-    { label: "Elektrik malları və İşıqlandırma", icon: "💡" },
-    { label: "Santexnika, su təchizatı və istilik", icon: "🚰" },
-    { label: "Əl alətləri", icon: "🛠️" },
-    { label: "Avadanlıqlar", icon: "⚙️" },
-    { label: "Tikinti materialları", icon: "🧱" },
-    { label: "Silikonlar və mastiklər", icon: "🧴" },
-    { label: "Alçıpan sistemləri", icon: "📦" },
-    { label: "İnşaat tozları və əlavələr", icon: "🧪" },
-    { label: "İstilik izolyasiya", icon: "⬜" },
+const fallbackCategoryItems: CategoryItem[] = [
+    { label: "Elektrik malları və İşıqlandırma", href: "#", iconEmoji: "💡" },
+    { label: "Santexnika, su təchizatı və istilik", href: "#", iconEmoji: "🚰" },
+    { label: "Əl alətləri", href: "#", iconEmoji: "🛠️" },
+    { label: "Avadanlıqlar", href: "#", iconEmoji: "⚙️" },
+    { label: "Tikinti materialları", href: "#", iconEmoji: "🧱" },
+    { label: "Silikonlar və mastiklər", href: "#", iconEmoji: "🧴" },
+    { label: "Alçıpan sistemləri", href: "#", iconEmoji: "📦" },
+    { label: "İnşaat tozları və əlavələr", href: "#", iconEmoji: "🧪" },
+    { label: "İstilik izolyasiya", href: "#", iconEmoji: "⬜" },
 ];
 
-const CategoryStrip = () => {
+type CategoryStripProps = {
+    items?: CategoryItem[];
+};
+
+const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
+    const categoryItems = items.length > 0 ? items : fallbackCategoryItems;
+
     return (
-        <section className="w-full">
-            <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-flow-col auto-cols-[minmax(106px,1fr)] gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-3 md:overflow-visible lg:grid-cols-9">
-                    {categoryItems.map(({ label, icon }) => (
-                        <button
-                            key={label}
-                            type="button"
-                            className="group flex h-[150px] min-w-[106px] flex-col items-center justify-start gap-3 rounded-[14px] bg-white px-2 pt-4 pb-3 text-center shadow-[0_6px_16px_rgba(17,24,39,0.06)] transition-transform duration-200 ease-out hover:-translate-y-1"
+        <section className="w-full font-[family-name:var(--font-inter)]">
+            <div className="mx-auto w-full max-w-[1280px] p-0">
+                <div className="grid grid-flow-col auto-cols-[minmax(94px,1fr)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-3 md:overflow-visible lg:grid-cols-9">
+                    {categoryItems.map(({ label, href, iconClass, iconImageUrl, iconEmoji }) => (
+                        <a
+                            key={`${label}-${href}`}
+                            href={href}
+                            className="group flex h-[170px] min-w-[94px] flex-col items-center justify-start gap-6 rounded-[14px] bg-white px-4 pt-7 pb-7 text-center shadow-[0_4px_20px_rgba(17,24,39,0.14),0_1px_4px_rgba(17,24,39,0.08)] transition-transform duration-200 ease-out hover:-translate-y-1"
                         >
                             <span className="inline-flex h-11 items-center justify-center" aria-hidden="true">
-                                <span className="text-[28px] leading-none">{icon}</span>
+                                {iconImageUrl ? (
+                                    <img src={iconImageUrl} alt="" className="h-16 w-16 object-contain" />
+                                ) : iconClass ? (
+                                    <i className={`${iconClass} text-[42px] leading-none text-[#475066]`} />
+                                ) : (
+                                    <span className="text-[44px] leading-none">{iconEmoji ?? "📦"}</span>
+                                )}
                             </span>
                             <span className="text-[12px] leading-[1.2] font-semibold text-[#131722]">{label}</span>
-                        </button>
+                        </a>
                     ))}
                 </div>
             </div>
@@ -39,3 +54,4 @@ const CategoryStrip = () => {
 };
 
 export { CategoryStrip };
+export type { CategoryItem as CategoryStripItem };

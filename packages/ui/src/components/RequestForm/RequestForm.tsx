@@ -60,7 +60,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ file, onChange, icon }) => {
   return (
     <div className="flex h-[62px] cursor-pointer select-none items-center gap-[18px] rounded-[20px] bg-white p-[10px_18px]" onClick={() => inputRef.current?.click()} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}>
       <span className="flex shrink-0 text-[#0d47ff]">{icon}</span>
-      <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[17px] font-semibold text-[#202329]">{file ? file.name : "Fayl sech"}</span>
+      <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[17px] font-semibold text-[#202329]">{file ? file.name : "Fayl seç"}</span>
       <input ref={inputRef} type="file" className="hidden" onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
     </div>
   );
@@ -74,11 +74,11 @@ interface SendButtonProps {
 
 const SendButton: React.FC<SendButtonProps> = ({ loading, disabled, onClick }) => (
   <button type="button" className={cn("flex h-[52px] min-w-[172px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[20px] border-none bg-[#ffdc09] px-9 text-center text-[16px] font-medium text-[#1a1a1a] transition-all hover:opacity-90")} disabled={disabled || loading} onClick={onClick} aria-busy={loading}>
-    {loading ? <Spinner /> : <span className="-mt-0.5">Gondar</span>}
+    {loading ? <Spinner /> : <span className="-mt-0.5">Göndər</span>}
   </button>
 );
 
-export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Temir ve tikinti uchun lazim olan mehsullari sechmekde size peshakar destek veririk!", subheading = "Bir sorğu gondərin ve ən qısa zamanda sizinlə elaqe saxlayaq", onSubmit, className = "" }) => {
+export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və tikinti üçün lazım olan məhsulları seçməkdə sizə peşəkar dəstək veririk!", subheading = "Bir sorğu göndərin və ən qısa zamanda sizinlə əlaqə saxlayaq.", onSubmit, className = "" }) => {
   const [form, setForm] = useState<RequestFormData>({ name: "", phone: "", file: null, description: "" });
   const [loading, setLoading] = useState(false);
 
@@ -105,7 +105,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Temir ve ti
         <div className="flex w-full flex-1 flex-col justify-center gap-[11px] px-6 pb-8 pt-4 sm:px-8 sm:pb-10 md:px-10 lg:w-1/2 lg:p-[48px_48px_48px_0] xl:p-[40px_40px_40px_0]">
           <div className="mx-auto flex w-full max-w-full flex-col gap-4 md:max-w-[480px] lg:max-w-full">
             <FormField icon={<UserIcon />}>
-              <input className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="text" placeholder="Adiniz *" value={form.name} onChange={set("name")} autoComplete="name" />
+              <input className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="text" placeholder="Adınız *" value={form.name} onChange={set("name")} autoComplete="name" />
             </FormField>
 
             <FormField icon={<PhoneIcon />}>
@@ -115,12 +115,12 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Temir ve ti
             <FileUpload file={form.file} onChange={(file) => setForm((prev) => ({ ...prev, file }))} icon={<PaperclipIcon />} />
 
             <FormField icon={<EditIcon />} isTextarea>
-              <textarea className="min-h-[90px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder="Layihəni tesvir edin... *" value={form.description} onChange={set("description")} rows={3} />
+              <textarea className="min-h-[90px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder="Layihəni təsvir edin... *" value={form.description} onChange={set("description")} rows={3} />
             </FormField>
           </div>
 
           <div className="mt-2 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-full text-[14px] leading-[1.3] text-white/85 sm:max-w-[280px] lg:max-w-[300px]">Gondar duymesini kliklemekle, shexsi melumatlarin emalina raziliq verirsiniz</p>
+            <p className="max-w-full text-[14px] leading-[1.3] text-white/85 sm:max-w-[280px] lg:max-w-[300px]">“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.</p>
             <SendButton loading={loading} disabled={false} onClick={handleSubmit} />
           </div>
         </div>

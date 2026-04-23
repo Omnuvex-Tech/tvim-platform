@@ -27,7 +27,7 @@ const Footer = ({
             data-slot="footer"
             className={cn("w-full font-[family-name:var(--font-inter)] text-[#24262b]", className)}
         >
-            <div className="mx-auto w-full max-w-[1280px] px-4 pt-10 pb-4 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-[1280px] pt-10 pb-4">
                 <div className="grid gap-9 md:grid-cols-2 lg:grid-cols-[2.35fr_1fr_1.25fr_1.7fr] lg:gap-14">
                     <div className="space-y-6">
                         {logo}
