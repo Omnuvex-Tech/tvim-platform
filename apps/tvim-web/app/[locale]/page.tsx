@@ -2,7 +2,7 @@ import type { Language, Slider, Translation } from "@repo/types/types";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { config } from "@/config";
-import { LanguageSwitcher } from "@/app/components/LanguageSwitcher/language-switcher";
+import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { HomeSlider } from "@/app/components/HomeSlider/home-slider";
 
 export default async function HomePage({
@@ -30,13 +30,12 @@ export default async function HomePage({
     const sliderResponse = await api.get<Slider[]>(config.endpoints.sliders.list, { locale });
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-center gap-6 py-8">
-            <HomeSlider slides={sliderResponse.data ?? []} />
-            <LanguageSwitcher
+        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
+            <NavbarWrapper 
+                locale={locale}
                 languages={langResponse.data}
-                initialTranslations={translationResponse.data ?? []}
-                routeLocale={locale}
             />
+            <HomeSlider slides={sliderResponse.data ?? []} />
         </div>
     );
 }

@@ -14,6 +14,8 @@ import {
     X,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
+import type { Language } from "@repo/types/types";
+import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
 
 const navbarClasses = {
@@ -36,6 +38,9 @@ export interface NavbarProps {
     locale?: string;
     logo?: ReactNode;
     logoHref?: string;
+    languages?: Language[];
+    defLang?: string;
+    onLocaleChange?: (locale: string) => void;
 }
 
 const defaultMenuItems: NavbarMenuItem[] = [
@@ -51,6 +56,12 @@ const localeOptions = [
     { code: "RU", country: "RU" },
 ];
 const defaultLocaleOption = localeOptions[0]!;
+
+const defaultLanguages: Language[] = [
+    { id: 1, code: "az", name: "Azerbaijani", native_name: "AZ", is_rtl: false, is_default_admin: false, is_default_site: true, is_required: true, sort_order: 1 },
+    { id: 2, code: "en", name: "English", native_name: "EN", is_rtl: false, is_default_admin: false, is_default_site: false, is_required: false, sort_order: 2 },
+    { id: 3, code: "ru", name: "Russian", native_name: "RU", is_rtl: false, is_default_admin: false, is_default_site: false, is_required: false, sort_order: 3 },
+];
 
 function sanitizePhone(phone: string) {
     return phone.replace(/\s|\(|\)|-/g, "");
@@ -133,13 +144,28 @@ function NavbarSearch({ searchPlaceholder, compact = false }: { searchPlaceholde
     );
 }
 
-function NavbarContact({ phone, locale }: { phone: string; locale: string }) {
+function NavbarContact({ 
+    phone, 
+    locale, 
+    languages, 
+    defLang, 
+    onLocaleChange 
+}: { 
+    phone: string; 
+    locale: string;
+    languages?: Language[];
+    defLang?: string;
+    onLocaleChange?: (locale: string) => void;
+}) {
     const [isLocaleOpen, setIsLocaleOpen] = useState(false);
     const [selectedLocale, setSelectedLocale] = useState((locale || "AZ").toUpperCase());
     const activeLocale = useMemo(
         () => localeOptions.find((item) => item.code === selectedLocale) ?? defaultLocaleOption,
         [selectedLocale],
     );
+
+    const effectiveLanguages = languages || defaultLanguages;
+    const effectiveDefLang = defLang || "az";
 
     return (
         <div className="ml-auto flex items-center gap-4 lg:ml-0 lg:justify-self-end">
@@ -148,48 +174,60 @@ function NavbarContact({ phone, locale }: { phone: string; locale: string }) {
                 <span>{phone}</span>
             </a>
 
-            <div className="relative">
-                <button
-                    type="button"
-                    className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[14px] border border-[#d7deea] bg-white px-3.5 text-[15px] font-semibold text-[#1d2230]"
-                    onClick={() => setIsLocaleOpen((prev) => !prev)}
-                    aria-haspopup="listbox"
-                    aria-expanded={isLocaleOpen}
-                >
-                    <span className="inline-flex h-[14px] w-[22px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
-                        <LocaleFlag country={activeLocale.country} />
-                    </span>
-                    <span className="leading-none">{activeLocale.code}</span>
-                    <ChevronDown className={`size-4 text-[#2e3441] transition-transform ${isLocaleOpen ? "rotate-180" : "rotate-0"}`} />
-                </button>
+            {languages && onLocaleChange ? (
+                <LanguageSwitcher
+                    languages={effectiveLanguages}
+                    defLang={effectiveDefLang}
+                    locale={selectedLocale.toLowerCase()}
+                    onLocaleChange={(newLocale: string) => {
+                        setSelectedLocale(newLocale.toUpperCase());
+                        onLocaleChange(newLocale);
+                    }}
+                    variant="desktop"
+                />
+            ) : (
+                <div className="relative">
+                    <button
+                        type="button"
+                        className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[14px] border border-[#d7deea] bg-white px-3.5 text-[15px] font-semibold text-[#1d2230]"
+                        onClick={() => setIsLocaleOpen((prev) => !prev)}
+                        aria-haspopup="listbox"
+                        aria-expanded={isLocaleOpen}
+                    >
+                        <span className="inline-flex h-[14px] w-[22px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
+                            <LocaleFlag country={activeLocale.country} />
+                        </span>
+                        <span className="leading-none">{activeLocale.code}</span>
+                    </button>
 
-                {isLocaleOpen && (
-                    <div className="absolute top-full right-0 z-30 mt-2 min-w-[120px] rounded-xl border border-[#d7deea] bg-white p-1.5 shadow-[0_10px_24px_rgba(17,24,39,0.12)]">
-                        {localeOptions.map((item) => (
-                            <button
-                                key={item.code}
-                                type="button"
-                                className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[14px] font-medium text-[#1d2230] transition-colors ${
-                                    item.code === activeLocale.code
-                                        ? "border-[#c7d8fb] bg-[#e7efff]"
-                                        : "border-transparent hover:bg-[#f3f4f6]"
-                                }`}
-                                onClick={() => {
-                                    setSelectedLocale(item.code);
-                                    setIsLocaleOpen(false);
-                                }}
-                                role="option"
-                                aria-selected={item.code === activeLocale.code}
-                            >
-                                <span className="inline-flex h-[14px] w-[22px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
-                                    <LocaleFlag country={item.country} />
-                                </span>
-                                <span>{item.code}</span>
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+                    {isLocaleOpen && (
+                        <div className="absolute top-full right-0 z-30 mt-2 min-w-[120px] rounded-xl border border-[#d7deea] bg-white p-1.5 shadow-[0_10px_24px_rgba(17,24,39,0.12)]">
+                            {localeOptions.map((item) => (
+                                <button
+                                    key={item.code}
+                                    type="button"
+                                    className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[14px] font-medium text-[#1d2230] transition-colors ${
+                                        item.code === activeLocale.code
+                                            ? "border-[#c7d8fb] bg-[#e7efff]"
+                                            : "border-transparent hover:bg-[#f3f4f6]"
+                                    }`}
+                                    onClick={() => {
+                                        setSelectedLocale(item.code);
+                                        setIsLocaleOpen(false);
+                                    }}
+                                    role="option"
+                                    aria-selected={item.code === activeLocale.code}
+                                >
+                                    <span className="inline-flex h-[14px] w-[22px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
+                                        <LocaleFlag country={item.country} />
+                                    </span>
+                                    <span>{item.code}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -263,6 +301,9 @@ export function Navbar({
     locale = "AZ",
     logo,
     logoHref = "#",
+    languages,
+    defLang,
+    onLocaleChange,
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
@@ -282,52 +323,70 @@ export function Navbar({
                         <NavbarSearch searchPlaceholder={searchPlaceholder} />
                     </div>
                     <div className="hidden lg:block">
-                        <NavbarContact phone={phone} locale={locale} />
+                        <NavbarContact 
+                            phone={phone} 
+                            locale={locale} 
+                            languages={languages}
+                            defLang={defLang}
+                            onLocaleChange={onLocaleChange}
+                        />
                     </div>
 
                     <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:hidden">
-                        <div className="relative">
-                            <button
-                                type="button"
-                                className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[10px] border border-[#d7deea] bg-white px-2 text-[12px] font-semibold text-[#1d2230]"
-                                onClick={() => setIsMobileLocaleOpen((prev) => !prev)}
-                                aria-haspopup="listbox"
-                                aria-expanded={isMobileLocaleOpen}
-                            >
-                                <span className="inline-flex h-[12px] w-[18px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
-                                    <LocaleFlag country={activeMobileLocale.country} />
-                                </span>
-                                <span className="leading-none">{activeMobileLocale.code}</span>
-                                <ChevronDown className={`size-3.5 text-[#2e3441] transition-transform ${isMobileLocaleOpen ? "rotate-180" : "rotate-0"}`} />
-                            </button>
+                        {languages && onLocaleChange ? (
+                            <LanguageSwitcher
+                                languages={languages || defaultLanguages}
+                                defLang={defLang || "az"}
+                                locale={mobileLocale.toLowerCase()}
+                                onLocaleChange={(newLocale: string) => {
+                                    setMobileLocale(newLocale.toUpperCase());
+                                    onLocaleChange(newLocale);
+                                }}
+                                variant="mobile"
+                            />
+                        ) : (
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[10px] border border-[#d7deea] bg-white px-2 text-[12px] font-semibold text-[#1d2230]"
+                                    onClick={() => setIsMobileLocaleOpen((prev) => !prev)}
+                                    aria-haspopup="listbox"
+                                    aria-expanded={isMobileLocaleOpen}
+                                >
+                                    <span className="inline-flex h-[12px] w-[18px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
+                                        <LocaleFlag country={activeMobileLocale.country} />
+                                    </span>
+                                    <span className="leading-none">{activeMobileLocale.code}</span>
+                                </button>
 
-                            {isMobileLocaleOpen && (
-                                <div className="absolute top-full right-0 z-40 mt-2 min-w-[110px] rounded-xl border border-[#d7deea] bg-white p-1.5 shadow-[0_10px_24px_rgba(17,24,39,0.12)]">
-                                    {localeOptions.map((item) => (
-                                        <button
-                                            key={item.code}
-                                            type="button"
-                                            className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-[13px] font-medium text-[#1d2230] transition-colors ${
-                                                item.code === activeMobileLocale.code
-                                                    ? "border-[#c7d8fb] bg-[#e7efff]"
-                                                    : "border-transparent hover:bg-[#f3f4f6]"
-                                            }`}
-                                            onClick={() => {
-                                                setMobileLocale(item.code);
-                                                setIsMobileLocaleOpen(false);
-                                            }}
-                                            role="option"
-                                            aria-selected={item.code === activeMobileLocale.code}
-                                        >
-                                            <span className="inline-flex h-[12px] w-[18px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
-                                                <LocaleFlag country={item.country} />
-                                            </span>
-                                            <span>{item.code}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                {isMobileLocaleOpen && (
+                                    <div className="absolute top-full right-0 z-40 mt-2 min-w-[110px] rounded-xl border border-[#d7deea] bg-white p-1.5 shadow-[0_10px_24px_rgba(17,24,39,0.12)]">
+                                        {localeOptions.map((item) => (
+                                            <button
+                                                key={item.code}
+                                                type="button"
+                                                className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-[13px] font-medium text-[#1d2230] transition-colors ${
+                                                    item.code === activeMobileLocale.code
+                                                        ? "border-[#c7d8fb] bg-[#e7efff]"
+                                                        : "border-transparent hover:bg-[#f3f4f6]"
+                                                }`}
+                                                onClick={() => {
+                                                    setMobileLocale(item.code);
+                                                    setIsMobileLocaleOpen(false);
+                                                }}
+                                                role="option"
+                                                aria-selected={item.code === activeMobileLocale.code}
+                                            >
+                                                <span className="inline-flex h-[12px] w-[18px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
+                                                    <LocaleFlag country={item.country} />
+                                                </span>
+                                                <span>{item.code}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <a
                             href={whatsappHref}

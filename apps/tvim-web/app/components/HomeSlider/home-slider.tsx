@@ -196,7 +196,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                     <button
                         type="button"
                         onClick={() => goTo(index - 1)}
-                        className={`flex items-center justify-center rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
+                        className={`flex items-center justify-center cursor-pointer rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
                         aria-label="Previous slide"
                     >
                         <i className="fas fa-arrow-left" aria-hidden="true" />
@@ -207,7 +207,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                     <button
                         type="button"
                         onClick={() => goTo(index + 1)}
-                        className={`flex items-center justify-center rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
+                        className={`flex items-center justify-center cursor-pointer rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
                         aria-label="Next slide"
                     >
                         <i className="fas fa-arrow-right" aria-hidden="true" />

@@ -1,11 +1,10 @@
 import type { Language, Slider, Translation, FooterMenusData, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
 import { api } from "@/lib/api";
 import { config } from "@/config";
-import { LanguageSwitcher } from "./components/LanguageSwitcher/language-switcher";
 import { HomeSlider } from "./components/HomeSlider/home-slider";
 import { CategoryStrip, type CategoryStripItem } from "./components/CategoryStrip/category-strip";
 import { RequestForm } from "./components/RequestForm/request-form";
-import { Navbar } from "@repo/ui";
+import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
 import { Footer } from "./components/Footer/footer";
 import { BenefitsStrip } from "./components/BenefitsStrip/benefits-strip";
 import { toHref } from "@repo/shared/utils";
@@ -111,16 +110,16 @@ export default async function Home() {
                     iconImageUrl: item.menu.icon?.image_url ?? undefined,
                 };
             })
-        .filter(Boolean) as CategoryStripItem[];
+            .filter(Boolean) as CategoryStripItem[];
 
     return (
             <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
-                {/* <LanguageSwitcher
+                <NavbarWrapper 
+                    logo={navbarLogo} 
+                    phone={navbarPhone} 
+                    locale={siteDefaultLocale}
                     languages={langResponse.data}
-                    initialTranslations={translationResponse.data ?? []}
-                /> */}
-
-                <Navbar logo={navbarLogo} phone={navbarPhone} />
+                />
 
                 <HomeSlider slides={sliderResponse.data ?? []} />
 
