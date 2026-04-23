@@ -1,2 +1,2 @@
-export { RequestForm } from "./request-form";
-export type { RequestFormProps, RequestFormData } from "./request-form";
+export { RequestForm } from "./RequestForm";
+export type { RequestFormData, RequestFormProps } from "@repo/types/types";

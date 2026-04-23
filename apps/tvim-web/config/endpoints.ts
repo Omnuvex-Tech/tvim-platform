@@ -17,6 +17,18 @@ export const endpoints = {
     sliders: {
         list: "/sliders",
     },
+    
+    menus: {
+        list: "/menus",
+    },
+
+    settings: {
+        get: "/settings",
+    },
+
+    mainPage: {
+        list: "/main-page",
+    },
 
     products: {
         list: "/products",
