@@ -7,6 +7,7 @@ import { RequestForm } from "./components/RequestForm/request-form";
 import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
 import { Footer } from "./components/Footer/footer";
 import { BenefitsStrip } from "./components/BenefitsStrip/benefits-strip";
+import { CompanyCarousel } from "./components/CompanyCarousel";
 import { toHref } from "@repo/shared/utils";
 
 type MainPageCategoryRawItem = {
@@ -111,6 +112,18 @@ export default async function Home() {
                 };
             })
             .filter(Boolean) as CategoryStripItem[];
+    }
+
+    const partnerCompanies = [
+        { id: "1", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "2", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "3", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "4", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "5", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "6", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "7", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+        { id: "8", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+    ];
 
     return (
             <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
@@ -127,10 +140,11 @@ export default async function Home() {
 
                 <BenefitsStrip />
 
+                <CompanyCarousel companies={partnerCompanies} />
+
                 <RequestForm />
 
                 <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
             </div>
         );
-    }
 }
