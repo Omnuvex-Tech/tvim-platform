@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { HomeSlider } from "@/app/components/HomeSlider/home-slider";
+import { SpecialDiscountsStrip } from "@/app/components/SpecialDiscountsStrip/special-discounts-strip";
 
 export default async function HomePage({
     params,
@@ -36,6 +37,7 @@ export default async function HomePage({
                 languages={langResponse.data}
             />
             <HomeSlider slides={sliderResponse.data ?? []} />
+            <SpecialDiscountsStrip />
         </div>
     );
 }

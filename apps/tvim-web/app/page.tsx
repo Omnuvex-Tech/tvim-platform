@@ -9,6 +9,9 @@ import { Footer } from "./components/Footer/footer";
 import { BenefitsStrip } from "./components/BenefitsStrip/benefits-strip";
 import { CompanyCarousel } from "./components/CompanyCarousel";
 import { toHref } from "@repo/shared/utils";
+import { SpecialDiscountsStrip } from "./components/SpecialDiscountsStrip/special-discounts-strip";
+import { SelectedForYouStrip } from "./components/SelectedForYouStrip/selected-for-you-strip";
+import { LatestProductsStrip } from "./components/LatestProductsStrip/latest-products-strip";
 
 type MainPageCategoryRawItem = {
     menu: {
@@ -139,6 +142,12 @@ export default async function Home() {
                 <CategoryStrip items={categoryItems} />
 
                 <BenefitsStrip />
+
+                <SpecialDiscountsStrip />
+
+                <SelectedForYouStrip />
+
+                <LatestProductsStrip />
 
                 <CompanyCarousel companies={partnerCompanies} />
 

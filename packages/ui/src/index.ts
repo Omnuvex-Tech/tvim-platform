@@ -27,5 +27,6 @@ export {
     type RequestFormProps,
     type RequestFormData,
 } from "./components/RequestForm";
+export { BlueHexIcon, BuildingGridIcon, ReturnArrowIcon, TicketCutIcon } from "./components/icon";
 
 export { cn } from "./lib/utils";
