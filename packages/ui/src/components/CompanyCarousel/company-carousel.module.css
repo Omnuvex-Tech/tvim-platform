@@ -1,0 +1,66 @@
+.container {
+    width: 100%;
+    padding: 12px 0px 12px 6px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+.viewport {
+    overflow: hidden;
+    width: 100%;
+}
+
+.track {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.animating {
+    transition: transform 0.6s ease-in-out;
+}
+
+.noTransition {
+    transition: none;
+}
+
+.companyItem {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.companyLogo {
+    max-height: 100px;
+    max-width: 280px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.logoInner {
+    position: relative;
+    width: 80%;
+    height: 80%;
+    margin: 0 auto;
+    display: block;
+}
+
+@media (max-width: 1024px) {
+    .companyLogo {
+        max-height: 90px;
+        max-width: 240px;
+    }
+}
+
+@media (max-width: 768px) {
+    .companyLogo {
+        max-height: 70px;
+        max-width: 200px;
+    }
+}

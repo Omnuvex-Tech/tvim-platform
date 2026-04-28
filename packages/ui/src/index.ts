@@ -30,3 +30,5 @@ export {
 export { BlueHexIcon, BuildingGridIcon, ReturnArrowIcon, TicketCutIcon } from "./components/icon";
 
 export { cn } from "./lib/utils";
+export { CompanyCarousel } from "./components/CompanyCarousel";
+export type { Company } from "./components/CompanyCarousel";

@@ -2,3 +2,93 @@
 @import "@repo/ui/styles";
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
+
+/* Product title style used in product cards */
+
+:root {
+	--price-old-c: #888;
+	--price-new-c: #000;
+}
+
+.hoopz-thumb__name {
+	font-size: 15px;
+	font-weight: 600;
+	color: #222;
+	white-space: normal;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-height: 60px;
+	margin-bottom: 6px;
+}
+
+.product-carousel .price {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		margin-top: 8px;
+		margin-bottom: 8px;
+	}
+
+	.product-carousel .price .price-new {
+		font-size: 24px;
+		color: var(--price-new-c);
+		display: block;
+	}
+
+	.product-carousel .price .price-old {
+		font-size: 14px;
+		display: block;
+		margin: 0 0 0 0;
+		font-weight: 500;
+		color: #888 !important;
+		text-decoration: line-through;
+		text-align: center;
+	}
+
+
+.price .price-old {
+    margin: 0 15px 0 0;
+    font-weight: 500;
+    font-size: 0.7em;
+    color: var(--price-old-c);
+    text-decoration: line-through;
+}
+
+/* Product card action buttons: default absolute stack in corner */
+.product-carousel .card-action-btns {
+	position: absolute;
+	top: 8px;
+	left: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	z-index: 2;
+}
+
+/* On small screens, move buttons into flow under the title */
+@media (max-width: 767px) {
+	.product-carousel .card-action-btns {
+		position: static;
+		flex-direction: row;
+		gap: 8px;
+		margin-top: 8px;
+		justify-content: center;
+	}
+
+	.product-carousel .hoopz-thumb__name {
+		font-size: 13px;
+		min-height: auto;
+	}
+}
+
+/* Increase thumbnail height on very small screens (<512px) */
+@media (max-width: 511px) {
+	.product-carousel .product-thumb {
+		height: 180px !important;
+	}
+}

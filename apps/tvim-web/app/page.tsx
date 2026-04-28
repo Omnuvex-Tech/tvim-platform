@@ -7,7 +7,8 @@ import { RequestForm } from "./components/RequestForm/request-form";
 import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
 import { Footer } from "./components/Footer/footer";
 import { BenefitsStrip } from "./components/BenefitsStrip/benefits-strip";
-import { CompanyCarousel } from "./components/CompanyCarousel";
+import { CompanyCarousel } from "@repo/ui";
+import mitreapelLogo from "../public/images/mitreapel-logo.jpg";
 import { toHref } from "@repo/shared/utils";
 import { SpecialDiscountsStrip } from "./components/SpecialDiscountsStrip/special-discounts-strip";
 import { SelectedForYouStrip } from "./components/SelectedForYouStrip/selected-for-you-strip";
@@ -25,9 +26,11 @@ type MainPageCategoryRawItem = {
 };
 
 type MainPageBlock = {
-    data?: {
-        items?: MainPageCategoryRawItem[];
-    };
+    id?: number;
+    title?: string;
+    source_type?: string | null;
+    source_reference?: string | number | null;
+    data?: any;
 };
 
 export default async function Home() {
@@ -96,10 +99,10 @@ export default async function Home() {
     let categoryItems: CategoryStripItem[] = [];
 
     if (mainPageResponse.success && mainPageResponse.data && mainPageResponse.data.length > 1) {
-        const secondBlockItems = mainPageResponse.data[1]?.data?.items ?? [];
+        const secondBlockItems = (mainPageResponse.data[1]?.data?.items ?? []) as MainPageCategoryRawItem[];
 
         categoryItems = secondBlockItems
-            .map((item) => {
+            .map((item: MainPageCategoryRawItem) => {
                 const label = item.menu.name?.trim() ?? "";
                 const link = item.menu.link?.trim() ?? "";
 
@@ -117,16 +120,60 @@ export default async function Home() {
             .filter(Boolean) as CategoryStripItem[];
     }
 
-    const partnerCompanies = [
-        { id: "1", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "2", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "3", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "4", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "5", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "6", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "7", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
-        { id: "8", name: "Mitreapel", logo: "/images/mitreapel-logo.jpg" },
+    // Default fallback companies (used when API doesn't provide brands)
+    let partnerCompanies: { id: string; name: string; logo: any }[] = [
+        { id: "1", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "2", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "3", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "4", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "5", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "6", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "7", name: "Mitreapel", logo: mitreapelLogo },
+        { id: "8", name: "Mitreapel", logo: mitreapelLogo },
     ];
+
+    // Try to find a brands block in the main page API response and map it
+    if (mainPageResponse.success && mainPageResponse.data) {
+        const brandsBlock = (mainPageResponse.data as MainPageBlock[]).find((b) =>
+            b?.source_type === "brand" ||
+            (typeof b?.title === "string" && b.title.toLowerCase().includes("brand")) ||
+            b?.data?.filter?.slug === "brand"
+        );
+
+        const items = brandsBlock?.data?.items ?? [];
+
+        if (Array.isArray(items) && items.length > 0) {
+            partnerCompanies = items
+                .map((it: any, idx: number) => ({
+                    id: String(it.value_id ?? it.id ?? `company-${idx}`),
+                    name: it.name ?? it.title ?? "",
+                    logo: it.image ?? mitreapelLogo,
+                }))
+                .filter((c) => c.name)
+                .slice(0, 20);
+        }
+    }
+
+    // Map product blocks from main page response to pass into product strips
+    const productBlocks = (mainPageResponse.success && mainPageResponse.data)
+        ? (mainPageResponse.data as MainPageBlock[]).filter((b) => b?.source_type === "product_block")
+        : [];
+
+    const specialDiscountBlock = productBlocks.find((b) => String(b?.source_reference) === "1") ??
+        productBlocks.find((b) => b?.data?.block?.only_discount_products) ??
+        productBlocks.find((b) => typeof b?.title === "string" && b.title.toLowerCase().includes("discount"));
+
+    const selectedBlock = productBlocks.find((b) => String(b?.source_reference) === "2") ??
+        productBlocks.find((b) => b?.data?.block?.product_scope === "selected") ??
+        productBlocks.find((b) => typeof b?.title === "string" && b.title.toLowerCase().includes("special for you"));
+
+    const latestBlock = productBlocks.find((b) => String(b?.source_reference) === "3") ??
+        productBlocks.find((b) => b?.data?.block?.only_new_products) ??
+        productBlocks.find((b) => typeof b?.title === "string" && b.title.toLowerCase().includes("latest"));
+
+    const specialDiscountItems = specialDiscountBlock?.data?.items ?? [];
+    const selectedItems = selectedBlock?.data?.items ?? [];
+    const latestItems = latestBlock?.data?.items ?? [];
 
     return (
             <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
@@ -143,11 +190,11 @@ export default async function Home() {
 
                 <BenefitsStrip />
 
-                <SpecialDiscountsStrip />
+                <SpecialDiscountsStrip items={specialDiscountItems} />
 
-                <SelectedForYouStrip />
+                <SelectedForYouStrip items={selectedItems} />
 
-                <LatestProductsStrip />
+                <LatestProductsStrip items={latestItems} />
 
                 <CompanyCarousel companies={partnerCompanies} />
 
