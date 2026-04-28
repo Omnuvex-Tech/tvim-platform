@@ -173,25 +173,25 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                 </div>
 
                 <div className="relative">
-                    <div ref={viewportRef} className="overflow-hidden">
+                    <div ref={viewportRef} className="overflow-hidden px-2 py-3 -mx-2 -my-3">
                         <div
                             className="flex transition-transform duration-300 ease-in-out"
                             style={{ transform: `translateX(-${(index * 100) / visibleCount}%)` }}
                         >
                             {products.map((product) => (
-                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="px-1">
+                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="px-2">
                                     <article
-                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] sm:px-4 text-center"
+                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform transition-shadow duration-200 ease-out hover:z-10 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] sm:px-4"
                                     >
 
                                         {product.discount ? (
-                                            <span className="absolute top-4 right-4 z-[2] inline-flex h-9 min-w-[52px] items-center justify-center rounded-full bg-[#ff2e43] px-2 text-[14px] font-bold text-white">{product.discount}</span>
+                                            <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">{product.discount}</span>
                                         ) : null}
 
                                         <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px]" : "h-[135px] sm:h-[150px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
                                             {product.imageUrl ? (
                                                 <Link href={product.href} className="block h-full w-full" onClick={(e) => e.stopPropagation()}>
-                                                    <img src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"}`} loading="lazy" />
+                                                    <img src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out group-hover:scale-[1.04]`} loading="lazy" />
                                                 </Link>
                                             ) : null}
                                         </div>
@@ -202,17 +202,25 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                                             <div className="card-action-btns mt-2">
                                                 <button
                                                     type="button"
-                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#e0e5ee] bg-white text-[#7b8596] cursor-pointer"
+                                                    className={`inline-flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 ${
+                                                        variant === "special"
+                                                            ? "h-7 w-7 border border-transparent bg-transparent text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                                                            : "h-6 w-6 border border-[#e0e5ee] bg-white text-[#7b8596] hover:border-[#0f57d6] hover:bg-[#0f57d6] hover:text-white"
+                                                    }`}
                                                     aria-label="Seçilmişlər"
                                                 >
-                                                    ♡
+                                                    <i className="far fa-heart text-[11px] leading-none" aria-hidden="true" />
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#e0e5ee] bg-white text-[#7b8596] cursor-pointer"
+                                                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[#7b8596] cursor-pointer transition-colors duration-150 ${
+                                                        variant === "special"
+                                                            ? "h-7 w-7 border border-transparent bg-transparent hover:bg-[#0f57d6] hover:text-white"
+                                                            : "border border-[#e0e5ee] bg-white hover:border-[#0f57d6] hover:bg-[#0f57d6] hover:text-white"
+                                                    }`}
                                                     aria-label="Müqayisə"
                                                 >
-                                                    ↔
+                                                    <i className="fa-solid fa-code-compare text-[13px] leading-none" aria-hidden="true" />
                                                 </button>
                                             </div>
 
