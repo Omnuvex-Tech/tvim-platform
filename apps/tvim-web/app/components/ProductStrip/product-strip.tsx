@@ -30,9 +30,9 @@ const formatPrice = (v: number | string | undefined) => {
 const getVisibleCount = (width: number) => {
     if (width >= 1280) return 5;
     if (width >= 1200) return 4;
-    if (width >= 768) return 3;
-    if (width >= 512) return 2;
-    return 1;
+    if (width >= 512) return 3; // 512-767 => 3 items
+    if (width >= 368) return 2; // 368-511 => 2 items
+    return 1; // <368 => 1 item
 };
 
 const defaultLatest: Product[] = [
@@ -142,10 +142,10 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
     return (
         <section className="w-full product-carousel">
                 <div className="mx-auto w-full max-w-[1280px] px-0">
-                <div className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between">
+                <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-0">
                     <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "special" ? "Xüsusi endirimlər" : variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
 
-                    <div className="flex items-center gap-3 mt-3 md:mt-0">
+                    <div className="flex items-center gap-3">
                         <button
                             type="button"
                             onClick={prev}
@@ -173,18 +173,18 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                 </div>
 
                 <div className="relative">
-                    <div ref={viewportRef} className="overflow-hidden py-3">
+                    <div ref={viewportRef} className="overflow-hidden py-3 px-0">
                         <div
-                            className="flex transition-transform duration-300 ease-in-out"
+                            className="flex transition-transform duration-300 ease-in-out -mx-2 sm:-mx-3"
                             style={{ transform: `translateX(-${(index * 100) / visibleCount}%)` }}
                         >
                             {products.map((product) => (
-                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="px-0">
+                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border px-2 sm:px-3">
                                     <article
-                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none"
+                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none"
                                     >
 
-                                        <div className="absolute top-3 left-3 z-[3] flex items-center gap-2">
+                                        <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
                                             <button
                                                 type="button"
                                                 className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#e0e5ee] text-[#7b8596] hover:bg-[#0f57d6] hover:text-white transition-colors duration-150 cursor-pointer"
@@ -208,7 +208,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                                         <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
                                             {product.imageUrl ? (
                                                 <Link href={product.href} className="block h-full w-full" onClick={(e) => e.stopPropagation()}>
-                                                    <img src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
+                                                    <img draggable={false} src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
                                                 </Link>
                                             ) : null}
                                         </div>

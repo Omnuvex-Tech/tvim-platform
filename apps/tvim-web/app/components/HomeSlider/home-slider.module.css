@@ -29,17 +29,18 @@
   letter-spacing: -0.02em;
 }
 
-@media (max-width: 500px) {
-  .smallViewport {
-    height: 200px !important;
-    max-height: 350px !important;
-  }
+.root {
+  border-radius: 28px;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 511px) {
   .smallViewport {
     height: 160px !important;
-    max-height: 300px !important;
+    max-height: 350px !important;
+  }
+
+  .root {
+    border-radius: 16px !important;
   }
 }
 

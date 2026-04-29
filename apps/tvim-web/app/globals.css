@@ -89,6 +89,12 @@
 /* Increase thumbnail height on very small screens (<512px) */
 @media (max-width: 511px) {
 	.product-carousel .product-thumb {
-		height: 180px !important;
+		height: 220px !important;
+	}
+}
+
+@media (max-width: 367px) {
+	.product-carousel .product-thumb {
+		height: 260px !important;
 	}
 }

@@ -114,7 +114,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
     return (
         <section
-            className={`relative w-full select-none overflow-hidden rounded-[28px] ${className}`}
+            className={`relative w-full select-none overflow-hidden rounded-[28px] ${styles.root} ${className}`}
             aria-label="Home slider"
             style={{ ['--slideshow-btn-bg' as any]: '#ffda03', ['--slideshow-btn-c' as any]: '#ffffff' }}
         >
