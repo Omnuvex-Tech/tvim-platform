@@ -141,11 +141,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
 
     return (
         <section className="w-full product-carousel">
-            <div className="mx-auto w-full max-w-[1280px] px-0">
-                <div className="mb-5 flex items-center justify-between">
+                <div className="mx-auto w-full max-w-[1280px] px-0">
+                <div className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between">
                     <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "special" ? "Xüsusi endirimlər" : variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mt-3 md:mt-0">
                         <button
                             type="button"
                             onClick={prev}
@@ -173,56 +173,48 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                 </div>
 
                 <div className="relative">
-                    <div ref={viewportRef} className="overflow-hidden px-2 py-3 -mx-2 -my-3">
+                    <div ref={viewportRef} className="overflow-hidden py-3">
                         <div
                             className="flex transition-transform duration-300 ease-in-out"
                             style={{ transform: `translateX(-${(index * 100) / visibleCount}%)` }}
                         >
                             {products.map((product) => (
-                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="px-2">
+                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="px-0">
                                     <article
-                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform transition-shadow duration-200 ease-out hover:z-10 hover:-translate-y-1 hover:scale-[1.015] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] sm:px-4"
+                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none"
                                     >
+
+                                        <div className="absolute top-3 left-3 z-[3] flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#e0e5ee] text-[#7b8596] hover:bg-[#0f57d6] hover:text-white transition-colors duration-150 cursor-pointer"
+                                                aria-label="Seçilmişlər"
+                                            >
+                                                <i className="far fa-heart text-[14px] leading-none" aria-hidden="true" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#e0e5ee] text-[#7b8596] hover:bg-[#0f57d6] hover:text-white transition-colors duration-150 cursor-pointer"
+                                                aria-label="Müqayisə"
+                                            >
+                                                <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
+                                            </button>
+                                        </div>
 
                                         {product.discount ? (
                                             <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">{product.discount}</span>
                                         ) : null}
 
-                                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px]" : "h-[135px] sm:h-[150px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
+                                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
                                             {product.imageUrl ? (
                                                 <Link href={product.href} className="block h-full w-full" onClick={(e) => e.stopPropagation()}>
-                                                    <img src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out group-hover:scale-[1.04]`} loading="lazy" />
+                                                    <img src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
                                                 </Link>
                                             ) : null}
                                         </div>
 
                                         <div className="pt-3 text-center w-full flex flex-col items-center">
                                             <h3 className="hoopz-thumb__name">{product.title}</h3>
-
-                                            <div className="card-action-btns mt-2">
-                                                <button
-                                                    type="button"
-                                                    className={`inline-flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 ${
-                                                        variant === "special"
-                                                            ? "h-7 w-7 border border-transparent bg-transparent text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-                                                            : "h-6 w-6 border border-[#e0e5ee] bg-white text-[#7b8596] hover:border-[#0f57d6] hover:bg-[#0f57d6] hover:text-white"
-                                                    }`}
-                                                    aria-label="Seçilmişlər"
-                                                >
-                                                    <i className="far fa-heart text-[11px] leading-none" aria-hidden="true" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[#7b8596] cursor-pointer transition-colors duration-150 ${
-                                                        variant === "special"
-                                                            ? "h-7 w-7 border border-transparent bg-transparent hover:bg-[#0f57d6] hover:text-white"
-                                                            : "border border-[#e0e5ee] bg-white hover:border-[#0f57d6] hover:bg-[#0f57d6] hover:text-white"
-                                                    }`}
-                                                    aria-label="Müqayisə"
-                                                >
-                                                    <i className="fa-solid fa-code-compare text-[13px] leading-none" aria-hidden="true" />
-                                                </button>
-                                            </div>
 
                                             <div className="mt-2 flex items-center justify-center gap-1">
                                                 <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />

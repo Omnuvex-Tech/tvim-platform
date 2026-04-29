@@ -27,13 +27,13 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
 
     return (
         <section className="w-full font-[family-name:var(--font-inter)]">
-            <div className="mx-auto w-full max-w-[1280px] p-0">
-                <div className="grid grid-flow-col auto-cols-[minmax(94px,1fr)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-3 md:overflow-visible lg:grid-cols-9">
+            <div className="mx-auto w-full max-w-[1280px] px-0">
+                <div className="grid grid-flow-col auto-cols-[minmax(120px,auto)] gap-4 md:gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-3 md:overflow-visible lg:grid-cols-9 py-2">
                     {categoryItems.map(({ label, href, iconClass, iconImageUrl, iconEmoji }) => (
                         <a
                             key={`${label}-${href}`}
                             href={href}
-                            className="group flex h-[170px] min-w-[94px] flex-col items-center justify-start gap-6 rounded-[14px] bg-white px-4 pt-7 pb-7 text-center shadow-[0_4px_20px_rgba(17,24,39,0.14),0_1px_4px_rgba(17,24,39,0.08)] transition-transform duration-200 ease-out hover:-translate-y-1"
+                            className="group flex h-[170px] max-[512px]:h-[160px] min-w-[94px] max-[768px]:min-w-[120px] flex-col items-center justify-start gap-6 rounded-[14px] border border-[#e2e6ef] bg-white px-4 max-[512px]:px-6 pt-7 pb-7 text-center shadow-none transition-transform duration-200 ease-out hover:-translate-y-1"
                         >
                             <span className="inline-flex h-11 items-center justify-center" aria-hidden="true">
                                 {iconImageUrl ? (

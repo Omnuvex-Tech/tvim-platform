@@ -35,6 +35,12 @@ export default function RootLayout({
     return (
         <html lang="az">
             <head>
+                <script
+                    // Remove attributes injected by browser extensions (e.g. fdprocessedid)
+                    dangerouslySetInnerHTML={{
+                        __html: `(function(){try{['fdprocessedid','data-fdprocessedid'].forEach(function(attr){var els=document.querySelectorAll('['+attr+']');for(var i=0;i<els.length;i++){els[i].removeAttribute(attr);}});}catch(e){} })();`,
+                    }}
+                />
                 <link
                     rel="stylesheet"
                     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"

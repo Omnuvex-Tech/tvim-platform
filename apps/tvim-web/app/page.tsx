@@ -188,7 +188,11 @@ export default async function Home() {
 
                 <CategoryStrip items={categoryItems} />
 
-                <BenefitsStrip />
+                {/* Find services block (source_type: show_on_main_page_services) and pass items */}
+                <BenefitsStrip items={(mainPageResponse.success && mainPageResponse.data)
+                    ? (mainPageResponse.data as MainPageBlock[]).find(b => b?.source_type === 'show_on_main_page_services')?.data?.items
+                    : undefined
+                } />
 
                 <SpecialDiscountsStrip items={specialDiscountItems} />
 
