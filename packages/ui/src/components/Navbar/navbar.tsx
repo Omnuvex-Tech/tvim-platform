@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
     ChevronDown,
     GitCompareArrows,
@@ -314,6 +314,127 @@ export function Navbar({
     );
     const whatsappHref = toWhatsappHref(phone);
 
+    // Catalog dropdown state + data
+    const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+    const [catalogLoading, setCatalogLoading] = useState(false);
+    const [catalogError, setCatalogError] = useState<string | null>(null);
+    const [catalogItems, setCatalogItems] = useState<any[]>([]);
+    const [catalogFetched, setCatalogFetched] = useState(false);
+    const catalogRef = useRef<HTMLDivElement | null>(null);
+    const catalogFetchPromiseRef = useRef<Promise<any[]> | null>(null);
+
+    const buildTree = useCallback((items: any[]) => {
+        if (!Array.isArray(items)) return [];
+
+        // Normalize input: flatten any nested `children` arrays into a unique flat list
+        const flat: any[] = [];
+        const seen = new Set<any>();
+
+        const recurse = (arr: any[], parentId?: number | null) => {
+            if (!Array.isArray(arr)) return;
+            for (const raw of arr) {
+                if (!raw || typeof raw !== "object") continue;
+
+                const id = raw.id ?? raw.uuid;
+                if (seen.has(id)) {
+                    if (Array.isArray(raw.children) && raw.children.length) recurse(raw.children, raw.id ?? parentId);
+                    continue;
+                }
+
+                const copy: any = { ...raw, children: [] };
+                // If a parentId was provided by recursion and the item lacks a parent_id, set it
+                if ((copy.parent_id === undefined || copy.parent_id === null || Number(copy.parent_id) === 0) && parentId) {
+                    copy.parent_id = parentId;
+                }
+
+                flat.push(copy);
+                seen.add(id);
+
+                if (Array.isArray(raw.children) && raw.children.length) {
+                    recurse(raw.children, copy.id ?? parentId);
+                }
+            }
+        };
+
+        recurse(items, undefined);
+
+        // Build map by id and attach children by parent_id
+        const map = new Map<number, any>();
+        flat.forEach((it: any) => map.set(Number(it.id), { ...it, children: [] }));
+        const roots: any[] = [];
+        map.forEach((it) => {
+            const pid = it.parent_id == null ? 0 : Number(it.parent_id);
+            if (!pid) roots.push(it);
+            else {
+                const parent = map.get(pid);
+                if (parent) parent.children.push(it);
+                else roots.push(it);
+            }
+        });
+
+        return roots;
+    }, []);
+
+    const fetchCategories = useCallback(async () => {
+        // If a fetch is already in-flight, reuse the same promise to avoid duplicate requests
+        if (catalogFetchPromiseRef.current) return catalogFetchPromiseRef.current;
+
+        const p = (async () => {
+            setCatalogLoading(true);
+            setCatalogError(null);
+            try {
+                // Request header categories from the API
+                const res = await fetch("https://admin.tvim.az/api/v1/product/categories?in_header=1");
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                const items = Array.isArray(json.data) ? json.data : Array.isArray(json.items) ? json.items : Array.isArray(json) ? json : [];
+                // server-side may not filter; prefer items with in_header, but fall back
+                // to the full list if none are marked for header so the dropdown isn't empty.
+                const filtered = (items as any[]).filter((it) => !!it && (it.in_header === true || it.in_header === 1 || it.in_header === '1' || it.in_header === 'true'));
+                const finalItems = filtered.length > 0 ? filtered : (items as any[]);
+                setCatalogItems(finalItems as any[]);
+                return finalItems as any[];
+            } catch (err: any) {
+                setCatalogError(err?.message ?? String(err));
+                throw err;
+            } finally {
+                setCatalogLoading(false);
+                setCatalogFetched(true);
+                // clear the in-flight promise so future fetches can be made if needed
+                catalogFetchPromiseRef.current = null;
+            }
+        })();
+
+        catalogFetchPromiseRef.current = p;
+        return p;
+    }, []);
+
+    const toggleCatalog = useCallback(() => {
+        setIsCatalogOpen((prev) => {
+            const next = !prev;
+            if (next && catalogItems.length === 0 && !catalogLoading) {
+                void fetchCategories();
+            }
+            return next;
+        });
+    }, [catalogItems.length, catalogLoading, fetchCategories]);
+
+    useEffect(() => {
+        if (!isCatalogOpen) return;
+        function onDocClick(e: MouseEvent) {
+            if (catalogRef.current && !catalogRef.current.contains(e.target as Node)) setIsCatalogOpen(false);
+        }
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape") setIsCatalogOpen(false);
+        }
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onKey);
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [isCatalogOpen]);
+
     return (
         <header data-slot="navbar" className={cn(navbarClasses.root, className)}>
             <div className={navbarClasses.container}>
@@ -410,7 +531,72 @@ export function Navbar({
                 </div>
 
                 <div className={navbarClasses.bottomRow}>
-                    <CatalogButton />
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={toggleCatalog}
+                            aria-haspopup="true"
+                            aria-expanded={isCatalogOpen}
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
+                        >
+                            <Grid2X2 className="size-[15px] lg:size-4" />
+                            Kataloq
+                            <ChevronDown className="size-[15px] lg:size-4" />
+                        </button>
+
+                        {isCatalogOpen && (
+                            <div
+                                ref={catalogRef}
+                                role="menu"
+                                aria-hidden={!isCatalogOpen}
+                                className="absolute left-0 top-full z-50 mt-2 w-[880px] max-w-[calc(100vw-32px)] rounded-xl border border-[#e6e9f0] bg-white p-4 shadow-[0_10px_24px_rgba(17,24,39,0.12)]"
+                            >
+                                {catalogLoading ? (
+                                    <div className="py-6 text-center text-sm text-[#6b7280]">Yüklənir…</div>
+                                ) : catalogError ? (
+                                    <div className="py-6 text-center text-sm text-red-500">Xəta: {catalogError}</div>
+                                ) : catalogItems && catalogItems.length > 0 ? (
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {buildTree(catalogItems).map((cat: any) => (
+                                            <div key={cat.id} className="min-w-0">
+                                                <a
+                                                    href={`/${(locale || "az").toLowerCase()}/${(cat.multi_links && cat.multi_links[(locale || "az").toLowerCase()]) || cat.link || ""}`}
+                                                    className="flex items-center gap-3 rounded-md px-2 py-1 hover:bg-[#f3f4f6]"
+                                                >
+                                                    {cat.icon?.image_url ? (
+                                                        <img src={cat.icon.image_url} alt={cat.name ?? ""} className="h-8 w-8 object-cover rounded" />
+                                                    ) : (
+                                                        <Grid2X2 className="size-[18px] text-[#475066]" />
+                                                    )}
+                                                    <span className="font-semibold text-sm text-[#131722]">{cat.name ?? cat.title ?? cat.link}</span>
+                                                </a>
+
+                                                {Array.isArray(cat.children) && cat.children.length > 0 && (
+                                                    <ul className="mt-2 space-y-1 text-sm text-[#475066]">
+                                                        {cat.children.map((child: any) => (
+                                                            <li key={child.id}>
+                                                                <a
+                                                                    href={`/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`}
+                                                                    className="block rounded px-2 py-1 hover:bg-[#f3f4f6]"
+                                                                >
+                                                                    {child.name ?? child.title ?? child.link}
+                                                                </a>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    // Only show "no catalog" after we've attempted a fetch
+                                    catalogFetched ? (
+                                        <div className="py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
+                                    ) : null
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <NavbarMenu menuItems={menuItems} />
                     <NavbarActions />
                 </div>
