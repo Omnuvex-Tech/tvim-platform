@@ -21,8 +21,8 @@ import { cn } from "../../lib/utils";
 const navbarClasses = {
     root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)]",
     container: "mx-auto flex w-full max-w-[1280px] flex-col",
-    topRow: "flex items-center gap-1.5 py-3.5 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-5",
-    bottomRow: "hidden items-center gap-5 py-2.5 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
+    topRow: "flex items-center gap-1.5 pt-5 pb-3 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-5",
+    bottomRow: "hidden items-center gap-5 py-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
 };
 
 export interface NavbarMenuItem {
@@ -72,7 +72,7 @@ function toWhatsappHref(phone: string) {
 }
 
 function PhoneHandsetIcon() {
-    return <PhoneCall className="size-[18px] text-[#12151D] stroke-[2.5]" />;
+    return <i className="fas fa-phone-volume size-[18px] text-[#12151D]" aria-hidden="true" />;
 }
 
 function LocaleFlag({ country }: { country: string }) {
@@ -112,8 +112,8 @@ function LocaleFlag({ country }: { country: string }) {
 
 function NavbarLogo({ logo, logoHref = "#" }: { logo?: ReactNode; logoHref?: string }) {
     return (
-        <a href={logoHref} className="flex min-w-0 flex-1 items-center gap-2 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-2.5">
-            <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-8 [&_img]:w-auto [&_img]:max-w-[110px] sm:[&_img]:h-10 sm:[&_img]:max-w-[145px] lg:[&_img]:h-14 lg:[&_img]:max-w-none">
+        <a href={logoHref} className="flex min-w-0 flex-1 items-center gap-1 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-1">
+            <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                 {logo ?? null}
             </span>
             <span className="hidden text-[14px] leading-none font-normal whitespace-nowrap text-[#616672] sm:inline">
@@ -124,22 +124,43 @@ function NavbarLogo({ logo, logoHref = "#" }: { logo?: ReactNode; logoHref?: str
 }
 
 function NavbarSearch({ searchPlaceholder, compact = false }: { searchPlaceholder: string; compact?: boolean }) {
+    const [value, setValue] = useState("");
+
+    const overlayVisible = value.length === 0;
+
     return (
-        <div className="relative min-w-0 flex-1 lg:mx-auto lg:w-full lg:max-w-[470px]">
+        <div className="relative min-w-0 flex-1 lg:mx-auto lg:w-full lg:max-w-[470px] group">
             <input
                 type="text"
-                placeholder={searchPlaceholder}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                aria-label={searchPlaceholder}
+                placeholder=""
                 className={cn(
-                    "w-full text-[#343943] outline-none placeholder:text-[#8a91a0]",
+                    "w-full text-[#343943] outline-none focus:ring-1 focus:ring-[rgba(0,0,0,0.24)] focus:ring-offset-0 focus:outline-none transition-shadow duration-150 ease-out",
                     compact
-                        ? "h-9 rounded-[12px] bg-white pl-4 pr-9 text-[13px]"
-                        : "h-12 rounded-full bg-[#eef2f9] pl-5 pr-10 text-[14px]"
+                        ? "h-12 rounded-[20px] bg-[#ecf4fc] px-[28px] py-0 text-[13px]"
+                        : "h-12 rounded-[20px] bg-[#ecf4fc] px-[28px] py-0 text-[14px]"
                 )}
             />
-            <Search className={cn(
-                "pointer-events-none absolute top-1/2 -translate-y-1/2 text-[#8b91a0]",
-                compact ? "right-3 size-[14px]" : "right-3.5 size-[16px]"
-            )} />
+
+            <span
+                className={cn(
+                    "pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-[#8b91a0] transition-opacity duration-200 ease-out",
+                    compact ? "text-[13px]" : "text-[14px]",
+                    overlayVisible ? "opacity-100" : "opacity-0",
+                    "group-focus-within:opacity-0"
+                )}
+            >
+                {searchPlaceholder}
+            </span>
+
+            <Search
+                className={cn(
+                    "pointer-events-none absolute top-1/2 -translate-y-1/2 text-[#8b91a0]",
+                    compact ? "right-[28px] size-[14px]" : "right-[28px] size-[16px]"
+                )}
+            />
         </div>
     );
 }
@@ -635,7 +656,7 @@ export function Navbar({
                         className="flex min-w-0 items-center"
                         onClick={() => setIsMobileMenuOpen(false)}
                     >
-                        <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-9 [&_img]:w-auto [&_img]:max-w-[135px]">
+                        <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                             {logo ?? null}
                         </span>
                     </a>
