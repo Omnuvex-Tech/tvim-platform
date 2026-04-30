@@ -2,14 +2,24 @@
 
 import { type ReactNode, useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
+    Boxes,
+    Briefcase,
     ChevronDown,
+    Droplets,
     GitCompareArrows,
     Grid2X2,
+    Hammer,
     Heart,
+    House,
+    Lightbulb,
     Menu,
+    Package,
+    Paintbrush,
     Search,
     ShoppingCart,
+    TreePine,
     UserRound,
+    Wrench,
     PhoneCall,
     X,
 } from "lucide-react";
@@ -69,6 +79,32 @@ function sanitizePhone(phone: string) {
 
 function toWhatsappHref(phone: string) {
     return `https://wa.me/${sanitizePhone(phone).replace(/^\+/, "")}`;
+}
+
+function getParentIcon(name: string) {
+    const normalized = name.toLocaleLowerCase("az");
+
+    if (normalized.includes("santex")) return Droplets;
+    if (normalized.includes("avadan")) return Wrench;
+    if (normalized.includes("bağ") || normalized.includes("bag")) return TreePine;
+    if (normalized.includes("boya") || normalized.includes("kimyə")) return Paintbrush;
+    if (normalized.includes("bərkid") || normalized.includes("berkid")) return Package;
+    if (normalized.includes("elektr") || normalized.includes("işıq") || normalized.includes("isiq")) return Lightbulb;
+    if (normalized.includes("məişət") || normalized.includes("meiset")) return House;
+    if (normalized.includes("ofis")) return Briefcase;
+    if (normalized.includes("tikinti") || normalized.includes("material")) return Boxes;
+    if (normalized.includes("əl alət") || normalized.includes("el alet")) return Hammer;
+
+    return Grid2X2;
+}
+
+function ParentCategoryIcon({ category }: { category: any }) {
+    if (category?.icon?.image_url) {
+        return <img src={category.icon.image_url} alt={category.name ?? ""} className="h-4 w-4 shrink-0 object-cover" />;
+    }
+
+    const Icon = getParentIcon(category?.name ?? category?.title ?? category?.link ?? "");
+    return <Icon className="size-[16px] shrink-0 text-[#171717]" strokeWidth={2.2} />;
 }
 
 function PhoneHandsetIcon() {
@@ -341,6 +377,7 @@ export function Navbar({
     const [catalogError, setCatalogError] = useState<string | null>(null);
     const [catalogItems, setCatalogItems] = useState<any[]>([]);
     const [catalogFetched, setCatalogFetched] = useState(false);
+    const [activeParentId, setActiveParentId] = useState<number | null>(null);
     const catalogRef = useRef<HTMLDivElement | null>(null);
     const catalogFetchPromiseRef = useRef<Promise<any[]> | null>(null);
 
@@ -408,14 +445,17 @@ export function Navbar({
                 const res = await fetch("https://admin.tvim.az/api/v1/product/categories?in_header=1");
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
+                console.log("[Navbar] categories API response:", json);
                 const items = Array.isArray(json.data) ? json.data : Array.isArray(json.items) ? json.items : Array.isArray(json) ? json : [];
                 // server-side may not filter; prefer items with in_header, but fall back
                 // to the full list if none are marked for header so the dropdown isn't empty.
                 const filtered = (items as any[]).filter((it) => !!it && (it.in_header === true || it.in_header === 1 || it.in_header === '1' || it.in_header === 'true'));
                 const finalItems = filtered.length > 0 ? filtered : (items as any[]);
+                console.log("[Navbar] categories items (final):", finalItems);
                 setCatalogItems(finalItems as any[]);
                 return finalItems as any[];
             } catch (err: any) {
+                console.error("[Navbar] categories API error:", err);
                 setCatalogError(err?.message ?? String(err));
                 throw err;
             } finally {
@@ -455,6 +495,26 @@ export function Navbar({
             document.removeEventListener("keydown", onKey);
         };
     }, [isCatalogOpen]);
+
+    const catalogTree = useMemo(() => buildTree(catalogItems), [buildTree, catalogItems]);
+    const rootCategories = useMemo(() => catalogTree.filter((cat: any) => !cat.parent_id || Number(cat.parent_id) === 0), [catalogTree]);
+
+    useEffect(() => {
+        if (rootCategories.length === 0) {
+            setActiveParentId(null);
+            return;
+        }
+
+        if (activeParentId == null || !rootCategories.some((cat: any) => Number(cat.id) === Number(activeParentId))) {
+            setActiveParentId(Number(rootCategories[0]?.id));
+        }
+    }, [rootCategories, activeParentId]);
+
+    const activeParent = useMemo(
+        () => rootCategories.find((cat: any) => Number(cat.id) === Number(activeParentId)) ?? rootCategories[0],
+        [rootCategories, activeParentId]
+    );
+    const activeParentChildren = Array.isArray(activeParent?.children) ? activeParent.children : [];
 
     return (
         <header data-slot="navbar" className={cn(navbarClasses.root, className)}>
@@ -570,49 +630,89 @@ export function Navbar({
                                 ref={catalogRef}
                                 role="menu"
                                 aria-hidden={!isCatalogOpen}
-                                className="absolute left-0 top-full z-50 mt-2 w-[880px] max-w-[calc(100vw-32px)] rounded-xl border border-[#e6e9f0] bg-white p-4 shadow-[0_10px_24px_rgba(17,24,39,0.12)]"
+                                className="absolute left-0 top-full z-50 mt-2 h-[560px] w-[1280px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[6px] border-y border-[#dfe3eb] bg-white shadow-[0_10px_24px_rgba(17,24,39,0.10)]"
                             >
                                 {catalogLoading ? (
                                     <div className="py-6 text-center text-sm text-[#6b7280]">Yüklənir…</div>
                                 ) : catalogError ? (
                                     <div className="py-6 text-center text-sm text-red-500">Xəta: {catalogError}</div>
-                                ) : catalogItems && catalogItems.length > 0 ? (
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {buildTree(catalogItems).map((cat: any) => (
-                                            <div key={cat.id} className="min-w-0">
-                                                <a
-                                                    href={`/${(locale || "az").toLowerCase()}/${(cat.multi_links && cat.multi_links[(locale || "az").toLowerCase()]) || cat.link || ""}`}
-                                                    className="flex items-center gap-3 rounded-md px-2 py-1 hover:bg-[#f3f4f6]"
-                                                >
-                                                    {cat.icon?.image_url ? (
-                                                        <img src={cat.icon.image_url} alt={cat.name ?? ""} className="h-8 w-8 object-cover rounded" />
-                                                    ) : (
-                                                        <Grid2X2 className="size-[18px] text-[#475066]" />
-                                                    )}
-                                                    <span className="font-semibold text-sm text-[#131722]">{cat.name ?? cat.title ?? cat.link}</span>
-                                                </a>
+                                ) : rootCategories.length > 0 ? (
+                                    <div className="grid h-full grid-cols-[380px_1fr]">
+                                        <div className="h-full overflow-y-auto bg-white">
+                                            <ul className="divide-y divide-[#e5e7eb]">
+                                                {rootCategories.map((parent: any) => {
+                                                    const isActive = Number(parent.id) === Number(activeParent?.id);
+                                                    return (
+                                                        <li key={parent.id}>
+                                                            <button
+                                                                type="button"
+                                                                onMouseEnter={() => setActiveParentId(Number(parent.id))}
+                                                                onClick={() => setActiveParentId(Number(parent.id))}
+                                                                className={cn(
+                                                                    "flex h-[52px] w-full items-center justify-between gap-3 px-5 text-left text-[14px] font-semibold transition-colors",
+                                                                    isActive ? "bg-white text-[#161b25]" : "bg-white text-[#161b25] hover:bg-[#fafbfc]"
+                                                                )}
+                                                            >
+                                                                <span className="flex min-w-0 items-center gap-3">
+                                                                    <ParentCategoryIcon category={parent} />
+                                                                    <span className="truncate">{parent.name ?? parent.title ?? parent.link}</span>
+                                                                </span>
+                                                                <ChevronDown
+                                                                    className={cn(
+                                                                        "size-[14px] shrink-0 text-[#1a1f2b] transition-transform duration-150",
+                                                                        isActive ? "-rotate-90" : "rotate-0"
+                                                                    )}
+                                                                />
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
 
-                                                {Array.isArray(cat.children) && cat.children.length > 0 && (
-                                                    <ul className="mt-2 space-y-1 text-sm text-[#475066]">
-                                                        {cat.children.map((child: any) => (
-                                                            <li key={child.id}>
-                                                                <a
-                                                                    href={`/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`}
-                                                                    className="block rounded px-2 py-1 hover:bg-[#f3f4f6]"
-                                                                >
-                                                                    {child.name ?? child.title ?? child.link}
-                                                                </a>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                )}
-                                            </div>
-                                        ))}
+                                        <div className="h-full overflow-y-auto bg-white">
+                                            {activeParentChildren.length > 0 ? (
+                                                <div className="grid grid-cols-5 gap-1 px-2">
+                                                    {activeParentChildren.map((child: any) => (
+                                                        <div key={child.id} className="min-w-0 px-4 py-4">
+                                                            <a
+                                                                href={`/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`}
+                                                                className="flex min-h-[44px] items-start gap-2 rounded-md px-2 py-1 hover:bg-[#f5f7fa]"
+                                                            >
+                                                                {child.icon?.image_url ? (
+                                                                    <img src={child.icon.image_url} alt={child.name ?? ""} className="mt-0.5 h-7 w-7 shrink-0 object-cover rounded" />
+                                                                ) : (
+                                                                    <Grid2X2 className="mt-0.5 size-[16px] shrink-0 text-[#475066]" />
+                                                                )}
+                                                                <span className="block text-[15px] leading-[1.2] font-semibold text-[#131722]">{child.name ?? child.title ?? child.link}</span>
+                                                            </a>
+
+                                                            {Array.isArray(child.children) && child.children.length > 0 && (
+                                                                <ul className="mt-2 space-y-1.5 pl-2 text-[14px] leading-[1.3] text-[#5a6475]">
+                                                                    {child.children.map((subChild: any) => (
+                                                                        <li key={subChild.id}>
+                                                                            <a
+                                                                                href={`/${(locale || "az").toLowerCase()}/${(subChild.multi_links && subChild.multi_links[(locale || "az").toLowerCase()]) || subChild.link || ""}`}
+                                                                                className="block rounded px-2 py-0.5 hover:bg-[#f5f7fa]"
+                                                                            >
+                                                                                {subChild.name ?? subChild.title ?? subChild.link}
+                                                                            </a>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="px-5 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
+                                            )}
+                                        </div>
                                     </div>
                                 ) : (
                                     // Only show "no catalog" after we've attempted a fetch
                                     catalogFetched ? (
-                                        <div className="py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
+                                        <div className="px-5 py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
                                     ) : null
                                 )}
                             </div>
