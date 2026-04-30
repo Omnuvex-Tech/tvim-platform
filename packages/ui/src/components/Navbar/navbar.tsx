@@ -1,13 +1,14 @@
 "use client";
 
-import { type ReactNode, useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { type ReactNode, useMemo, useState, useEffect, useRef, useCallback, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import {
     Boxes,
     Briefcase,
-    ChevronDown,
     Droplets,
     GitCompareArrows,
     Grid2X2,
+    ChevronDown,
     Hammer,
     Heart,
     House,
@@ -27,6 +28,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
+import Spinner from "../Spinner/Spinner";
 
 const navbarClasses = {
     root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)]",
@@ -289,15 +291,25 @@ function NavbarContact({
     );
 }
 
-function CatalogButton() {
+function CatalogButton({ open = false, onClick, toggleRef }: { open?: boolean; onClick?: () => void; toggleRef?: RefObject<HTMLButtonElement | null> }) {
     return (
         <button
             type="button"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
+            ref={toggleRef}
+            onClick={onClick}
+            aria-haspopup="true"
+            aria-expanded={open}
+            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
         >
             <Grid2X2 className="size-[15px] lg:size-4" />
             Kataloq
-            <ChevronDown className="size-[15px] lg:size-4" />
+                <ChevronDown
+                    className={cn(
+                        "size-[16px] lg:size-5 transform transition-transform duration-200 text-[#000000] opacity-80",
+                        open ? "rotate-180" : "rotate-0"
+                    )}
+                    strokeWidth={2.2}
+                />
         </button>
     );
 }
@@ -379,6 +391,11 @@ export function Navbar({
     const [catalogFetched, setCatalogFetched] = useState(false);
     const [activeParentId, setActiveParentId] = useState<number | null>(null);
     const catalogRef = useRef<HTMLDivElement | null>(null);
+    const catalogToggleRef = useRef<HTMLButtonElement | null>(null);
+    const mobileCatalogToggleRef = useRef<HTMLButtonElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [catalogPortalPos, setCatalogPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [catalogOverlayTop, setCatalogOverlayTop] = useState<number | null>(null);
     const catalogFetchPromiseRef = useRef<Promise<any[]> | null>(null);
 
     const buildTree = useCallback((items: any[]) => {
@@ -483,7 +500,16 @@ export function Navbar({
     useEffect(() => {
         if (!isCatalogOpen) return;
         function onDocClick(e: MouseEvent) {
-            if (catalogRef.current && !catalogRef.current.contains(e.target as Node)) setIsCatalogOpen(false);
+            const target = e.target as Node;
+
+            // If click happened inside the catalog dropdown, ignore
+            if (catalogRef.current && catalogRef.current.contains(target)) return;
+
+            // If click happened on the catalog toggle button (desktop or mobile), ignore
+            if (catalogToggleRef.current && catalogToggleRef.current.contains(target)) return;
+            if (mobileCatalogToggleRef.current && mobileCatalogToggleRef.current.contains(target)) return;
+
+            setIsCatalogOpen(false);
         }
         function onKey(e: KeyboardEvent) {
             if (e.key === "Escape") setIsCatalogOpen(false);
@@ -516,9 +542,93 @@ export function Navbar({
     );
     const activeParentChildren = Array.isArray(activeParent?.children) ? activeParent.children : [];
 
+    const renderCatalogChild = (child: any) => {
+        const childHref = `/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`;
+
+        return (
+            <div key={child.id} className="min-w-0 p-0">
+                <div className="flex items-start gap-3 px-0 py-3 rounded-md h-full">
+                    <div className="flex-shrink-0 h-14 w-14 overflow-hidden rounded-md p-0 flex items-center justify-center">
+                        {child.icon && child.icon.image_url ? (
+                            <img src={child.icon.image_url} alt={child.name ?? ""} className="h-full w-full object-cover object-top" />
+                        ) : null}
+                    </div>
+
+                    <div className="min-w-0 flex-1 flex flex-col justify-start pt-1">
+                        <a href={childHref} className="text-[13.3px] leading-[1.2] font-bold text-[#131722] whitespace-normal break-words transition-colors duration-100 hover:text-[#00a9c8]">
+                            {child.name ?? child.title ?? child.link}
+                        </a>
+
+                        {Array.isArray(child.children) && child.children.length > 0 && (
+                            <ul className="mt-2 space-y-1 pl-0 text-[14px] leading-[1.3] text-[#5a6475]">
+                                {child.children.map((subChild: any) => (
+                                    <li key={subChild.id}>
+                                        <a
+                                            href={`/${(locale || "az").toLowerCase()}/${(subChild.multi_links && subChild.multi_links[(locale || "az").toLowerCase()]) || subChild.link || ""}`}
+                                            className="block rounded px-0 py-0.5 whitespace-normal break-words text-[13.3px] hover:underline transition-colors duration-75"
+                                            style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                        >
+                                            {subChild.name ?? subChild.title ?? subChild.link}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    useEffect(() => {
+        if (!isCatalogOpen) {
+            setCatalogPortalPos(null);
+            setCatalogOverlayTop(null);
+            return;
+        }
+
+        const update = () => {
+            // Prefer visible toggle button as anchor (mobile or desktop), fallback to container
+            const desktopAnchor = catalogToggleRef.current;
+            const mobileAnchor = mobileCatalogToggleRef.current;
+            let anchorEl: Element | null = null;
+
+            if (mobileAnchor && mobileAnchor.offsetParent !== null) anchorEl = mobileAnchor;
+            else if (desktopAnchor && desktopAnchor.offsetParent !== null) anchorEl = desktopAnchor;
+            else anchorEl = containerRef.current;
+
+            if (!anchorEl) return;
+
+            const rect = (anchorEl as Element).getBoundingClientRect();
+            const dropdownWidth = Math.min(1280, window.innerWidth - 24);
+            const margin = 12;
+
+            // align dropdown left edge with anchor button's left edge
+            let left = rect.left;
+            left = Math.max(margin, Math.min(left, window.innerWidth - dropdownWidth - margin));
+
+            const containerRect = containerRef.current?.getBoundingClientRect();
+            // anchor the dropdown top to the navbar/container bottom so it visually joins navbar border
+            const top = containerRect ? containerRect.bottom : rect.bottom;
+
+            const overlayTop = containerRect ? containerRect.bottom : rect.bottom;
+
+            setCatalogPortalPos({ top, left, width: dropdownWidth });
+            setCatalogOverlayTop(overlayTop);
+        };
+
+        update();
+        window.addEventListener("resize", update);
+        window.addEventListener("scroll", update, { passive: true });
+        return () => {
+            window.removeEventListener("resize", update);
+            window.removeEventListener("scroll", update);
+        };
+    }, [isCatalogOpen]);
+
     return (
         <header data-slot="navbar" className={cn(navbarClasses.root, className)}>
-            <div className={navbarClasses.container}>
+            <div className={navbarClasses.container} ref={containerRef}>
                 <div className={navbarClasses.topRow}>
                     <NavbarLogo logo={logo} logoHref={logoHref} />
                     <div className="hidden lg:block">
@@ -613,110 +723,105 @@ export function Navbar({
 
                 <div className={navbarClasses.bottomRow}>
                     <div className="relative">
-                        <button
-                            type="button"
-                            onClick={toggleCatalog}
-                            aria-haspopup="true"
-                            aria-expanded={isCatalogOpen}
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
-                        >
-                            <Grid2X2 className="size-[15px] lg:size-4" />
-                            Kataloq
-                            <ChevronDown className="size-[15px] lg:size-4" />
-                        </button>
+                        <CatalogButton open={isCatalogOpen} onClick={toggleCatalog} toggleRef={catalogToggleRef} />
 
-                        {isCatalogOpen && (
-                            <div
-                                ref={catalogRef}
-                                role="menu"
-                                aria-hidden={!isCatalogOpen}
-                                className="absolute left-0 top-full z-50 mt-2 h-[560px] w-[1280px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[6px] border-y border-[#dfe3eb] bg-white shadow-[0_10px_24px_rgba(17,24,39,0.10)]"
-                            >
-                                {catalogLoading ? (
-                                    <div className="py-6 text-center text-sm text-[#6b7280]">Yüklənir…</div>
-                                ) : catalogError ? (
-                                    <div className="py-6 text-center text-sm text-red-500">Xəta: {catalogError}</div>
-                                ) : rootCategories.length > 0 ? (
-                                    <div className="grid h-full grid-cols-[380px_1fr]">
-                                        <div className="h-full overflow-y-auto bg-white">
-                                            <ul className="divide-y divide-[#e5e7eb]">
-                                                {rootCategories.map((parent: any) => {
-                                                    const isActive = Number(parent.id) === Number(activeParent?.id);
-                                                    return (
-                                                        <li key={parent.id}>
-                                                            <button
-                                                                type="button"
-                                                                onMouseEnter={() => setActiveParentId(Number(parent.id))}
-                                                                onClick={() => setActiveParentId(Number(parent.id))}
-                                                                className={cn(
-                                                                    "flex h-[52px] w-full items-center justify-between gap-3 px-5 text-left text-[14px] font-semibold transition-colors",
-                                                                    isActive ? "bg-white text-[#161b25]" : "bg-white text-[#161b25] hover:bg-[#fafbfc]"
-                                                                )}
-                                                            >
-                                                                <span className="flex min-w-0 items-center gap-3">
+                        {isCatalogOpen && catalogOverlayTop !== null && typeof document !== "undefined"
+                            ? createPortal(
+                                  <div
+                                      role="presentation"
+                                      onClick={() => setIsCatalogOpen(false)}
+                                      style={{
+                                          position: "fixed",
+                                          top: `${catalogOverlayTop}px`,
+                                          left: 0,
+                                          right: 0,
+                                          bottom: 0,
+                                          background: "rgba(0,0,0,0.55)",
+                                          zIndex: 1040,
+                                      }}
+                                      className="transition-opacity duration-200"
+                                  />,
+                                  document.body
+                              )
+                            : null}
+
+                        {isCatalogOpen && catalogPortalPos !== null && typeof document !== "undefined"
+                            ? createPortal(
+                                  <div
+                                      ref={catalogRef}
+                                      role="menu"
+                                      aria-hidden={!isCatalogOpen}
+                                      style={{
+                                          position: "fixed",
+                                          top: `${catalogPortalPos.top}px`,
+                                          left: `${catalogPortalPos.left}px`,
+                                          width: `${catalogPortalPos.width}px`,
+                                          transform: "none",
+                                          zIndex: 1050,
+                                      }}
+                                      className="h-[560px] overflow-hidden border border-[#dfe3eb] border-t-0 bg-white shadow-[0_-10px_24px_rgba(17,24,39,0.10)]"
+                                  >
+                                      {catalogLoading ? (
+                                          <div className="h-full flex items-center justify-center">
+                                                <Spinner size={30} strokeWidth={1.5} className="text-black" />
+                                          </div>
+                                      ) : catalogError ? (
+                                          <div className="py-6 text-center text-sm text-red-500">Xəta: {catalogError}</div>
+                                      ) : rootCategories.length > 0 ? (
+                                          <div className="grid h-full grid-cols-[300px_1fr]">
+                                              <div className="h-full overflow-y-auto bg-white">
+                                                  <ul className="divide-y divide-[#e5e7eb]">
+                                                      {rootCategories.map((parent: any) => {
+                                                          const isActive = Number(parent.id) === Number(activeParent?.id);
+                                                          return (
+                                                              <li key={parent.id}>
+                                                                <button
+                                                                    type="button"
+                                                                    onMouseEnter={() => setActiveParentId(Number(parent.id))}
+                                                                    onClick={() => setActiveParentId(Number(parent.id))}
+                                                                    className={cn(
+                                                                        "flex h-[52px] w-full items-center justify-between gap-3 px-5 text-left text-[13.3px] font-medium transition-colors cursor-pointer",
+                                                                        isActive ? "bg-white text-[#161b25]" : "bg-white text-[#161b25] hover:bg-[#fafbfc]"
+                                                                    )}
+                                                                >
+                                                                    <span className="flex min-w-0 items-center gap-3">
                                                                     <ParentCategoryIcon category={parent} />
                                                                     <span className="truncate">{parent.name ?? parent.title ?? parent.link}</span>
                                                                 </span>
-                                                                <ChevronDown
-                                                                    className={cn(
-                                                                        "size-[14px] shrink-0 text-[#1a1f2b] transition-transform duration-150",
-                                                                        isActive ? "-rotate-90" : "rotate-0"
-                                                                    )}
-                                                                />
-                                                            </button>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        </div>
+                                                                      <ChevronDown
+                                                                          className={cn(
+                                                                              "size-[14px] shrink-0 text-[#1a1f2b] transition-transform duration-150",
+                                                                              isActive ? "-rotate-90" : "rotate-0"
+                                                                          )}
+                                                                          strokeWidth={2}
+                                                                      />
+                                                                  </button>
+                                                              </li>
+                                                          );
+                                                      })}
+                                                  </ul>
+                                              </div>
 
-                                        <div className="h-full overflow-y-auto bg-white">
-                                            {activeParentChildren.length > 0 ? (
-                                                <div className="grid grid-cols-5 gap-1 px-2">
-                                                    {activeParentChildren.map((child: any) => (
-                                                        <div key={child.id} className="min-w-0 px-4 py-4">
-                                                            <a
-                                                                href={`/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`}
-                                                                className="flex min-h-[44px] items-start gap-2 rounded-md px-2 py-1 hover:bg-[#f5f7fa]"
-                                                            >
-                                                                {child.icon?.image_url ? (
-                                                                    <img src={child.icon.image_url} alt={child.name ?? ""} className="mt-0.5 h-7 w-7 shrink-0 object-cover rounded" />
-                                                                ) : (
-                                                                    <Grid2X2 className="mt-0.5 size-[16px] shrink-0 text-[#475066]" />
-                                                                )}
-                                                                <span className="block text-[15px] leading-[1.2] font-semibold text-[#131722]">{child.name ?? child.title ?? child.link}</span>
-                                                            </a>
-
-                                                            {Array.isArray(child.children) && child.children.length > 0 && (
-                                                                <ul className="mt-2 space-y-1.5 pl-2 text-[14px] leading-[1.3] text-[#5a6475]">
-                                                                    {child.children.map((subChild: any) => (
-                                                                        <li key={subChild.id}>
-                                                                            <a
-                                                                                href={`/${(locale || "az").toLowerCase()}/${(subChild.multi_links && subChild.multi_links[(locale || "az").toLowerCase()]) || subChild.link || ""}`}
-                                                                                className="block rounded px-2 py-0.5 hover:bg-[#f5f7fa]"
-                                                                            >
-                                                                                {subChild.name ?? subChild.title ?? subChild.link}
-                                                                            </a>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="px-5 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    // Only show "no catalog" after we've attempted a fetch
-                                    catalogFetched ? (
-                                        <div className="px-5 py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
-                                    ) : null
-                                )}
-                            </div>
-                        )}
+                                              <div className="h-full overflow-y-auto bg-white">
+                                                {activeParentChildren.length > 0 ? (
+                                                          <div className="grid grid-cols-4 gap-2 px-0">
+                                                              {activeParentChildren.map((child: any) => renderCatalogChild(child))}
+                                                          </div>
+                                                  ) : (
+                                                      <div className="px-5 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      ) : (
+                                          // Only show "no catalog" after we've attempted a fetch
+                                          catalogFetched ? (
+                                              <div className="px-5 py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
+                                          ) : null
+                                      )}
+                                  </div>,
+                                  document.body
+                                                            )
+                                                        : null}
                     </div>
                     <NavbarMenu menuItems={menuItems} />
                     <NavbarActions />
@@ -725,11 +830,15 @@ export function Navbar({
                 <div className="mt-1 flex items-center gap-2 bg-[#f4f5f7] px-2 py-2.5 lg:hidden">
                     <button
                         type="button"
+                        ref={mobileCatalogToggleRef}
+                        onClick={toggleCatalog}
+                        aria-haspopup="true"
+                        aria-expanded={isCatalogOpen}
                         className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1 rounded-[10px] bg-[#ffd500] px-3 text-[13px] font-medium text-[#171717]"
                     >
                         <Grid2X2 className="size-[14px]" />
                         Kataloq
-                        <ChevronDown className="size-[14px]" />
+                        <ChevronDown className={cn("size-[14px] transform transition-transform duration-200", isCatalogOpen ? "rotate-180" : "rotate-0")} strokeWidth={2} />
                     </button>
                     <NavbarSearch searchPlaceholder={searchPlaceholder} compact />
                 </div>
