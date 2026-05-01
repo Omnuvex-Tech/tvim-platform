@@ -34,5 +34,6 @@ export const endpoints = {
         list: "/products",
         detail: (slug: string) => `/products/${slug}`,
         categories: "/categories",
+        headerCategories: "/product/categories",
     },
 } as const;
