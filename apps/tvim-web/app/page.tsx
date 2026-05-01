@@ -10,7 +10,6 @@ import { BenefitsStrip } from "./components/BenefitsStrip/benefits-strip";
 import { CompanyCarousel } from "@repo/ui";
 import mitreapelLogo from "../public/images/mitreapel-logo.jpg";
 import { toHref } from "@repo/shared/utils";
-import type { NavbarMenuItem } from "@repo/ui";
 import { SpecialDiscountsStrip } from "./components/SpecialDiscountsStrip/special-discounts-strip";
 import { SelectedForYouStrip } from "./components/SelectedForYouStrip/selected-for-you-strip";
 import { LatestProductsStrip } from "./components/LatestProductsStrip/latest-products-strip";
@@ -34,21 +33,6 @@ type MainPageBlock = {
     data?: any;
 };
 
-type NavbarCategoryItem = {
-    id?: number | string;
-    in_header?: boolean | number | string;
-    [key: string]: any;
-};
-
-type HeaderMenuRawItem = {
-    id?: number | string;
-    name?: string;
-    title?: string;
-    link?: string | null;
-    parent_id?: number | null;
-    in_header?: boolean | number | string;
-};
-
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -69,11 +53,6 @@ export default async function Home() {
         locale: siteDefaultLocale,
     });
 
-    const headerMenuResponse = await api.get<HeaderMenuRawItem[]>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale: siteDefaultLocale,
-    });
-
     const sliderResponse = await api.get<Slider[]>(config.endpoints.sliders.list, {
         locale: siteDefaultLocale,
     });
@@ -90,34 +69,9 @@ export default async function Home() {
         locale: siteDefaultLocale,
     });
 
-    const navbarCategoriesResponse = await api.get<NavbarCategoryItem[]>(config.endpoints.products.headerCategories, {
-        params: { in_header: "1" },
-        locale: siteDefaultLocale,
-    });
-
     const footerMenus =
         footerMenuResponse.success && footerMenuResponse.data
             ? footerMenuResponse.data.footer
-            : [];
-
-    const navbarMenuItems: NavbarMenuItem[] =
-        headerMenuResponse.success && Array.isArray(headerMenuResponse.data)
-            ? headerMenuResponse.data
-                  .filter((item) => !item?.parent_id)
-                  .map((item) => {
-                      const label = (item.name ?? item.title ?? "").trim();
-                      const link = (item.link ?? "").trim();
-
-                      if (!label || !link) {
-                          return null;
-                      }
-
-                      return {
-                          label,
-                          href: toHref(link),
-                      };
-                  })
-                  .filter(Boolean) as NavbarMenuItem[]
             : [];
 
     let projectSettings: ProjectSettingsData | undefined;
@@ -220,11 +174,6 @@ export default async function Home() {
     const specialDiscountItems = specialDiscountBlock?.data?.items ?? [];
     const selectedItems = selectedBlock?.data?.items ?? [];
     const latestItems = latestBlock?.data?.items ?? [];
-    const showSpecialDiscountLink = Boolean(specialDiscountBlock?.data?.block?.only_discount_products);
-    const navbarCategories =
-        navbarCategoriesResponse.success && Array.isArray(navbarCategoriesResponse.data)
-            ? navbarCategoriesResponse.data
-            : [];
 
     return (
             <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
@@ -233,8 +182,6 @@ export default async function Home() {
                     phone={navbarPhone} 
                     locale={siteDefaultLocale}
                     languages={langResponse.data}
-                    catalogItems={navbarCategories}
-                    menuItems={navbarMenuItems}
                 />
 
                 <HomeSlider slides={sliderResponse.data ?? []} />
@@ -247,7 +194,7 @@ export default async function Home() {
                     : undefined
                 } />
 
-                <SpecialDiscountsStrip items={specialDiscountItems} showLink={showSpecialDiscountLink} />
+                <SpecialDiscountsStrip items={specialDiscountItems} />
 
                 <SelectedForYouStrip items={selectedItems} />
 

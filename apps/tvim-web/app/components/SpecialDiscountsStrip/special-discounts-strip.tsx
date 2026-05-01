@@ -7,11 +7,10 @@ type ApiItem = any;
 
 type Props = {
     items?: ApiItem[];
-    showLink?: boolean;
 };
 
-const SpecialDiscountsStrip: React.FC<Props> = ({ items, showLink = true }) => {
-    return <ProductStrip variant="special" title="Xüsusi endirimlər" items={items} showSpecialDiscountLink={showLink} />;
+const SpecialDiscountsStrip: React.FC<Props> = ({ items }) => {
+    return <ProductStrip variant="special" title="Xüsusi endirimlər" items={items} />;
 };
 
 export { SpecialDiscountsStrip };
