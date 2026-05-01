@@ -24,6 +24,8 @@ export type FooterProps = {
     rightsText?: string;
     companyTitle?: string;
     customerTitle?: string;
+    categoryTitle?: string;
+    categoryLinks?: FooterLinkItem[];
     companyLinks?: FooterLinkItem[];
     customerLinks?: FooterLinkItem[];
     contacts?: FooterContactItem[];

@@ -35,6 +35,8 @@ const Footer = ({ footerMenus, footerSettings }: FooterComponentProps) => {
             customerTitle={dynamicSections.customerTitle}
             companyLinks={dynamicSections.companyLinks}
             customerLinks={dynamicSections.customerLinks}
+            categoryTitle={dynamicSections.categoryTitle}
+            categoryLinks={dynamicSections.categoryLinks}
             contacts={contacts}
             socials={socials}
         />

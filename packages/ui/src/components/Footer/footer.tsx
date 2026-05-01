@@ -16,8 +16,10 @@ const Footer = ({
     rightsText,
     companyTitle,
     customerTitle,
+    categoryTitle,
     companyLinks = [],
     customerLinks = [],
+    categoryLinks = [],
     contacts = [],
     socials = [],
     socialColorClasses = defaultSocialColorClasses,
@@ -28,13 +30,42 @@ const Footer = ({
             className={cn("w-full font-[family-name:var(--font-inter)] text-[#24262b]", className)}
         >
             <div className="mx-auto w-full max-w-[1280px] pt-10 pb-4">
-                <div className="grid gap-9 md:grid-cols-2 lg:grid-cols-[2.35fr_1fr_1.25fr_1.7fr] lg:gap-14">
+                <div className="grid gap-9 md:grid-cols-2 lg:grid-cols-[2.35fr_1.8fr_0.95fr_1.3fr_1.7fr] lg:gap-14">
                     <div className="space-y-6">
-                        {logo}
+                        <div className="flex items-end gap-0">
+                            <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
+                                {logo}
+                            </span>
+                            <span className="hidden text-[14px] leading-none font-normal whitespace-nowrap text-black sm:inline">
+                                Tikinti və inşaat materialları
+                            </span>
+                        </div>
+
+                        <p className="mt-2 text-[14px] font-normal text-[rgba(119,119,119,1)] leading-[20px] max-w-[500px]">
+                            Diqqət! Monitorun rəng göstərmə xüsusiyyətlərinə görə məhsulun öz rəngi saytdakı rəngindən fərqli ola bilər.
+                        </p>
+
                         {description ? (
                             <p className="max-w-[500px] text-[14px] leading-[1.35] text-[#61656c] font-normal">{description}</p>
                         ) : null}
                     </div>
+
+                    {categoryLinks.length > 0 ? (
+                        <div>
+                            <h3 className="text-[21px] font-bold leading-none">{categoryTitle}</h3>
+                            <div className="mt-4 pr-2">
+                                <ul className="space-y-2.5 text-[14px] font-medium text-[#272a30]">
+                                    {categoryLinks.map((item) => (
+                                        <li key={item.label}>
+                                            <a href={item.href} className="transition-colors hover:text-black">
+                                                {item.label}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    ) : null}
 
                     {companyLinks.length > 0 ? (
                         <div>
@@ -69,35 +100,35 @@ const Footer = ({
                     {contacts.length > 0 ? (
                         <div className="max-w-[280px] space-y-3 text-[14px] leading-[1.2] font-medium text-[#1f2329] sm:text-[15px]">
                             {contacts.map((item) => {
-                                const content = (
-                                    <>
-                                        {item.icon ? (
-                                            <span className="mt-0.5 flex size-[38px] shrink-0 items-center justify-center rounded-full border border-[#d6d9de] text-[#2f5dff]">
-                                                {item.icon}
-                                            </span>
-                                        ) : null}
-                                        <span>{item.label}</span>
-                                    </>
-                                );
+                                        const content = (
+                                            <>
+                                                {item.icon ? (
+                                                    <span className="mt-0.5 flex size-[38px] shrink-0 items-center justify-center rounded-full border border-[#d6d9de] text-[#2f5dff]">
+                                                        {item.icon}
+                                                    </span>
+                                                ) : null}
+                                                <span className="group-hover:underline">{item.label}</span>
+                                            </>
+                                        );
 
-                                if (item.href) {
-                                    return (
-                                        <a
-                                            key={item.label}
-                                            href={item.href}
-                                            className="flex items-center gap-3 transition-colors hover:text-black"
-                                        >
-                                            {content}
-                                        </a>
-                                    );
-                                }
+                                        if (item.href) {
+                                            return (
+                                                <a
+                                                    key={item.label}
+                                                    href={item.href}
+                                                    className="flex items-center gap-3 transition-colors hover:text-black group"
+                                                >
+                                                    {content}
+                                                </a>
+                                            );
+                                        }
 
-                                return (
-                                    <div key={item.label} className="flex items-start gap-3">
-                                        {content}
-                                    </div>
-                                );
-                            })}
+                                        return (
+                                            <div key={item.label} className="flex items-start gap-3 group">
+                                                {content}
+                                            </div>
+                                        );
+                                    })}
                         </div>
                     ) : null}
                 </div>
@@ -107,7 +138,7 @@ const Footer = ({
 
             {socials.length > 0 ? (
                 <div className="w-full bg-black/5">
-                    <div className="mx-auto flex w-full max-w-[1280px] items-center px-4 py-3 sm:px-6 lg:px-8">
+                    <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
                         <div className="flex flex-wrap items-center gap-2.5">
                             {socials.map((item, index) => (
                                 <a
@@ -123,6 +154,8 @@ const Footer = ({
                                 </a>
                             ))}
                         </div>
+
+                        <p className="text-[14px] font-normal text-[#61656c]">Bütün hüquqlar qorunur © 2016—2025</p>
                     </div>
                 </div>
             ) : null}

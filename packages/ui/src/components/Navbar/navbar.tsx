@@ -53,6 +53,7 @@ export interface NavbarProps {
     languages?: Language[];
     defLang?: string;
     onLocaleChange?: (locale: string) => void;
+    initialCatalogItems?: any[];
 }
 
 const defaultMenuItems: NavbarMenuItem[] = [
@@ -365,7 +366,7 @@ function NavbarActions() {
 export function Navbar({
     className,
     searchPlaceholder = "Məhsul axtarışı",
-    menuItems = defaultMenuItems,
+    menuItems,
     phone = "+994 (50) 828-08-88",
     locale = "AZ",
     logo,
@@ -373,6 +374,7 @@ export function Navbar({
     languages,
     defLang,
     onLocaleChange,
+    initialCatalogItems,
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
@@ -383,11 +385,15 @@ export function Navbar({
     );
     const whatsappHref = toWhatsappHref(phone);
 
+    // Header menus (fetched from admin API when parent doesn't provide `menuItems`)
+    const [fetchedMenuItems, setFetchedMenuItems] = useState<NavbarMenuItem[] | null>(null);
+    const [menusLoading, setMenusLoading] = useState(false);
+
     // Catalog dropdown state + data
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
     const [catalogLoading, setCatalogLoading] = useState(false);
     const [catalogError, setCatalogError] = useState<string | null>(null);
-    const [catalogItems, setCatalogItems] = useState<any[]>([]);
+    const [catalogItems, setCatalogItems] = useState<any[]>(initialCatalogItems ?? []);
     const [catalogFetched, setCatalogFetched] = useState(false);
     const [activeParentId, setActiveParentId] = useState<number | null>(null);
     const catalogRef = useRef<HTMLDivElement | null>(null);
@@ -498,6 +504,89 @@ export function Navbar({
     }, [catalogItems.length, catalogLoading, fetchCategories]);
 
     useEffect(() => {
+        let mounted = true;
+
+        // If the parent provided a non-empty custom `menuItems`, use them
+        const providedMenuItems = Array.isArray(menuItems) && menuItems.length > 0;
+        if (providedMenuItems) {
+            setFetchedMenuItems(menuItems ?? []);
+            return;
+        }
+
+        async function fetchMenus() {
+            setMenusLoading(true);
+            try {
+                const currentLocale = (locale || "az").toLowerCase();
+
+                const res = await fetch(`https://admin.tvim.az/api/v1/menus?in_header=1`, {
+                    headers: { "Content-Language": currentLocale },
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                console.log("[Navbar] menus API response:", json);
+
+                // Extract array robustly from several possible response shapes
+                const items: any[] = (() => {
+                    if (json && Array.isArray(json.data?.header)) return json.data.header;
+                    if (json && Array.isArray(json.header)) return json.header;
+                    if (json && Array.isArray(json.data?.menus)) return json.data.menus;
+                    if (json && Array.isArray(json.data?.items)) return json.data.items;
+                    if (json && Array.isArray(json.data)) return json.data;
+                    if (Array.isArray(json.items)) return json.items;
+                    if (Array.isArray(json)) return json;
+                    if (json && typeof json === "object" && json.data && typeof json.data === "object") {
+                        const arr = Object.values(json.data).find((v) => Array.isArray(v));
+                        if (Array.isArray(arr)) return arr as any[];
+                    }
+                    return [];
+                })();
+
+                const filtered = (items as any[])
+                    .filter((it) => !!it)
+                    .filter((it) => ((it.type ?? "") + "").toString().toLowerCase() !== "categories")
+                    .filter((it) => !it.parent_id || Number(it.parent_id) === 0);
+
+                const mapped = filtered
+                    .map((it: any) => {
+                        const label = it.title ?? it.name ?? it.label ?? it.link ?? "";
+                        const hrefPart = (it.multi_links && it.multi_links[currentLocale]) || it.link || "";
+                        const href = hrefPart ? `/${currentLocale}/${hrefPart}` : "#";
+                        return { label: String(label), href } as NavbarMenuItem;
+                    })
+                    .filter((m: NavbarMenuItem) => m.label && m.href);
+
+                if (mounted) setFetchedMenuItems(mapped);
+            } catch (err: any) {
+                console.error("[Navbar] menus API error:", err);
+                if (mounted) setFetchedMenuItems([]);
+            } finally {
+                if (mounted) setMenusLoading(false);
+            }
+        }
+
+        void fetchMenus();
+
+        return () => {
+            mounted = false;
+        };
+    }, [locale, menuItems]);
+
+    // Prefetch header categories in the background after mount so the catalog
+    // list is available even before the user opens the dropdown. We avoid
+    // fetching when the parent already provided `initialCatalogItems`.
+    useEffect(() => {
+        if (catalogItems.length > 0 || catalogLoading || catalogFetched) return;
+
+        // Delay slightly to avoid competing with critical page work
+        const timer = setTimeout(() => {
+            void fetchCategories().catch(() => {});
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [catalogItems.length, catalogLoading, catalogFetched, fetchCategories]);
+
+    useEffect(() => {
         if (!isCatalogOpen) return;
         function onDocClick(e: MouseEvent) {
             const target = e.target as Node;
@@ -541,6 +630,8 @@ export function Navbar({
         [rootCategories, activeParentId]
     );
     const activeParentChildren = Array.isArray(activeParent?.children) ? activeParent.children : [];
+
+    const effectiveMenuItems: NavbarMenuItem[] = fetchedMenuItems ?? (menuItems ?? []);
 
     const renderCatalogChild = (child: any) => {
         const childHref = `/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`;
@@ -823,7 +914,7 @@ export function Navbar({
                                                             )
                                                         : null}
                     </div>
-                    <NavbarMenu menuItems={menuItems} />
+                    <NavbarMenu menuItems={effectiveMenuItems} />
                     <NavbarActions />
                 </div>
 
@@ -882,7 +973,7 @@ export function Navbar({
                 <div className="mx-4 border-b border-[#e8eaef]" />
 
                 <nav className="flex flex-col px-4 py-3">
-                    {menuItems.map((item) => (
+                    {effectiveMenuItems.map((item) => (
                         <a
                             key={item.label}
                             href={item.href}

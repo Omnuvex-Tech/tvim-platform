@@ -24,6 +24,23 @@ const mapChildrenToLinks = (items: MenuItem[]): FooterLinkItem[] => {
     return links;
 };
 
+const mapCategoriesToLinks = (menus: MenuItem[]): FooterLinkItem[] => {
+    const links: FooterLinkItem[] = [];
+
+    menus.forEach((menu) => {
+        if (menu.type === "categories" && (menu.parent_id === null || menu.parent_id === undefined)) {
+            if (menu.link) {
+                links.push({
+                    label: menu.name,
+                    href: toHref(menu.link),
+                });
+            }
+        }
+    });
+
+    return links;
+};
+
 const getFooterSections = (menus: MenuItem[]) => {
     const sectionMenus = menus.filter((menu) => menu.children.length > 0);
     let companySection: MenuItem | undefined;
@@ -73,6 +90,8 @@ const getFooterSections = (menus: MenuItem[]) => {
     let customerTitle = "";
     let companyLinks: FooterLinkItem[] = [];
     let customerLinks: FooterLinkItem[] = [];
+    let categoryTitle = "";
+    let categoryLinks: FooterLinkItem[] = [];
 
     if (companySection) {
         companyTitle = companySection.name;
@@ -84,11 +103,17 @@ const getFooterSections = (menus: MenuItem[]) => {
         customerLinks = mapChildrenToLinks(customerSection.children);
     }
 
+    // Static category section: only top-level categories (parent_id === null)
+    categoryTitle = "Kateqoriya";
+    categoryLinks = mapCategoriesToLinks(menus);
+
     return {
         companyTitle,
         customerTitle,
         companyLinks,
         customerLinks,
+        categoryTitle,
+        categoryLinks,
     };
 };
 
@@ -100,7 +125,7 @@ const mapSettingsToContacts = (settings: ProjectSettingsData): FooterContactItem
         contacts.push({
             label: phone.number,
             href: `tel:${normalizedNumber}`,
-            icon: <i className="fas fa-phone-alt text-[16px]" aria-hidden="true" />,
+            icon: <i className="fas fa-phone-alt text-[16px] transform scale-x-[-1]" aria-hidden="true" />,
         });
     });
 
@@ -177,7 +202,7 @@ const mapSettingsToFooterMeta = (settings: ProjectSettingsData) => {
             <img
                 src={settings.general.images.logo}
                 alt={settings.general.site_title}
-                className="h-14 w-auto object-contain"
+                className="h-auto w-auto max-w-[150px] object-contain"
             />
         );
     } else if (settings.general.site_title) {

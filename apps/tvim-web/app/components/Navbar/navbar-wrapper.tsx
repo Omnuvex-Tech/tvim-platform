@@ -12,6 +12,8 @@ interface NavbarWrapperProps {
     locale: string;
     languages: Language[];
     searchPlaceholder?: string;
+    menuItems?: any[];
+    initialCatalogItems?: any[];
 }
 
 const NavbarWrapper = ({
@@ -20,6 +22,8 @@ const NavbarWrapper = ({
     locale,
     languages,
     searchPlaceholder,
+    menuItems,
+    initialCatalogItems,
 }: NavbarWrapperProps) => {
     const router = useRouter();
     const pathname = usePathname();
@@ -45,6 +49,8 @@ const NavbarWrapper = ({
             defLang={config.project.defLang}
             onLocaleChange={handleLocaleChange}
             searchPlaceholder={searchPlaceholder}
+            menuItems={menuItems}
+            initialCatalogItems={initialCatalogItems}
         />
     );
 };
