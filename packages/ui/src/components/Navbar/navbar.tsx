@@ -21,12 +21,14 @@ import {
     TreePine,
     UserRound,
     Wrench,
+    PhoneCall,
     X,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
+import Spinner from "../Spinner/Spinner";
 
 const navbarClasses = {
     root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)]",
@@ -51,7 +53,6 @@ export interface NavbarProps {
     languages?: Language[];
     defLang?: string;
     onLocaleChange?: (locale: string) => void;
-    catalogItems?: any[];
 }
 
 const defaultMenuItems: NavbarMenuItem[] = [
@@ -315,13 +316,13 @@ function CatalogButton({ open = false, onClick, toggleRef }: { open?: boolean; o
 
 function NavbarMenu({ menuItems }: { menuItems: NavbarMenuItem[] }) {
     return (
-        <nav className="space-x-8 items-center px-2 text-[14px] font-bold text-[#151822] lg:ml-8 lg:-translate-y-0.5 lg:justify-start">
-            {menuItems.map((item) => (
-                <a key={item.label} href={item.href} className="cursor-pointer transition-colors hover:text-[#1d4fff]">
-                    {item.label}
-                </a>
-            ))}
-        </nav>
+   <nav className="space-x-8 items-center px-2 text-[14px] font-bold text-[#151822] lg:ml-8 lg:-translate-y-0.5 lg:justify-start">
+    {menuItems.map((item) => (
+        <a key={item.label} href={item.href} className="cursor-pointer transition-colors hover:text-[#1d4fff]">
+            {item.label}
+        </a>
+    ))}
+</nav>
     );
 }
 
@@ -372,7 +373,6 @@ export function Navbar({
     languages,
     defLang,
     onLocaleChange,
-    catalogItems: catalogItemsProp = [],
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
@@ -385,6 +385,10 @@ export function Navbar({
 
     // Catalog dropdown state + data
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+    const [catalogLoading, setCatalogLoading] = useState(false);
+    const [catalogError, setCatalogError] = useState<string | null>(null);
+    const [catalogItems, setCatalogItems] = useState<any[]>([]);
+    const [catalogFetched, setCatalogFetched] = useState(false);
     const [activeParentId, setActiveParentId] = useState<number | null>(null);
     const catalogRef = useRef<HTMLDivElement | null>(null);
     const catalogToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -392,6 +396,7 @@ export function Navbar({
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [catalogPortalPos, setCatalogPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [catalogOverlayTop, setCatalogOverlayTop] = useState<number | null>(null);
+    const catalogFetchPromiseRef = useRef<Promise<any[]> | null>(null);
 
     const buildTree = useCallback((items: any[]) => {
         if (!Array.isArray(items)) return [];
@@ -445,17 +450,52 @@ export function Navbar({
         return roots;
     }, []);
 
-    const catalogItems = useMemo(() => {
-        const items = Array.isArray(catalogItemsProp) ? catalogItemsProp : [];
-        const filtered = items.filter(
-            (it) => !!it && (it.in_header === true || it.in_header === 1 || it.in_header === "1" || it.in_header === "true")
-        );
-        return filtered.length > 0 ? filtered : items;
-    }, [catalogItemsProp]);
+    const fetchCategories = useCallback(async () => {
+        // If a fetch is already in-flight, reuse the same promise to avoid duplicate requests
+        if (catalogFetchPromiseRef.current) return catalogFetchPromiseRef.current;
+
+        const p = (async () => {
+            setCatalogLoading(true);
+            setCatalogError(null);
+            try {
+                // Request header categories from the API
+                const res = await fetch("https://admin.tvim.az/api/v1/product/categories?in_header=1");
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                console.log("[Navbar] categories API response:", json);
+                const items = Array.isArray(json.data) ? json.data : Array.isArray(json.items) ? json.items : Array.isArray(json) ? json : [];
+                // server-side may not filter; prefer items with in_header, but fall back
+                // to the full list if none are marked for header so the dropdown isn't empty.
+                const filtered = (items as any[]).filter((it) => !!it && (it.in_header === true || it.in_header === 1 || it.in_header === '1' || it.in_header === 'true'));
+                const finalItems = filtered.length > 0 ? filtered : (items as any[]);
+                console.log("[Navbar] categories items (final):", finalItems);
+                setCatalogItems(finalItems as any[]);
+                return finalItems as any[];
+            } catch (err: any) {
+                console.error("[Navbar] categories API error:", err);
+                setCatalogError(err?.message ?? String(err));
+                throw err;
+            } finally {
+                setCatalogLoading(false);
+                setCatalogFetched(true);
+                // clear the in-flight promise so future fetches can be made if needed
+                catalogFetchPromiseRef.current = null;
+            }
+        })();
+
+        catalogFetchPromiseRef.current = p;
+        return p;
+    }, []);
 
     const toggleCatalog = useCallback(() => {
-        setIsCatalogOpen((prev) => !prev);
-    }, []);
+        setIsCatalogOpen((prev) => {
+            const next = !prev;
+            if (next && catalogItems.length === 0 && !catalogLoading) {
+                void fetchCategories();
+            }
+            return next;
+        });
+    }, [catalogItems.length, catalogLoading, fetchCategories]);
 
     useEffect(() => {
         if (!isCatalogOpen) return;
@@ -683,104 +723,105 @@ export function Navbar({
 
                 <div className={navbarClasses.bottomRow}>
                     <div className="relative">
-                        <button
-                            type="button"
-                            onClick={toggleCatalog}
-                            aria-haspopup="true"
-                            aria-expanded={isCatalogOpen}
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
-                        >
-                            <Grid2X2 className="size-[15px] lg:size-4" />
-                            Kataloq
-                            <ChevronDown className="size-[15px] lg:size-4" />
-                        </button>
+                        <CatalogButton open={isCatalogOpen} onClick={toggleCatalog} toggleRef={catalogToggleRef} />
 
-                        {isCatalogOpen && (
-                            <div
-                                ref={catalogRef}
-                                role="menu"
-                                aria-hidden={!isCatalogOpen}
-                                className="absolute left-0 top-full z-50 mt-2 h-[560px] w-[1280px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[6px] border-y border-[#dfe3eb] bg-white shadow-[0_10px_24px_rgba(17,24,39,0.10)]"
-                            >
-                                {rootCategories.length > 0 ? (
-                                    <div className="grid h-full grid-cols-[300px_1fr]">
-                                        <div className="h-full overflow-y-auto bg-white">
-                                            <ul className="divide-y divide-[#e5e7eb]">
-                                                {rootCategories.map((parent: any) => {
-                                                    const isActive = Number(parent.id) === Number(activeParent?.id);
-                                                    return (
-                                                        <li key={parent.id}>
-                                                            <button
-                                                                type="button"
-                                                                onMouseEnter={() => setActiveParentId(Number(parent.id))}
-                                                                onClick={() => setActiveParentId(Number(parent.id))}
-                                                                className={cn(
-                                                                    "flex h-[52px] w-full items-center justify-between gap-3 px-5 text-left text-[14px] font-semibold transition-colors",
-                                                                    isActive ? "bg-white text-[#161b25]" : "bg-white text-[#161b25] hover:bg-[#fafbfc]"
-                                                                )}
-                                                            >
-                                                                <span className="flex min-w-0 items-center gap-3">
+                        {isCatalogOpen && catalogOverlayTop !== null && typeof document !== "undefined"
+                            ? createPortal(
+                                  <div
+                                      role="presentation"
+                                      onClick={() => setIsCatalogOpen(false)}
+                                      style={{
+                                          position: "fixed",
+                                          top: `${catalogOverlayTop}px`,
+                                          left: 0,
+                                          right: 0,
+                                          bottom: 0,
+                                          background: "rgba(0,0,0,0.55)",
+                                          zIndex: 1040,
+                                      }}
+                                      className="transition-opacity duration-200"
+                                  />,
+                                  document.body
+                              )
+                            : null}
+
+                        {isCatalogOpen && catalogPortalPos !== null && typeof document !== "undefined"
+                            ? createPortal(
+                                  <div
+                                      ref={catalogRef}
+                                      role="menu"
+                                      aria-hidden={!isCatalogOpen}
+                                      style={{
+                                          position: "fixed",
+                                          top: `${catalogPortalPos.top}px`,
+                                          left: `${catalogPortalPos.left}px`,
+                                          width: `${catalogPortalPos.width}px`,
+                                          transform: "none",
+                                          zIndex: 1050,
+                                      }}
+                                      className="h-[560px] overflow-hidden border border-[#dfe3eb] border-t-0 bg-white shadow-[0_-10px_24px_rgba(17,24,39,0.10)]"
+                                  >
+                                      {catalogLoading ? (
+                                          <div className="h-full flex items-center justify-center">
+                                                <Spinner size={30} strokeWidth={1.5} className="text-black" />
+                                          </div>
+                                      ) : catalogError ? (
+                                          <div className="py-6 text-center text-sm text-red-500">Xəta: {catalogError}</div>
+                                      ) : rootCategories.length > 0 ? (
+                                          <div className="grid h-full grid-cols-[300px_1fr]">
+                                              <div className="h-full overflow-y-auto bg-white">
+                                                  <ul className="divide-y divide-[#e5e7eb]">
+                                                      {rootCategories.map((parent: any) => {
+                                                          const isActive = Number(parent.id) === Number(activeParent?.id);
+                                                          return (
+                                                              <li key={parent.id}>
+                                                                <button
+                                                                    type="button"
+                                                                    onMouseEnter={() => setActiveParentId(Number(parent.id))}
+                                                                    onClick={() => setActiveParentId(Number(parent.id))}
+                                                                    className={cn(
+                                                                        "flex h-[52px] w-full items-center justify-between gap-3 px-5 text-left text-[13.3px] font-medium transition-colors cursor-pointer",
+                                                                        isActive ? "bg-white text-[#161b25]" : "bg-white text-[#161b25] hover:bg-[#fafbfc]"
+                                                                    )}
+                                                                >
+                                                                    <span className="flex min-w-0 items-center gap-3">
                                                                     <ParentCategoryIcon category={parent} />
                                                                     <span className="truncate">{parent.name ?? parent.title ?? parent.link}</span>
                                                                 </span>
-                                                                <ChevronDown
-                                                                    className={cn(
-                                                                        "size-[14px] shrink-0 text-[#1a1f2b] transition-transform duration-150",
-                                                                        isActive ? "-rotate-90" : "rotate-0"
-                                                                    )}
-                                                                    strokeWidth={2}
-                                                                />
-                                                            </button>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        </div>
+                                                                      <ChevronDown
+                                                                          className={cn(
+                                                                              "size-[14px] shrink-0 text-[#1a1f2b] transition-transform duration-150",
+                                                                              isActive ? "-rotate-90" : "rotate-0"
+                                                                          )}
+                                                                          strokeWidth={2}
+                                                                      />
+                                                                  </button>
+                                                              </li>
+                                                          );
+                                                      })}
+                                                  </ul>
+                                              </div>
 
-                                        <div className="h-full overflow-y-auto bg-white">
-                                            {activeParentChildren.length > 0 ? (
-                                                <div className="grid grid-cols-5 gap-1 px-2">
-                                                    {activeParentChildren.map((child: any) => (
-                                                        <div key={child.id} className="min-w-0 px-4 py-4">
-                                                            <a
-                                                                href={`/${(locale || "az").toLowerCase()}/${(child.multi_links && child.multi_links[(locale || "az").toLowerCase()]) || child.link || ""}`}
-                                                                className="flex min-h-[44px] items-start gap-2 rounded-md px-2 py-1 hover:bg-[#f5f7fa]"
-                                                            >
-                                                                {child.icon?.image_url ? (
-                                                                    <img src={child.icon.image_url} alt={child.name ?? ""} className="mt-0.5 h-7 w-7 shrink-0 object-cover rounded" />
-                                                                ) : (
-                                                                    <Grid2X2 className="mt-0.5 size-[16px] shrink-0 text-[#475066]" />
-                                                                )}
-                                                                <span className="block text-[15px] leading-[1.2] font-semibold text-[#131722]">{child.name ?? child.title ?? child.link}</span>
-                                                            </a>
-
-                                                            {Array.isArray(child.children) && child.children.length > 0 && (
-                                                                <ul className="mt-2 space-y-1.5 pl-2 text-[14px] leading-[1.3] text-[#5a6475]">
-                                                                    {child.children.map((subChild: any) => (
-                                                                        <li key={subChild.id}>
-                                                                            <a
-                                                                                href={`/${(locale || "az").toLowerCase()}/${(subChild.multi_links && subChild.multi_links[(locale || "az").toLowerCase()]) || subChild.link || ""}`}
-                                                                                className="block rounded px-2 py-0.5 hover:bg-[#f5f7fa]"
-                                                                            >
-                                                                                {subChild.name ?? subChild.title ?? subChild.link}
-                                                                            </a>
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="px-5 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="px-5 py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
-                                )}
-                            </div>
-                        )}
+                                              <div className="h-full overflow-y-auto bg-white">
+                                                {activeParentChildren.length > 0 ? (
+                                                          <div className="grid grid-cols-4 gap-2 px-0">
+                                                              {activeParentChildren.map((child: any) => renderCatalogChild(child))}
+                                                          </div>
+                                                  ) : (
+                                                      <div className="px-5 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      ) : (
+                                          // Only show "no catalog" after we've attempted a fetch
+                                          catalogFetched ? (
+                                              <div className="px-5 py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
+                                          ) : null
+                                      )}
+                                  </div>,
+                                  document.body
+                                                            )
+                                                        : null}
                     </div>
                     <NavbarMenu menuItems={menuItems} />
                     <NavbarActions />

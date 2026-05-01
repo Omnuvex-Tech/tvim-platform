@@ -3,7 +3,7 @@
 import { useCallback, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { Language } from "@repo/types/types";
-import { Navbar, type NavbarMenuItem } from "@repo/ui";
+import { Navbar } from "@repo/ui";
 import { config } from "@/config";
 
 interface NavbarWrapperProps {
@@ -12,8 +12,6 @@ interface NavbarWrapperProps {
     locale: string;
     languages: Language[];
     searchPlaceholder?: string;
-    catalogItems?: any[];
-    menuItems?: NavbarMenuItem[];
 }
 
 const NavbarWrapper = ({
@@ -22,8 +20,6 @@ const NavbarWrapper = ({
     locale,
     languages,
     searchPlaceholder,
-    catalogItems,
-    menuItems,
 }: NavbarWrapperProps) => {
     const router = useRouter();
     const pathname = usePathname();
@@ -49,8 +45,6 @@ const NavbarWrapper = ({
             defLang={config.project.defLang}
             onLocaleChange={handleLocaleChange}
             searchPlaceholder={searchPlaceholder}
-            catalogItems={catalogItems}
-            menuItems={menuItems}
         />
     );
 };
