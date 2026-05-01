@@ -23,5 +23,4 @@ export default function Spinner({ size = 24, strokeWidth = 1.5, className = "", 
             <path className="opacity-75" fill={color} d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
     );
-
 }
