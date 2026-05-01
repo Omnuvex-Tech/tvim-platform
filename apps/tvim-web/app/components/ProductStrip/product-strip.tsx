@@ -20,6 +20,7 @@ type Props = {
     items?: ApiItem[];
     variant?: "special" | "selected" | "latest";
     title?: string;
+    showSpecialDiscountLink?: boolean;
 };
 
 const formatPrice = (v: number | string | undefined) => {
@@ -59,7 +60,7 @@ const defaultProducts: Product[] = [
     { id: 5, title: "Yuyucu aparat K 5 Basic Karcher 1.180-580.0", oldPrice: "649.00₼", price: "499.00₼", discount: "-23%", imageUrl: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
 ];
 
-const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => {
+const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, showSpecialDiscountLink = true }) => {
     const raw = Array.isArray(items) ? items : [];
 
     const products: Product[] = raw.length > 0
@@ -142,35 +143,50 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
     return (
         <section className="w-full product-carousel">
                 <div className="mx-auto w-full max-w-[1280px] px-0">
-                <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-0">
-                    <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "special" ? "Xüsusi endirimlər" : variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
-
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={prev}
-                            disabled={index === 0}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            aria-label="Əvvəlki"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
-                                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </button>
-                        <span className="text-[16px] font-medium text-[#1f2328]">{index + 1} / {pageCount}</span>
-                        <button
-                            type="button"
-                            onClick={next}
-                            disabled={index >= maxIndex}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            aria-label="Növbəti"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
-                                <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </button>
+                {variant === "special" ? (
+                    <>
+                        <div className="mb-2">
+                            <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? "Xüsusi endirimlər"}</h2>
+                        </div>
+                        {showSpecialDiscountLink ? (
+                            <div className="mb-1 flex justify-end">
+                                <Link href="#" className="inline-flex items-center gap-1 text-[16px] font-semibold text-[#0056b3] hover:text-[#0056b3]">
+                                    Bütün endirimli məhsullara bax
+                                    <span aria-hidden>→</span>
+                                </Link>
+                            </div>
+                        ) : null}
+                    </>
+                ) : (
+                    <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-0">
+                        <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={prev}
+                                disabled={index === 0}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                                aria-label="Əvvəlki"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
+                                    <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                            <span className="text-[16px] font-medium text-[#1f2328]">{index + 1} / {pageCount}</span>
+                            <button
+                                type="button"
+                                onClick={next}
+                                disabled={index >= maxIndex}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                                aria-label="Növbəti"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
+                                    <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="relative">
                     <div ref={viewportRef} className="overflow-hidden py-3 px-0">
