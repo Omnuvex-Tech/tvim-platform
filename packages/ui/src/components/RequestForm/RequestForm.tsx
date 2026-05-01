@@ -43,7 +43,7 @@ interface FormFieldProps {
 }
 
 const FormField: React.FC<FormFieldProps> = ({ icon, children, isTextarea = false }) => (
-  <div className={cn("flex items-center gap-[18px] rounded-[20px] bg-white p-[10px_18px] transition-shadow h-[62px]", isTextarea && "h-auto min-h-[110px] items-start p-[20px_18px]")}>
+  <div className={cn("flex items-center gap-[18px] rounded-[20px] bg-white p-[10px_18px] transition-shadow h-[62px]", isTextarea && "h-auto min-h-[90px] items-start p-[14px_18px]")}>
     <span className="flex shrink-0 text-[#0d47ff]">{icon}</span>
     {children}
   </div>
@@ -97,12 +97,12 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
   return (
     <section className={cn("relative w-full overflow-hidden", className)}>
       <div className="flex w-full flex-col items-stretch overflow-hidden rounded-[20px] shadow-[0_4px_10px_rgba(0,0,0,0.1)] lg:flex-row" style={{ background: "url(/images/line.svg), linear-gradient(to bottom, rgb(0,61,255), rgb(0,48,201))", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "90% bottom, center" }}>
-        <div className="flex w-full flex-1 flex-col justify-center gap-4 px-6 pt-[40px] text-white sm:px-8 sm:pt-[60px] md:gap-6 md:px-10 lg:w-1/2 lg:gap-[33px] lg:p-[120px_60px] xl:p-[80px_40px]">
-          <h2 className="mb-4 max-w-full text-[26px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[32px] lg:max-w-[95%] lg:text-[clamp(26px,3.3vw,40px)] xl:max-w-[430px]">{heading}</h2>
-          <p className="max-w-full text-[15px] font-bold leading-[1.35] opacity-95 md:max-w-full md:text-[16px] lg:max-w-[60%] lg:text-[17px] xl:max-w-[80%]">{subheading}</p>
+        <div className="flex w-full flex-1 flex-col justify-center gap-[33px] p-[120px_60px] text-white lg:w-1/2">
+          <h2 className="mb-4 max-w-full text-[30px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[40px] lg:max-w-[500px] lg:text-[50px] lg:leading-[1.06] xl:max-w-[520px] xl:text-[54px]">{heading}</h2>
+          <p className="w-full text-[16px] leading-[20px] font-semibold opacity-95 lg:w-[55%]">{subheading}</p>
         </div>
 
-        <div className="flex w-full flex-1 flex-col justify-center gap-[11px] px-6 pb-8 pt-4 sm:px-8 sm:pb-10 md:px-10 lg:w-1/2 lg:p-[48px_48px_48px_0] xl:p-[40px_40px_40px_0]">
+        <div className="flex w-full flex-1 flex-col justify-center gap-[14px] px-6 py-11 sm:px-8 sm:py-14 md:px-10 lg:w-1/2 lg:py-[78px] lg:pr-[48px] lg:pl-0 xl:py-[86px] xl:pr-[40px] xl:pl-0">
           <div className="mx-auto flex w-full max-w-full flex-col gap-4 md:max-w-[480px] lg:max-w-full">
             <FormField icon={<UserIcon />}>
               <input className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="text" placeholder="Adınız *" value={form.name} onChange={set("name")} autoComplete="name" />
@@ -115,12 +115,12 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
             <FileUpload file={form.file} onChange={(file) => setForm((prev) => ({ ...prev, file }))} icon={<PaperclipIcon />} />
 
             <FormField icon={<EditIcon />} isTextarea>
-              <textarea className="min-h-[90px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder="Layihəni təsvir edin... *" value={form.description} onChange={set("description")} rows={3} />
+              <textarea className="min-h-[66px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder="Layihəni təsvir edin... *" value={form.description} onChange={set("description")} rows={3} />
             </FormField>
           </div>
 
           <div className="mt-2 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-full text-[14px] leading-[1.3] text-white/85 sm:max-w-[280px] lg:max-w-[300px]">“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.</p>
+            <p className="max-w-full text-[14px] leading-[1.3] text-white/85 sm:ml-8 sm:max-w-[280px] lg:ml-[112px] lg:max-w-[300px]">“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.</p>
             <SendButton loading={loading} disabled={false} onClick={handleSubmit} />
           </div>
         </div>

@@ -219,10 +219,33 @@ function NavbarContact({
 }) {
     const [isLocaleOpen, setIsLocaleOpen] = useState(false);
     const [selectedLocale, setSelectedLocale] = useState((locale || "AZ").toUpperCase());
+    const localeDropdownRef = useRef<HTMLDivElement | null>(null);
     const activeLocale = useMemo(
         () => localeOptions.find((item) => item.code === selectedLocale) ?? defaultLocaleOption,
         [selectedLocale],
     );
+
+    useEffect(() => {
+        if (!isLocaleOpen) return;
+
+        function onDocClick(e: MouseEvent) {
+            const target = e.target as Node;
+            if (localeDropdownRef.current && localeDropdownRef.current.contains(target)) return;
+            setIsLocaleOpen(false);
+        }
+
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape") setIsLocaleOpen(false);
+        }
+
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onKey);
+
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [isLocaleOpen]);
 
     const effectiveLanguages = languages || defaultLanguages;
     const effectiveDefLang = defLang || "az";
@@ -246,7 +269,7 @@ function NavbarContact({
                     variant="desktop"
                 />
             ) : (
-                <div className="relative">
+                <div className="relative" ref={localeDropdownRef}>
                     <button
                         type="button"
                         className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-[14px] border border-[#d7deea] bg-white px-3.5 text-[15px] font-semibold text-[#1d2230]"
@@ -378,12 +401,35 @@ export function Navbar({
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
+    const mobileLocaleDropdownRef = useRef<HTMLDivElement | null>(null);
     const [mobileLocale, setMobileLocale] = useState((locale || "AZ").toUpperCase());
     const activeMobileLocale = useMemo(
         () => localeOptions.find((item) => item.code === mobileLocale) ?? defaultLocaleOption,
         [mobileLocale]
     );
     const whatsappHref = toWhatsappHref(phone);
+
+    useEffect(() => {
+        if (!isMobileLocaleOpen) return;
+
+        function onDocClick(e: MouseEvent) {
+            const target = e.target as Node;
+            if (mobileLocaleDropdownRef.current && mobileLocaleDropdownRef.current.contains(target)) return;
+            setIsMobileLocaleOpen(false);
+        }
+
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape") setIsMobileLocaleOpen(false);
+        }
+
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onKey);
+
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [isMobileLocaleOpen]);
 
     // Header menus (fetched from admin API when parent doesn't provide `menuItems`)
     const [fetchedMenuItems, setFetchedMenuItems] = useState<NavbarMenuItem[] | null>(null);
@@ -748,7 +794,7 @@ export function Navbar({
                                 variant="mobile"
                             />
                         ) : (
-                            <div className="relative">
+                            <div className="relative" ref={mobileLocaleDropdownRef}>
                                 <button
                                     type="button"
                                     className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-[10px] border border-[#d7deea] bg-white px-2 text-[12px] font-semibold text-[#1d2230]"

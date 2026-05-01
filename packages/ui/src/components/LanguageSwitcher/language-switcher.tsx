@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Language, LanguageSwitcherProps } from "@repo/types/types";
 import { cn } from "../../lib/utils";
@@ -58,6 +58,7 @@ const LanguageSwitcher = ({
     variant?: "desktop" | "mobile";
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
     const activeLocale = locale || defLang;
 
     const activeLang = useMemo(() => {
@@ -71,13 +72,38 @@ const LanguageSwitcher = ({
 
     const isDesktop = variant === "desktop";
 
+    useEffect(() => {
+        if (!isOpen) return;
+
+        function onDocClick(e: MouseEvent) {
+            const target = e.target as Node;
+            if (dropdownRef.current && dropdownRef.current.contains(target)) return;
+            setIsOpen(false);
+        }
+
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape") setIsOpen(false);
+        }
+
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onKey);
+
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [isOpen]);
+
     return (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
             <button
                 type="button"
                 className={cn(
-                    "inline-flex cursor-pointer items-center gap-1.5 border border-[#d7deea] bg-white font-semibold text-[#1d2230]",
-                    isDesktop ? "h-10 rounded-[14px] px-2.5 text-[13px]" : "h-8 rounded-[10px] px-1.5 text-[12px]"
+                    "inline-flex cursor-pointer items-center justify-center gap-2 border font-semibold text-[#1d2230] transition-colors focus-visible:outline-none",
+                    isOpen
+                        ? "border-[#b7caf9] bg-white shadow-[0_0_0_2px_rgba(183,202,249,0.35)]"
+                        : "border-[#e6e6e6] bg-white",
+                    isDesktop ? "h-[42px] w-[92px] rounded-[12px] px-3 text-[15px]" : "h-8 min-w-[72px] rounded-[10px] px-2 text-[12px]"
                 )}
                 onClick={() => setIsOpen((prev) => !prev)}
                 aria-haspopup="listbox"
@@ -96,7 +122,7 @@ const LanguageSwitcher = ({
                 <ChevronDown
                     className={cn(
                         "text-[#2e3441] transition-transform",
-                        isDesktop ? "size-4" : "size-3.5",
+                        isDesktop ? "size-[15px]" : "size-3.5",
                         isOpen ? "rotate-180" : "rotate-0"
                     )}
                 />
@@ -105,8 +131,8 @@ const LanguageSwitcher = ({
             {isOpen && (
                 <div
                     className={cn(
-                        "absolute top-full right-0 z-30 mt-2 rounded-xl border border-[#d7deea] bg-white p-1.5 shadow-[0_10px_24px_rgba(17,24,39,0.12)]",
-                        isDesktop ? "min-w-[120px]" : "min-w-[110px]"
+                        "absolute top-full right-0 z-30 mt-1.5 rounded-[12px] border border-[#e6e6e6] bg-white p-1 shadow-[0_10px_24px_rgba(17,24,39,0.12)]",
+                        isDesktop ? "w-[92px]" : "min-w-[110px]"
                     )}
                 >
                     {languages.map((lang) => {
@@ -120,9 +146,9 @@ const LanguageSwitcher = ({
                                 key={lang.id}
                                 type="button"
                                 className={cn(
-                                    "flex w-full cursor-pointer items-center gap-2 rounded-lg border text-left font-medium text-[#1d2230] transition-colors",
-                                    isDesktop ? "px-3 py-2 text-[14px]" : "px-2 py-1.5 text-[13px]",
-                                    isActive && "border-[#c7d8fb] bg-[#e7efff]",
+                                    "flex w-full cursor-pointer items-center gap-1.5 rounded-[11px] border text-left font-medium text-[#1d2230] transition-colors",
+                                    isDesktop ? "h-[34px] px-2 text-[13px]" : "px-2 py-1.5 text-[13px]",
+                                    isActive && "border-[#b7caf9] bg-[#dfe8fb]",
                                     !isActive && "border-transparent hover:bg-[#f3f4f6]"
                                 )}
                                 onClick={() => {

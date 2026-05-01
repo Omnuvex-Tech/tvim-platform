@@ -176,7 +176,7 @@ export default async function Home() {
     }
 
     // Default fallback companies (used when API doesn't provide brands)
-    let partnerCompanies: { id: string; name: string; logo: any }[] = [
+    let partnerCompanies: { id: string; name: string; logo: any; url?: string }[] = [
         { id: "1", name: "Mitreapel", logo: mitreapelLogo },
         { id: "2", name: "Mitreapel", logo: mitreapelLogo },
         { id: "3", name: "Mitreapel", logo: mitreapelLogo },
@@ -203,6 +203,7 @@ export default async function Home() {
                     id: String(it.value_id ?? it.id ?? `company-${idx}`),
                     name: it.name ?? it.title ?? "",
                     logo: it.image ?? mitreapelLogo,
+                    url: (it.url ?? it.link ?? it.website ?? "").toString().trim() || undefined,
                 }))
                 .filter((c) => c.name)
                 .slice(0, 20);
