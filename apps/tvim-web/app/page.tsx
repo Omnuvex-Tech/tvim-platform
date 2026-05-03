@@ -252,7 +252,12 @@ export default async function Home() {
                     : undefined
                 } />
 
-                <SpecialDiscountsStrip items={specialDiscountItems} />
+                <SpecialDiscountsStrip
+                    items={specialDiscountItems}
+                    only_discount_products={Boolean(specialDiscountBlock?.data?.block?.only_discount_products)}
+                    viewAllHref="/discounts"
+                    viewAllText="Bütün məhsullara bax"
+                />
 
                 <SelectedForYouStrip items={selectedItems} />
 

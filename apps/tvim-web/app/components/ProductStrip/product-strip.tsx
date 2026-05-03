@@ -20,6 +20,10 @@ type Props = {
     items?: ApiItem[];
     variant?: "special" | "selected" | "latest";
     title?: string;
+    onlyDiscountProducts?: boolean;
+    only_discount_products?: boolean;
+    viewAllHref?: string;
+    viewAllText?: string;
 };
 
 const formatPrice = (v: number | string | undefined) => {
@@ -59,7 +63,7 @@ const defaultProducts: Product[] = [
     { id: 5, title: "Yuyucu aparat K 5 Basic Karcher 1.180-580.0", oldPrice: "649.00₼", price: "499.00₼", discount: "-23%", imageUrl: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
 ];
 
-const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => {
+const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyDiscountProducts = false, only_discount_products = false, viewAllHref = "/discounts", viewAllText = "Bütün məhsullara bax" }) => {
     const raw = Array.isArray(items) ? items : [];
 
     const products: Product[] = raw.length > 0
@@ -237,6 +241,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
 
     const headingClass = "text-[30px] sm:text-[46px]";
 
+    const showViewAll = !!(onlyDiscountProducts || only_discount_products);
+
     // Sync DOM transform when index or visible count changes (animated)
     React.useEffect(() => {
         const track = trackRef.current;
@@ -268,6 +274,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                     <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "special" ? "Xüsusi endirimlər" : variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
 
                     <div className="flex items-center gap-3">
+                        {showViewAll ? (
+                            <Link href={viewAllHref} className="text-base font-medium text-[#0f57d6] hover:underline mr-2">
+                                {viewAllText}
+                            </Link>
+                        ) : null}
                         <button
                             type="button"
                             onClick={prev}
