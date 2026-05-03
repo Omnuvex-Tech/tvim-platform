@@ -114,8 +114,18 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
         : defaultLatest;
 
     const viewportRef = useRef<HTMLDivElement | null>(null);
+    const trackRef = useRef<HTMLDivElement | null>(null);
     const [visibleCount, setVisibleCountState] = useState<number>(1);
     const [index, setIndex] = useState<number>(0);
+
+    // Drag state (pointer-based) for all screen sizes
+    const isDraggingRef = useRef(false);
+    const isPointerDownRef = useRef(false);
+    const startXRef = useRef(0);
+    const dragOffsetRef = useRef(0);
+    const suppressClickRef = useRef(false);
+    const rafRef = useRef<number | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Navigation is handled only on the image/link now.
 
@@ -125,6 +135,94 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
     }, []);
+
+    const updateTrackTransform = () => {
+        const track = trackRef.current;
+        const viewport = viewportRef.current;
+        if (!track || !viewport) return;
+        const viewportWidth = viewport.clientWidth;
+        // measure actual item width from DOM to avoid rounding drift
+        const firstChild = track.children[0] as HTMLElement | undefined;
+        const itemWidth = firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount;
+        const total = products.length;
+        const maxIdx = Math.max(0, total - visibleCount);
+        const minTranslate = -maxIdx * itemWidth;
+        const baseTranslate = index * itemWidth;
+        let translateX = -baseTranslate + (dragOffsetRef.current ?? 0);
+        // clamp to avoid showing empty left/right whitespace
+        translateX = Math.max(minTranslate, Math.min(translateX, 0));
+        track.style.transform = `translate3d(${translateX}px,0,0)`;
+        track.style.willChange = 'transform';
+    };
+
+    const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        isPointerDownRef.current = true;
+        startXRef.current = e.clientX;
+        dragOffsetRef.current = 0;
+        // don't set pointer capture yet — wait until movement threshold is crossed
+    };
+
+    const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isPointerDownRef.current) return;
+        const dx = e.clientX - startXRef.current;
+        dragOffsetRef.current = dx;
+        // start dragging only after threshold to allow clicks
+        if (!isDraggingRef.current && Math.abs(dx) > 8) {
+            isDraggingRef.current = true;
+            setIsDragging(true);
+            // disable transition while dragging
+            if (trackRef.current) trackRef.current.style.transition = 'none';
+            try {
+                (e.currentTarget as Element).setPointerCapture(e.pointerId);
+            } catch {}
+        }
+        if (rafRef.current == null) {
+            rafRef.current = requestAnimationFrame(() => {
+                updateTrackTransform();
+                rafRef.current = null;
+            });
+        }
+    };
+
+    const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+        // always clear pointer-down state
+        isPointerDownRef.current = false;
+        if (!isDraggingRef.current) return; // no drag happened
+        isDraggingRef.current = false;
+        setIsDragging(false);
+        try {
+            (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+        } catch {}
+        if (rafRef.current != null) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+        }
+
+        const viewportWidth = viewportRef.current?.clientWidth ?? 0;
+        const track = trackRef.current;
+        const firstChild = track?.children[0] as HTMLElement | undefined;
+        const itemWidth = firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount || viewportWidth;
+        const total = products.length;
+        const maxIdx = Math.max(0, total - visibleCount);
+        const minTranslate = -maxIdx * itemWidth;
+        const baseTranslate = index * itemWidth;
+        let translateX = -baseTranslate + (dragOffsetRef.current ?? 0);
+        // clamp translate to valid range and compute final index from that
+        translateX = Math.max(minTranslate, Math.min(translateX, 0));
+        const targetIndex = Math.min(maxIdx, Math.max(0, Math.round(-translateX / itemWidth)));
+        setIndex(targetIndex);
+
+        // determine whether a real drag occurred (use larger threshold to avoid jitter)
+        const didDrag = Math.abs(dragOffsetRef.current) > 8;
+        suppressClickRef.current = didDrag;
+
+        dragOffsetRef.current = 0;
+        // restore transition so index change animates
+        if (trackRef.current) trackRef.current.style.transition = 'transform 300ms ease-in-out';
+        setTimeout(() => (suppressClickRef.current = false), 50);
+    };
+
+    // click suppression is handled per-Link to avoid capture-phase blocking
 
     const maxIndex = Math.max(0, products.length - visibleCount);
 
@@ -138,6 +236,30 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
     const pageCount = Math.max(1, maxIndex + 1);
 
     const headingClass = "text-[30px] sm:text-[46px]";
+
+    // Sync DOM transform when index or visible count changes (animated)
+    React.useEffect(() => {
+        const track = trackRef.current;
+        const viewport = viewportRef.current;
+        if (!track || !viewport) return;
+        if (isDraggingRef.current) return; // don't override while dragging
+        const viewportWidth = viewport.clientWidth;
+        const firstChild = track.children[0] as HTMLElement | undefined;
+        const itemWidth = firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount;
+        const baseTranslate = index * itemWidth;
+        track.style.transition = 'transform 300ms ease-in-out';
+        track.style.transform = `translate3d(${-baseTranslate}px,0,0)`;
+    }, [index, visibleCount]);
+
+    // Cleanup RAF on unmount
+    React.useEffect(() => {
+        return () => {
+            if (rafRef.current != null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+        };
+    }, []);
 
     return (
         <section className="w-full product-carousel">
@@ -173,15 +295,23 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                 </div>
 
                 <div className="relative">
-                    <div ref={viewportRef} className="overflow-hidden py-3 px-0">
+                    <div
+                        ref={viewportRef}
+                        className="overflow-hidden py-3 px-0"
+                        onPointerDown={onPointerDown}
+                        onPointerMove={onPointerMove}
+                        onPointerUp={endDrag}
+                        onPointerCancel={endDrag}
+                        onPointerLeave={endDrag}
+                    >
                         <div
-                            className="flex transition-transform duration-300 ease-in-out -mx-2 sm:-mx-3"
-                            style={{ transform: `translateX(-${(index * 100) / visibleCount}%)` }}
+                            ref={trackRef}
+                            className={`flex ${isDragging ? "transition-none" : "transition-transform duration-300 ease-in-out"} -mx-2 sm:-mx-3`}
                         >
                             {products.map((product) => (
                                 <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border px-2 sm:px-3">
                                     <article
-                                        className="group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none"
+                                        className={`group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                                     >
 
                                         <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
@@ -205,16 +335,24 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title }) => 
                                             <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">{product.discount}</span>
                                         ) : null}
 
-                                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
-                                            {product.imageUrl ? (
-                                                <Link href={product.href} className="block h-full w-full" onClick={(e) => e.stopPropagation()}>
-                                                    <img draggable={false} src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
-                                                </Link>
-                                            ) : null}
-                                        </div>
-
                                         <div className="pt-3 text-center w-full flex flex-col items-center">
-                                            <h3 className="hoopz-thumb__name">{product.title}</h3>
+                                            <Link
+                                                href={product.href}
+                                                className="block w-full"
+                                                onClick={(e) => {
+                                                    if (suppressClickRef.current) {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }
+                                                }}
+                                            >
+                                                <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
+                                                    {product.imageUrl ? (
+                                                        <img draggable={false} src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
+                                                    ) : null}
+                                                </div>
+                                                <h3 className="hoopz-thumb__name mt-3">{product.title}</h3>
+                                            </Link>
 
                                             <div className="mt-2 flex items-center justify-center gap-1">
                                                 <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />

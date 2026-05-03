@@ -24,13 +24,17 @@ const Footer = ({
     socials = [],
     socialColorClasses = defaultSocialColorClasses,
 }: FooterProps) => {
+    const hasCategory = categoryLinks && categoryLinks.length > 0;
+    const lgColsClass = hasCategory
+        ? "lg:grid-cols-[2.35fr_1.8fr_0.95fr_1.3fr_1.7fr]"
+        : "lg:grid-cols-[2.35fr_0.95fr_1.3fr_1.7fr]";
     return (
         <footer
             data-slot="footer"
             className={cn("w-full font-[family-name:var(--font-inter)] text-[#24262b]", className)}
         >
             <div className="mx-auto w-full max-w-[1280px] pt-10 pb-4">
-                <div className="grid gap-9 md:grid-cols-2 lg:grid-cols-[2.35fr_1.8fr_0.95fr_1.3fr_1.7fr] lg:gap-14">
+                <div className={cn("grid gap-9 md:grid-cols-2 lg:gap-14", lgColsClass)}>
                     <div className="space-y-6">
                         <div className="flex items-end gap-0">
                             <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
@@ -138,8 +142,8 @@ const Footer = ({
 
             {socials.length > 0 ? (
                 <div className="w-full bg-black/5">
-                    <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-                        <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-2.5 px-4 py-3 sm:flex-row sm:justify-between sm:items-center sm:px-6 lg:px-8">
+                        <div className="flex flex-wrap items-center justify-start gap-2.5">
                             {socials.map((item, index) => (
                                 <a
                                     key={item.label}
@@ -155,7 +159,7 @@ const Footer = ({
                             ))}
                         </div>
 
-                        <p className="text-[14px] font-normal text-[#61656c]">Bütün hüquqlar qorunur © 2016—2025</p>
+                        <p className="text-[14px] font-normal text-[#61656c] text-left">Bütün hüquqlar qorunur © 2016—2025</p>
                     </div>
                 </div>
             ) : null}

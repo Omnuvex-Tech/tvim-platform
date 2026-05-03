@@ -97,13 +97,13 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
   return (
     <section className={cn("relative w-full overflow-hidden", className)}>
       <div className="flex w-full flex-col items-stretch overflow-hidden rounded-[20px] shadow-[0_4px_10px_rgba(0,0,0,0.1)] lg:flex-row" style={{ background: "url(/images/line.svg), linear-gradient(to bottom, rgb(0,61,255), rgb(0,48,201))", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "90% bottom, center" }}>
-        <div className="flex w-full flex-1 flex-col justify-center gap-[33px] p-[120px_60px] text-white lg:w-1/2">
-          <h2 className="mb-4 max-w-full text-[30px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[40px] lg:max-w-[500px] lg:text-[50px] lg:leading-[1.06] xl:max-w-[520px] xl:text-[54px]">{heading}</h2>
+        <div className="flex w-full flex-1 flex-col justify-center gap-6 lg:gap-[33px] px-6 pt-8 pb-4 sm:px-8 sm:pt-8 sm:pb-4 md:px-10 md:pt-8 md:pb-4 lg:p-[120px_60px] text-white lg:w-1/2">
+          <h2 className="mb-2 md:mb-0 lg:mb-4 max-w-full text-[30px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[40px] lg:max-w-[500px] lg:text-[50px] lg:leading-[1.06] xl:max-w-[520px] xl:text-[54px]">{heading}</h2>
           <p className="w-full text-[16px] leading-[20px] font-semibold opacity-95 lg:w-[55%]">{subheading}</p>
         </div>
 
-        <div className="flex w-full flex-1 flex-col justify-center gap-[14px] px-6 py-11 sm:px-8 sm:py-14 md:px-10 lg:w-1/2 lg:py-[78px] lg:pr-[48px] lg:pl-0 xl:py-[86px] xl:pr-[40px] xl:pl-0">
-          <div className="mx-auto flex w-full max-w-full flex-col gap-4 md:max-w-[480px] lg:max-w-full">
+        <div className="flex w-full flex-1 flex-col justify-center gap-[12px] px-6 pt-4 pb-10 sm:px-8 sm:pt-4 sm:pb-10 md:px-10 md:pt-4 md:pb-10 lg:w-1/2 lg:py-[78px] lg:pr-[48px] lg:pl-0 xl:py-[86px] xl:pr-[40px] xl:pl-0">
+          <div className="mx-auto flex w-full max-w-full flex-col gap-3 sm:gap-4 md:gap-4 md:max-w-[480px] lg:max-w-full">
             <FormField icon={<UserIcon />}>
               <input className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="text" placeholder="Adınız *" value={form.name} onChange={set("name")} autoComplete="name" />
             </FormField>

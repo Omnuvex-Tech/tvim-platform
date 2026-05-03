@@ -42,12 +42,23 @@
 .viewport {
     overflow: hidden;
     width: 100%;
+    touch-action: pan-y;
+    cursor: grab;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.viewportDragging {
+    cursor: grabbing;
 }
 
 .track {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    touch-action: none;
+    -webkit-user-drag: none;
 }
 
 .animating {
