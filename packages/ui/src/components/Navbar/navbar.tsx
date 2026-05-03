@@ -101,13 +101,13 @@ function getParentIcon(name: string) {
     return Grid2X2;
 }
 
-function ParentCategoryIcon({ category }: { category: any }) {
+function ParentCategoryIcon({ category, className }: { category: any; className?: string }) {
     if (category?.icon?.image_url) {
-        return <img src={category.icon.image_url} alt={category.name ?? ""} className="h-4 w-4 shrink-0 object-cover" />;
+        return <img src={category.icon.image_url} alt={category.name ?? ""} className={cn("h-4 w-4 shrink-0 object-cover", className)} />;
     }
 
     const Icon = getParentIcon(category?.name ?? category?.title ?? category?.link ?? "");
-    return <Icon className="size-[16px] shrink-0 text-[#171717]" strokeWidth={2.2} />;
+    return <Icon className={cn("size-[16px] shrink-0", className)} strokeWidth={2.2} />;
 }
 
 function PhoneHandsetIcon() {
@@ -407,6 +407,7 @@ export function Navbar({
         () => localeOptions.find((item) => item.code === mobileLocale) ?? defaultLocaleOption,
         [mobileLocale]
     );
+    const [mobileExpandedIds, setMobileExpandedIds] = useState<number[]>([]);
     const whatsappHref = toWhatsappHref(phone);
 
     useEffect(() => {
@@ -445,6 +446,7 @@ export function Navbar({
     const catalogRef = useRef<HTMLDivElement | null>(null);
     const catalogToggleRef = useRef<HTMLButtonElement | null>(null);
     const mobileCatalogToggleRef = useRef<HTMLButtonElement | null>(null);
+    const mobileCatalogRef = useRef<HTMLDivElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [catalogPortalPos, setCatalogPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [catalogOverlayTop, setCatalogOverlayTop] = useState<number | null>(null);
@@ -637,8 +639,9 @@ export function Navbar({
         function onDocClick(e: MouseEvent) {
             const target = e.target as Node;
 
-            // If click happened inside the catalog dropdown, ignore
+            // If click happened inside the catalog dropdown (desktop) or inside the mobile aside, ignore
             if (catalogRef.current && catalogRef.current.contains(target)) return;
+            if (mobileCatalogRef.current && mobileCatalogRef.current.contains(target)) return;
 
             // If click happened on the catalog toggle button (desktop or mobile), ignore
             if (catalogToggleRef.current && catalogToggleRef.current.contains(target)) return;
@@ -684,14 +687,16 @@ export function Navbar({
 
         return (
             <div key={child.id} className="min-w-0 p-0">
-                <div className="flex items-start gap-3 px-0 py-3 rounded-md h-full">
-                    <div className="flex-shrink-0 h-14 w-14 overflow-hidden rounded-md p-0 flex items-center justify-center">
+                <div className="flex items-start gap-3 px-0 py-4 rounded-md h-full">
+                    <div className="hidden lg:flex h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
                         {child.icon && child.icon.image_url ? (
-                            <img src={child.icon.image_url} alt={child.name ?? ""} className="h-full w-full object-cover object-top" />
-                        ) : null}
+                            <img src={child.icon.image_url} alt={child.name ?? ""} className="h-full w-full object-cover" />
+                        ) : (
+                            <ParentCategoryIcon category={child} className="size-[14px] lg:size-[18px] lg:text-[#131722]" />
+                        )}
                     </div>
 
-                    <div className="min-w-0 flex-1 flex flex-col justify-start pt-1">
+                    <div className="flex-1 flex flex-col gap-2">
                         <a href={childHref} className="text-[13.3px] leading-[1.2] font-bold text-[#131722] whitespace-normal break-words transition-colors duration-100 hover:text-[#00a9c8]">
                             {child.name ?? child.title ?? child.link}
                         </a>
@@ -762,6 +767,86 @@ export function Navbar({
             window.removeEventListener("scroll", update);
         };
     }, [isCatalogOpen]);
+
+    const toggleMobileExpanded = (id: number) => {
+        setMobileExpandedIds((prev) => {
+            const nid = Number(id);
+            return prev.includes(nid) ? prev.filter((x) => x !== nid) : [...prev, nid];
+        });
+    };
+
+    const renderMobileTree = (items: any[], level = 0): React.ReactNode => {
+        if (!Array.isArray(items) || items.length === 0) return null;
+
+        return (
+            <ul className="space-y-1">
+                {items.map((item: any) => {
+                    const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+                    const expanded = mobileExpandedIds.includes(Number(item.id));
+                    const href = `/${(locale || "az").toLowerCase()}/${(item.multi_links && item.multi_links[(locale || "az").toLowerCase()]) || item.link || ""}`;
+                    const isRoot = level === 0 || !item.parent_id || Number(item.parent_id) === 0;
+
+                    return (
+                        <li key={item.id}>
+                            <div className="flex items-center justify-between gap-3 rounded-lg px-0 py-2 text-left lg:px-0 lg:py-3">
+                                <a href={href} className="flex items-center gap-3 flex-1" onClick={() => setIsCatalogOpen(false)}>
+                                    {isRoot ? (
+                                        <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-md lg:h-10 lg:w-10">
+                                            {item.icon && item.icon.image_url ? (
+                                                <img src={item.icon.image_url} alt={item.name ?? ""} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <ParentCategoryIcon category={item} className="size-[14px] lg:size-[18px]" />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-md lg:h-10 lg:w-10">
+                                            <div className="hidden lg:block h-full w-full">
+                                                {item.icon && item.icon.image_url ? (
+                                                    <img src={item.icon.image_url} alt={item.name ?? ""} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <ParentCategoryIcon category={item} className="size-[14px] lg:size-[18px] lg:text-[#131722]" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <span className={cn("text-[14px] text-[#131722]", isRoot ? "font-bold" : "font-normal")}>{item.name ?? item.title ?? item.link}</span>
+                                </a>
+
+                                {hasChildren && (
+                                    <button
+                                        type="button"
+                                        aria-expanded={expanded}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            toggleMobileExpanded(Number(item.id));
+                                        }}
+                                        className="inline-flex cursor-pointer items-center justify-center rounded-full p-2 text-[#1d2230] hover:bg-[#f3f4f6]"
+                                    >
+                                        <ChevronDown className={cn("size-[16px] transform transition-transform duration-150", expanded ? "rotate-180" : "rotate-0")} strokeWidth={2} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {hasChildren && expanded && (
+                                <div
+                                    className="mt-2"
+                                    style={{ paddingLeft: level === 0 ? 0 : `${(level + 1) * 12}px` }}
+                                >
+                                    {renderMobileTree(item.children, level + 1)}
+                                </div>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
+        );
+    };
 
     return (
         <header data-slot="navbar" className={cn(navbarClasses.root, className)}>
@@ -876,7 +961,7 @@ export function Navbar({
                                           background: "rgba(0,0,0,0.55)",
                                           zIndex: 1040,
                                       }}
-                                      className="transition-opacity duration-200"
+                                      className="hidden lg:block transition-opacity duration-200"
                                   />,
                                   document.body
                               )
@@ -896,7 +981,7 @@ export function Navbar({
                                           transform: "none",
                                           zIndex: 1050,
                                       }}
-                                      className="h-[560px] overflow-hidden border border-[#dfe3eb] border-t-0 bg-white shadow-[0_-10px_24px_rgba(17,24,39,0.10)]"
+                                      className="hidden lg:block h-[560px] overflow-hidden border border-[#dfe3eb] border-t-0 bg-white shadow-[0_-10px_24px_rgba(17,24,39,0.10)]"
                                   >
                                       {catalogLoading ? (
                                           <div className="h-full flex items-center justify-center">
@@ -906,8 +991,8 @@ export function Navbar({
                                           <div className="py-6 text-center text-sm text-red-500">Xəta: {catalogError}</div>
                                       ) : rootCategories.length > 0 ? (
                                           <div className="grid h-full grid-cols-[300px_1fr]">
-                                              <div className="h-full overflow-y-auto bg-white">
-                                                  <ul className="divide-y divide-[#e5e7eb]">
+                                              <div className="h-full overflow-y-auto bg-[#003dff] text-white lg:bg-white lg:text-[#131722]">
+                                                  <ul className="divide-y divide-white/10 lg:divide-gray-200">
                                                       {rootCategories.map((parent: any) => {
                                                           const isActive = Number(parent.id) === Number(activeParent?.id);
                                                           return (
@@ -917,17 +1002,19 @@ export function Navbar({
                                                                     onMouseEnter={() => setActiveParentId(Number(parent.id))}
                                                                     onClick={() => setActiveParentId(Number(parent.id))}
                                                                     className={cn(
-                                                                        "flex h-[52px] w-full items-center justify-between gap-3 px-5 text-left text-[13.3px] font-medium transition-colors cursor-pointer",
-                                                                        isActive ? "bg-white text-[#161b25]" : "bg-white text-[#161b25] hover:bg-[#fafbfc]"
+                                                                        "flex h-[52px] w-full items-center justify-between gap-3 px-4 text-left text-[13.3px] font-bold transition-colors cursor-pointer lg:text-[#131722]",
+                                                                        isActive
+                                                                            ? "bg-[#003dff] text-white lg:bg-white lg:text-[#131722]"
+                                                                            : "bg-transparent text-white hover:bg-[#0256ff] lg:bg-transparent lg:text-[#131722] lg:hover:bg-[#f3f4f6]"
                                                                     )}
                                                                 >
                                                                     <span className="flex min-w-0 items-center gap-3">
-                                                                    <ParentCategoryIcon category={parent} />
-                                                                    <span className="truncate">{parent.name ?? parent.title ?? parent.link}</span>
+                                                                                                                <ParentCategoryIcon category={parent} className="size-[14px] lg:size-[18px] text-white lg:text-[#131722]" />
+                                                                                                                <span className="truncate">{parent.name ?? parent.title ?? parent.link}</span>
                                                                 </span>
                                                                       <ChevronDown
                                                                           className={cn(
-                                                                              "size-[14px] shrink-0 text-[#1a1f2b] transition-transform duration-150",
+                                                                              "size-[14px] shrink-0 text-white lg:text-[#131722] transition-transform duration-150",
                                                                               isActive ? "-rotate-90" : "rotate-0"
                                                                           )}
                                                                           strokeWidth={2}
@@ -939,13 +1026,13 @@ export function Navbar({
                                                   </ul>
                                               </div>
 
-                                              <div className="h-full overflow-y-auto bg-white">
+                                              <div className="h-full overflow-y-auto bg-white px-3 lg:px-4">
                                                 {activeParentChildren.length > 0 ? (
                                                           <div className="grid grid-cols-4 gap-2 px-0">
                                                               {activeParentChildren.map((child: any) => renderCatalogChild(child))}
                                                           </div>
-                                                  ) : (
-                                                      <div className="px-5 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
+                                                      ) : (
+                                                  <div className="px-4 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
                                                   )}
                                               </div>
                                           </div>
@@ -1063,6 +1150,43 @@ export function Navbar({
                     >
                         <ShoppingCart className="size-[18px]" />
                     </button>
+                </div>
+            </aside>
+
+            {/* Mobile catalog overlay */}
+            <div
+                className={cn(
+                    "fixed inset-0 z-40 bg-black/35 transition-opacity duration-300 lg:hidden",
+                    isCatalogOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                )}
+                onClick={() => setIsCatalogOpen(false)}
+            />
+
+            <aside
+                className={cn(
+                    "fixed top-0 left-0 z-50 h-full w-full max-w-none bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden",
+                    isCatalogOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+                ref={mobileCatalogRef}
+                aria-hidden={!isCatalogOpen}
+            >
+                <div className="flex items-center justify-between px-6 lg:px-4 pt-4 pb-3 bg-[#003dff] text-white">
+                    <div className="flex items-center gap-2">
+                        <Grid2X2 className="size-[18px] text-white" />
+                        <span className="text-[16px] font-bold">Kataloq</span>
+                    </div>
+                    <button
+                        type="button"
+                        aria-label="Kataloqu bağla"
+                        className="inline-flex size-9 cursor-pointer items-center justify-center rounded-[10px] text-white transition-colors hover:bg-white/10"
+                        onClick={() => setIsCatalogOpen(false)}
+                    >
+                        <X className="size-5 text-white" />
+                    </button>
+                </div>
+
+                <div className="px-6 py-2 lg:pl-1 lg:pr-3 lg:py-4">
+                    {renderMobileTree(rootCategories)}
                 </div>
             </aside>
         </header>
