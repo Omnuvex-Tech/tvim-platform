@@ -7,6 +7,7 @@ type CategoryItem = {
     href: string;
     iconClass?: string;
     iconImageUrl?: string;
+    backgroundImageUrl?: string;
     iconEmoji?: string;
 };
 
@@ -99,7 +100,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
         moveDrag(e.clientX);
     };
 
-    const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const endDrag = () => {
         if (!isDraggingRef.current) return;
         finishDrag();
     };
@@ -153,5 +154,153 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
     );
 };
 
+type CategoryStrip2Props = {
+    items?: CategoryItem[];
+};
+
+const CategoryStrip2 = ({ items = [] }: CategoryStrip2Props) => {
+    const categoryItems = items.length > 0 ? items : fallbackCategoryItems;
+
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const supportsPointerRef = useRef(false);
+    const isDraggingRef = useRef(false);
+    const startXRef = useRef(0);
+    const startScrollLeftRef = useRef(0);
+    const suppressClickRef = useRef(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragEnabled, setDragEnabled] = useState(false);
+
+    useEffect(() => {
+        supportsPointerRef.current = typeof window !== "undefined" && "PointerEvent" in window;
+
+        const widthMq = window.matchMedia("(max-width: 1023.98px)");
+        const coarseMq = window.matchMedia("(hover: none) and (pointer: coarse)");
+        const update = () => setDragEnabled(widthMq.matches || coarseMq.matches);
+        update();
+
+        if (widthMq.addEventListener) widthMq.addEventListener("change", update);
+        else widthMq.addListener(update);
+
+        if (coarseMq.addEventListener) coarseMq.addEventListener("change", update);
+        else coarseMq.addListener(update);
+
+        return () => {
+            if (widthMq.removeEventListener) widthMq.removeEventListener("change", update);
+            else widthMq.removeListener(update);
+
+            if (coarseMq.removeEventListener) coarseMq.removeEventListener("change", update);
+            else coarseMq.removeListener(update);
+        };
+    }, []);
+
+    const startDrag = (clientX: number) => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        isDraggingRef.current = true;
+        setIsDragging(true);
+        startXRef.current = clientX;
+        startScrollLeftRef.current = el.scrollLeft;
+        suppressClickRef.current = false;
+    };
+
+    const moveDrag = (clientX: number) => {
+        const el = containerRef.current;
+        if (!isDraggingRef.current || !el) return;
+
+        const dx = clientX - startXRef.current;
+        if (Math.abs(dx) > 5) suppressClickRef.current = true;
+        el.scrollLeft = startScrollLeftRef.current - dx;
+    };
+
+    const finishDrag = () => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+        setIsDragging(false);
+        setTimeout(() => (suppressClickRef.current = false), 0);
+    };
+
+    const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (e.pointerType !== "mouse" || e.button !== 0) return;
+        startDrag(e.clientX);
+    };
+
+    const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        moveDrag(e.clientX);
+    };
+
+    const endDrag = () => {
+        if (!isDraggingRef.current) return;
+        finishDrag();
+    };
+
+    const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!dragEnabled && !supportsPointerRef.current) return;
+        if (suppressClickRef.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            suppressClickRef.current = false;
+        }
+    };
+
+    return (
+        <section className="w-full font-[family-name:var(--font-inter)]">
+            <div className="mx-auto w-full max-w-[1280px] px-0">
+                <div
+                    ref={containerRef}
+                    onPointerDown={supportsPointerRef.current ? onPointerDown : undefined}
+                    onPointerMove={supportsPointerRef.current ? onPointerMove : undefined}
+                    onPointerUp={supportsPointerRef.current ? endDrag : undefined}
+                    onPointerCancel={supportsPointerRef.current ? endDrag : undefined}
+                    onPointerLeave={supportsPointerRef.current ? endDrag : undefined}
+                    onClickCapture={onClickCapture}
+                    style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
+                    className={`grid grid-flow-col auto-cols-[100px] gap-3 overflow-x-auto pb-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:auto-cols-[minmax(136px,1fr)] sm:gap-3 md:auto-cols-[minmax(148px,1fr)] md:gap-4 lg:auto-cols-[calc((100%-6rem)/7)] ${isDragging ? "cursor-grabbing" : "cursor-grab"} lg:cursor-default`}
+                >
+                    {categoryItems.map(({ label, href, iconClass, iconImageUrl, backgroundImageUrl, iconEmoji }) => {
+                        const image = backgroundImageUrl ?? iconImageUrl;
+
+                        return (
+                            <a
+                                key={`${label}-${href}`}
+                                href={href}
+                                draggable={false}
+                                style={{ touchAction: "auto" }}
+                                className={`group relative block aspect-square min-w-0 select-none overflow-hidden rounded-[12px] bg-[rgba(217,217,221,0.24)] p-2.5 shadow-none transition-transform duration-200 ease-out hover:-translate-y-1 sm:rounded-[16px] sm:p-4 ${isDragging ? "cursor-grabbing" : "cursor-pointer"}`}
+                            >
+                                {image ? (
+                                    <>
+                                        <img
+                                            src={image}
+                                            alt={label}
+                                            className="absolute inset-[3px] h-[calc(100%-6px)] w-[calc(100%-6px)] object-cover object-center"
+                                            draggable={false}
+                                        />
+                                        <div className="absolute inset-[3px] h-[calc(100%-6px)] w-[calc(100%-6px)] bg-[rgba(217,217,221,0.24)]" aria-hidden="true" />
+                                    </>
+                                ) : null}
+
+                                {!image ? (
+                                    <span className="absolute right-3 bottom-3 text-[36px] leading-none opacity-70 sm:right-4 sm:bottom-4 sm:text-[56px]" aria-hidden="true">
+                                        {iconClass ? <i className={iconClass} /> : (iconEmoji ?? "📦")}
+                                    </span>
+                                ) : null}
+
+                                <span
+                                    className="relative z-10 block w-full text-[13px] leading-[1.15] font-bold text-[#1f2328] sm:text-[16px] md:text-[22px]"
+                                    style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                                >
+                                    {label}
+                                </span>
+                            </a>
+                        );
+                    })}
+                </div>
+            </div>
+        </section>
+    );
+};
+
 export { CategoryStrip };
+export { CategoryStrip2 };
 export type { CategoryItem as CategoryStripItem };
