@@ -31,7 +31,6 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const supportsPointerRef = useRef(false);
-    const activeInputRef = useRef<"pointer" | "touch" | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startScrollLeftRef = useRef(0);
@@ -62,12 +61,10 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
         };
     }, []);
 
-    const startDrag = (clientX: number, inputType: "pointer" | "touch") => {
+    const startDrag = (clientX: number) => {
         const el = containerRef.current;
         if (!el) return;
-        if (activeInputRef.current && activeInputRef.current !== inputType) return;
 
-        activeInputRef.current = inputType;
         isDraggingRef.current = true;
         setIsDragging(true);
         startXRef.current = clientX;
@@ -87,15 +84,15 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
     const finishDrag = () => {
         if (!isDraggingRef.current) return;
         isDraggingRef.current = false;
-        activeInputRef.current = null;
         setIsDragging(false);
         // keep suppressClick for a tick so click handlers can be ignored
         setTimeout(() => (suppressClickRef.current = false), 0);
     };
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (e.pointerType === "mouse" && e.button !== 0) return;
-        startDrag(e.clientX, "pointer");
+        // On real touch devices we rely on native horizontal scrolling for stability.
+        if (e.pointerType !== "mouse" || e.button !== 0) return;
+        startDrag(e.clientX);
         try {
             (e.currentTarget as Element).setPointerCapture(e.pointerId);
         } catch {}
@@ -111,25 +108,6 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
         try {
             (e.currentTarget as Element).releasePointerCapture(e.pointerId);
         } catch {}
-    };
-
-    const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (activeInputRef.current === "pointer") return;
-        const t = e.touches[0];
-        if (!t) return;
-        startDrag(t.clientX, "touch");
-    };
-
-    const onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (activeInputRef.current === "pointer") return;
-        const t = e.touches[0];
-        if (!t) return;
-        moveDrag(t.clientX);
-        if (suppressClickRef.current) e.preventDefault();
-    };
-
-    const onTouchEnd = () => {
-        finishDrag();
     };
 
     const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -150,12 +128,8 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                     onPointerUp={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
                     onPointerCancel={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
                     onPointerLeave={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
-                    onTouchStart={dragEnabled ? onTouchStart : undefined}
-                    onTouchMove={dragEnabled ? onTouchMove : undefined}
-                    onTouchEnd={dragEnabled ? onTouchEnd : undefined}
-                    onTouchCancel={dragEnabled ? onTouchEnd : undefined}
                     onClickCapture={onClickCapture}
-                    style={{ touchAction: "pan-y" }}
+                    style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
                     className={`grid grid-flow-col auto-cols-[minmax(120px,auto)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex md:flex-wrap md:justify-center md:gap-4 md:overflow-visible lg:grid lg:grid-flow-row lg:grid-cols-9 py-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"} md:cursor-default`}
                 >
                     {categoryItems.map(({ label, href, iconClass, iconImageUrl, iconEmoji }) => (
@@ -163,7 +137,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                             key={`${label}-${href}`}
                             href={href}
                             draggable={false}
-                            style={{ touchAction: 'pan-y' }}
+                            style={{ touchAction: "pan-x" }}
                             className={`select-none group flex h-[170px] max-[512px]:h-[160px] flex-col items-center justify-start gap-6 rounded-[14px] border border-[#e2e6ef] bg-white px-4 max-[512px]:px-6 pt-7 pb-7 text-center shadow-none transition-transform duration-200 ease-out hover:-translate-y-1 md:flex-shrink-0 md:w-[120px] md:min-w-[120px] md:max-w-[120px] ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'} md:cursor-pointer`}
                         >
                             <span className="inline-flex h-11 items-center justify-center select-none" aria-hidden="true">
