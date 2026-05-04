@@ -2,6 +2,7 @@
 
 import { type ReactNode, useMemo, useState, useEffect, useRef, useCallback, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import {
     Boxes,
     Briefcase,
@@ -350,16 +351,16 @@ function NavbarMenu({ menuItems }: { menuItems: NavbarMenuItem[] }) {
     );
 }
 
-function NavbarActions() {
+function NavbarActions({ locale }: { locale: string }) {
     return (
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
-            <button
-                type="button"
+            <Link
+                href={`/${locale.toLowerCase()}/giris`}
                 className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-[#1f4fff] px-11 text-[16px] font-medium text-white"
             >
                 <UserRound className="size-[17px]" />
                 Daxil ol
-            </button>
+            </Link>
 
             <button
                 type="button"
@@ -1048,7 +1049,7 @@ export function Navbar({
                                                         : null}
                     </div>
                     <NavbarMenu menuItems={effectiveMenuItems} />
-                    <NavbarActions />
+                    <NavbarActions locale={locale} />
                 </div>
 
                 <div className="mt-1 flex items-center gap-2 bg-[#f4f5f7] px-2 py-2.5 lg:hidden">
