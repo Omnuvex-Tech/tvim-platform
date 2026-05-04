@@ -121,6 +121,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const trackRef = useRef<HTMLDivElement | null>(null);
     const [visibleCount, setVisibleCountState] = useState<number>(1);
     const [index, setIndex] = useState<number>(0);
+    const [useNativeTouchScroll, setUseNativeTouchScroll] = useState(false);
 
     // Drag state (pointer-based) for all screen sizes
     const isDraggingRef = useRef(false);
@@ -140,14 +141,46 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         return () => window.removeEventListener("resize", update);
     }, []);
 
+    useEffect(() => {
+        const widthMq = window.matchMedia("(max-width: 1023.98px)");
+        const coarseMq = window.matchMedia("(hover: none) and (pointer: coarse)");
+        const update = () => {
+            const hasTouchPoints = typeof navigator !== "undefined" && navigator.maxTouchPoints > 0;
+            const hasTouchEvent = typeof window !== "undefined" && "ontouchstart" in window;
+            const isTouchDevice = coarseMq.matches || hasTouchPoints || hasTouchEvent;
+            setUseNativeTouchScroll(widthMq.matches && isTouchDevice);
+        };
+
+        update();
+
+        if (widthMq.addEventListener) widthMq.addEventListener("change", update);
+        else widthMq.addListener(update);
+
+        if (coarseMq.addEventListener) coarseMq.addEventListener("change", update);
+        else coarseMq.addListener(update);
+
+        return () => {
+            if (widthMq.removeEventListener) widthMq.removeEventListener("change", update);
+            else widthMq.removeListener(update);
+
+            if (coarseMq.removeEventListener) coarseMq.removeEventListener("change", update);
+            else coarseMq.removeListener(update);
+        };
+    }, []);
+
+    const getItemWidth = () => {
+        const viewportWidth = viewportRef.current?.clientWidth ?? 0;
+        const track = trackRef.current;
+        const firstChild = track?.children[0] as HTMLElement | undefined;
+        return firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount || viewportWidth;
+    };
+
     const updateTrackTransform = () => {
+        if (useNativeTouchScroll) return;
         const track = trackRef.current;
         const viewport = viewportRef.current;
         if (!track || !viewport) return;
-        const viewportWidth = viewport.clientWidth;
-        // measure actual item width from DOM to avoid rounding drift
-        const firstChild = track.children[0] as HTMLElement | undefined;
-        const itemWidth = firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount;
+        const itemWidth = getItemWidth();
         const total = products.length;
         const maxIdx = Math.max(0, total - visibleCount);
         const minTranslate = -maxIdx * itemWidth;
@@ -160,6 +193,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     };
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (useNativeTouchScroll) return;
+        if (e.pointerType !== "mouse" || e.button !== 0) return;
         isPointerDownRef.current = true;
         startXRef.current = e.clientX;
         dragOffsetRef.current = 0;
@@ -167,6 +202,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     };
 
     const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (useNativeTouchScroll) return;
         if (!isPointerDownRef.current) return;
         const dx = e.clientX - startXRef.current;
         dragOffsetRef.current = dx;
@@ -189,6 +225,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     };
 
     const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (useNativeTouchScroll) return;
         // always clear pointer-down state
         isPointerDownRef.current = false;
         if (!isDraggingRef.current) return; // no drag happened
@@ -202,10 +239,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
             rafRef.current = null;
         }
 
-        const viewportWidth = viewportRef.current?.clientWidth ?? 0;
-        const track = trackRef.current;
-        const firstChild = track?.children[0] as HTMLElement | undefined;
-        const itemWidth = firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount || viewportWidth;
+        const itemWidth = getItemWidth();
         const total = products.length;
         const maxIdx = Math.max(0, total - visibleCount);
         const minTranslate = -maxIdx * itemWidth;
@@ -226,6 +260,16 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         setTimeout(() => (suppressClickRef.current = false), 50);
     };
 
+    const onNativeScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (!useNativeTouchScroll) return;
+        const itemWidth = getItemWidth();
+        if (!itemWidth) return;
+        const nextIndex = Math.round(e.currentTarget.scrollLeft / itemWidth);
+        const maxIdx = Math.max(0, products.length - visibleCount);
+        const clamped = Math.min(maxIdx, Math.max(0, nextIndex));
+        if (clamped !== index) setIndex(clamped);
+    };
+
     // click suppression is handled per-Link to avoid capture-phase blocking
 
     const maxIndex = Math.max(0, products.length - visibleCount);
@@ -234,8 +278,23 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         if (index > maxIndex) setIndex(maxIndex);
     }, [maxIndex, index]);
 
-    const prev = () => setIndex((i) => Math.max(0, i - 1));
-    const next = () => setIndex((i) => Math.min(maxIndex, i + 1));
+    const prev = () => {
+        const target = Math.max(0, index - 1);
+        setIndex(target);
+        if (useNativeTouchScroll && viewportRef.current) {
+            const itemWidth = getItemWidth();
+            viewportRef.current.scrollTo({ left: target * itemWidth, behavior: "smooth" });
+        }
+    };
+
+    const next = () => {
+        const target = Math.min(maxIndex, index + 1);
+        setIndex(target);
+        if (useNativeTouchScroll && viewportRef.current) {
+            const itemWidth = getItemWidth();
+            viewportRef.current.scrollTo({ left: target * itemWidth, behavior: "smooth" });
+        }
+    };
 
     const pageCount = Math.max(1, maxIndex + 1);
 
@@ -248,14 +307,17 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         const track = trackRef.current;
         const viewport = viewportRef.current;
         if (!track || !viewport) return;
+        if (useNativeTouchScroll) {
+            track.style.transition = "none";
+            track.style.transform = "translate3d(0,0,0)";
+            return;
+        }
         if (isDraggingRef.current) return; // don't override while dragging
-        const viewportWidth = viewport.clientWidth;
-        const firstChild = track.children[0] as HTMLElement | undefined;
-        const itemWidth = firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount;
+        const itemWidth = getItemWidth();
         const baseTranslate = index * itemWidth;
         track.style.transition = 'transform 300ms ease-in-out';
         track.style.transform = `translate3d(${-baseTranslate}px,0,0)`;
-    }, [index, visibleCount]);
+    }, [index, visibleCount, useNativeTouchScroll]);
 
     // Cleanup RAF on unmount
     React.useEffect(() => {
@@ -308,16 +370,18 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                 <div className="relative">
                     <div
                         ref={viewportRef}
-                        className="overflow-hidden py-3 px-0"
-                        onPointerDown={onPointerDown}
-                        onPointerMove={onPointerMove}
-                        onPointerUp={endDrag}
-                        onPointerCancel={endDrag}
-                        onPointerLeave={endDrag}
+                        className={useNativeTouchScroll ? "overflow-x-auto overflow-y-hidden py-3 px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "overflow-hidden py-3 px-0"}
+                        onPointerDown={!useNativeTouchScroll ? onPointerDown : undefined}
+                        onPointerMove={!useNativeTouchScroll ? onPointerMove : undefined}
+                        onPointerUp={!useNativeTouchScroll ? endDrag : undefined}
+                        onPointerCancel={!useNativeTouchScroll ? endDrag : undefined}
+                        onPointerLeave={!useNativeTouchScroll ? endDrag : undefined}
+                        onScroll={useNativeTouchScroll ? onNativeScroll : undefined}
+                        style={useNativeTouchScroll ? { touchAction: "pan-x", WebkitOverflowScrolling: "touch" } : undefined}
                     >
                         <div
                             ref={trackRef}
-                            className={`flex ${isDragging ? "transition-none" : "transition-transform duration-300 ease-in-out"} -mx-2 sm:-mx-3`}
+                            className={`flex ${!useNativeTouchScroll && isDragging ? "transition-none" : "transition-transform duration-300 ease-in-out"} -mx-2 sm:-mx-3`}
                         >
                             {products.map((product) => (
                                 <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border px-2 sm:px-3">
