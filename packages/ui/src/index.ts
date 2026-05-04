@@ -21,6 +21,7 @@ export {
     Navbar,
     type NavbarProps,
     type NavbarMenuItem,
+    type NavbarSearchProduct,
 } from "./components/Navbar";
 export {
     RequestForm,

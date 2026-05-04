@@ -39,6 +39,115 @@ const navbarClasses = {
     bottomRow: "hidden items-center gap-5 py-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
 };
 
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
+const NAVBAR_REQUEST_TIMEOUT_MS = 10000;
+
+function buildApiUrl(path: string, params?: Record<string, string>) {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    const url = new URL(`${API_BASE_URL}${normalizedPath}`);
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            url.searchParams.append(key, value);
+        });
+    }
+
+    return url.toString();
+}
+
+async function fetchNavbarApiJson(path: string, options?: { locale?: string; params?: Record<string, string> }) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), NAVBAR_REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(buildApiUrl(path, options?.params), {
+            signal: controller.signal,
+            headers: {
+                Accept: "application/json",
+                ...(options?.locale ? { "Content-Language": options.locale } : {}),
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        return await response.json();
+    } finally {
+        window.clearTimeout(timeoutId);
+    }
+}
+
+function extractResponseItems(json: any): any[] {
+    if (json && Array.isArray(json.data?.header)) return json.data.header;
+    if (json && Array.isArray(json.header)) return json.header;
+    if (json && Array.isArray(json.data?.menus)) return json.data.menus;
+    if (json && Array.isArray(json.data?.items)) return json.data.items;
+    if (json && Array.isArray(json.data)) return json.data;
+    if (Array.isArray(json.items)) return json.items;
+    if (Array.isArray(json)) return json;
+    if (json && typeof json === "object" && json.data && typeof json.data === "object") {
+        const arr = Object.values(json.data).find((v) => Array.isArray(v));
+        if (Array.isArray(arr)) return arr as any[];
+    }
+    return [];
+}
+
+export type NavbarSearchProduct = {
+    id: string | number;
+    name: string;
+    model: string;
+    price: string;
+    imageUrl: string;
+    href: string;
+};
+
+function toProductHref(item: any, locale: string) {
+    const hrefPart =
+        (item?.multi_links && item.multi_links[locale]) ||
+        item?.link ||
+        (item?.slug ? `products/${item.slug}` : "");
+
+    if (!hrefPart) return "#";
+
+    const normalizedHref = String(hrefPart).replace(/^\/+/, "");
+    return `/${locale}/${normalizedHref}`;
+}
+
+function formatProductPrice(value: unknown) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return `${value.toFixed(2)}₼`;
+    }
+
+    const parsed = Number.parseFloat(String(value ?? "").replace(",", "."));
+    if (Number.isFinite(parsed)) {
+        return `${parsed.toFixed(2)}₼`;
+    }
+
+    return "";
+}
+
+function normalizeSearchProducts(json: any, locale: string): NavbarSearchProduct[] {
+    const items = extractResponseItems(json);
+
+    return (items as any[])
+        .filter((item) => !!item && typeof item === "object")
+        .map((item) => ({
+            id: item.id ?? item.product_id ?? item.uuid ?? `${item.slug ?? item.link ?? item.name ?? "item"}`,
+            name: String(item.name ?? item.title ?? item.product_name ?? "Məhsul"),
+            model: String(item.model ?? item.sku ?? item.code ?? ""),
+            price: formatProductPrice(item.sale_price ?? item.price ?? item.final_price ?? item.special),
+            imageUrl: String(
+                item.image?.image_url ??
+                item.image_url ??
+                item.thumb ??
+                item.images?.[0]?.image_url ??
+                ""
+            ),
+            href: toProductHref(item, locale),
+        }));
+}
+
 export interface NavbarMenuItem {
     label: string;
     href: string;
@@ -56,6 +165,7 @@ export interface NavbarProps {
     defLang?: string;
     onLocaleChange?: (locale: string) => void;
     initialCatalogItems?: any[];
+    onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchProduct[]>;
 }
 
 const defaultMenuItems: NavbarMenuItem[] = [
@@ -164,13 +274,99 @@ function NavbarLogo({ logo, logoHref = "#" }: { logo?: ReactNode; logoHref?: str
     );
 }
 
-function NavbarSearch({ searchPlaceholder, compact = false }: { searchPlaceholder: string; compact?: boolean }) {
+function NavbarSearch({
+    searchPlaceholder,
+    compact = false,
+    locale = "az",
+    onSearchProducts,
+}: {
+    searchPlaceholder: string;
+    compact?: boolean;
+    locale?: string;
+    onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchProduct[]>;
+}) {
     const [value, setValue] = useState("");
+    const [results, setResults] = useState<NavbarSearchProduct[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [isOpen, setIsOpen] = useState(false);
+    const searchRef = useRef<HTMLDivElement | null>(null);
+    const activeQueryRef = useRef("");
+    const localeCode = (locale || "az").toLowerCase();
 
     const overlayVisible = value.length === 0;
 
+    useEffect(() => {
+        const query = value.trim();
+
+        if (!query) {
+            setResults([]);
+            setError(null);
+            setIsLoading(false);
+            setIsOpen(false);
+            activeQueryRef.current = "";
+            return;
+        }
+
+        activeQueryRef.current = query;
+
+        const timer = window.setTimeout(async () => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const mapped = onSearchProducts
+                    ? await onSearchProducts(query, localeCode)
+                    : normalizeSearchProducts(
+                        await fetchNavbarApiJson("/product/list", {
+                            locale: localeCode,
+                            params: { q: query },
+                        }),
+                        localeCode
+                    );
+
+                if (activeQueryRef.current !== query) return;
+                setResults(mapped);
+                setIsOpen(true);
+            } catch (err: any) {
+                if (activeQueryRef.current !== query) return;
+                setResults([]);
+                setError(err?.message ?? "Axtarış xətası");
+                setIsOpen(true);
+            } finally {
+                if (activeQueryRef.current === query) {
+                    setIsLoading(false);
+                }
+            }
+        }, 280);
+
+        return () => window.clearTimeout(timer);
+    }, [value, localeCode, onSearchProducts]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const onDocClick = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (searchRef.current && searchRef.current.contains(target)) return;
+            setIsOpen(false);
+        };
+
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setIsOpen(false);
+        };
+
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onKey);
+
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onKey);
+        };
+    }, [isOpen]);
+
     return (
-        <div className="relative min-w-0 flex-1 lg:mx-auto lg:w-full lg:max-w-[470px] group">
+        <div ref={searchRef} className="relative min-w-0 flex-1 lg:mx-auto lg:w-full lg:max-w-[470px] group">
             <input
                 type="text"
                 value={value}
@@ -202,6 +398,58 @@ function NavbarSearch({ searchPlaceholder, compact = false }: { searchPlaceholde
                     compact ? "right-[28px] size-[14px]" : "right-[28px] size-[16px]"
                 )}
             />
+
+            {isOpen && (
+                <div className="absolute top-[calc(100%+8px)] left-0 right-0 z-[1200] overflow-hidden rounded-[18px] border border-[#dfe5ef] bg-white shadow-[0_16px_34px_rgba(17,24,39,0.16)]">
+                    <div className="max-h-[420px] overflow-y-auto">
+                        {isLoading ? (
+                            <div className="px-4 py-4 text-[13px] text-[#7b8494]">Axtarılır...</div>
+                        ) : error ? (
+                            <div className="px-4 py-4 text-[13px] text-[#d14343]">{error}</div>
+                        ) : results.length === 0 ? (
+                            <div className="px-4 py-4 text-[13px] text-[#7b8494]">Nəticə tapılmadı</div>
+                        ) : (
+                            results.map((product) => (
+                                <a
+                                    key={product.id}
+                                    href={product.href}
+                                    className="flex items-center gap-3 border-b border-[#edf1f7] px-4 py-3 transition-colors hover:bg-[#f6f8fc]"
+                                    onClick={() => setIsOpen(false)}
+                                >
+                                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f5f9]">
+                                        {product.imageUrl ? (
+                                            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
+                                        ) : (
+                                            <Package className="size-4 text-[#98a1b2]" strokeWidth={2} />
+                                        )}
+                                    </span>
+
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-[13px] leading-[1.25] font-semibold text-[#1c2431]">{product.name}</span>
+                                        {product.model ? (
+                                            <span className="mt-0.5 block text-[12px] leading-[1.2] text-[#7c8596]">Model: {product.model}</span>
+                                        ) : null}
+                                    </span>
+
+                                    {product.price ? (
+                                        <span className="shrink-0 text-[13px] leading-none font-semibold text-[#1f2430]">{product.price}</span>
+                                    ) : null}
+                                </a>
+                            ))
+                        )}
+                    </div>
+
+                    {!isLoading && results.length > 0 ? (
+                        <a
+                            href={`/${localeCode}/products?q=${encodeURIComponent(value.trim())}`}
+                            className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            Bütün axtarış nəticələri ({results.length})
+                        </a>
+                    ) : null}
+                </div>
+            )}
         </div>
     );
 }
@@ -438,6 +686,7 @@ export function Navbar({
     defLang,
     onLocaleChange,
     initialCatalogItems,
+    onSearchProducts,
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
@@ -556,21 +805,19 @@ export function Navbar({
             setCatalogLoading(true);
             setCatalogError(null);
             try {
-                // Request header categories from the API
-                const res = await fetch("https://admin.tvim.az/api/v1/product/categories?in_header=1");
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const json = await res.json();
-                console.log("[Navbar] categories API response:", json);
-                const items = Array.isArray(json.data) ? json.data : Array.isArray(json.items) ? json.items : Array.isArray(json) ? json : [];
+                const currentLocale = (locale || "az").toLowerCase();
+                const json = await fetchNavbarApiJson("/product/categories", {
+                    locale: currentLocale,
+                    params: { in_header: "1" },
+                });
+                const items = extractResponseItems(json);
                 // server-side may not filter; prefer items with in_header, but fall back
                 // to the full list if none are marked for header so the dropdown isn't empty.
                 const filtered = (items as any[]).filter((it) => !!it && (it.in_header === true || it.in_header === 1 || it.in_header === '1' || it.in_header === 'true'));
                 const finalItems = filtered.length > 0 ? filtered : (items as any[]);
-                console.log("[Navbar] categories items (final):", finalItems);
                 setCatalogItems(finalItems as any[]);
                 return finalItems as any[];
             } catch (err: any) {
-                console.error("[Navbar] categories API error:", err);
                 setCatalogError(err?.message ?? String(err));
                 throw err;
             } finally {
@@ -583,7 +830,7 @@ export function Navbar({
 
         catalogFetchPromiseRef.current = p;
         return p;
-    }, []);
+    }, [locale]);
 
     const toggleCatalog = useCallback(() => {
         setIsCatalogOpen((prev) => {
@@ -660,29 +907,13 @@ export function Navbar({
             try {
                 const currentLocale = (locale || "az").toLowerCase();
 
-                const res = await fetch(`https://admin.tvim.az/api/v1/menus?in_header=1`, {
-                    headers: { "Content-Language": currentLocale },
+                const json = await fetchNavbarApiJson("/menus", {
+                    locale: currentLocale,
+                    params: { in_header: "1" },
                 });
 
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const json = await res.json();
-                console.log("[Navbar] menus API response:", json);
-
                 // Extract array robustly from several possible response shapes
-                const items: any[] = (() => {
-                    if (json && Array.isArray(json.data?.header)) return json.data.header;
-                    if (json && Array.isArray(json.header)) return json.header;
-                    if (json && Array.isArray(json.data?.menus)) return json.data.menus;
-                    if (json && Array.isArray(json.data?.items)) return json.data.items;
-                    if (json && Array.isArray(json.data)) return json.data;
-                    if (Array.isArray(json.items)) return json.items;
-                    if (Array.isArray(json)) return json;
-                    if (json && typeof json === "object" && json.data && typeof json.data === "object") {
-                        const arr = Object.values(json.data).find((v) => Array.isArray(v));
-                        if (Array.isArray(arr)) return arr as any[];
-                    }
-                    return [];
-                })();
+                const items: any[] = extractResponseItems(json);
 
                 const filtered = (items as any[])
                     .filter((it) => !!it)
@@ -700,7 +931,6 @@ export function Navbar({
 
                 if (mounted) setFetchedMenuItems(mapped);
             } catch (err: any) {
-                console.error("[Navbar] menus API error:", err);
                 if (mounted) setFetchedMenuItems([]);
             } finally {
                 if (mounted) setMenusLoading(false);
@@ -946,7 +1176,7 @@ export function Navbar({
                 <div className={navbarClasses.topRow}>
                     <NavbarLogo logo={logo} logoHref={logoHref} />
                     <div className="hidden lg:block">
-                        <NavbarSearch searchPlaceholder={searchPlaceholder} />
+                        <NavbarSearch searchPlaceholder={searchPlaceholder} locale={locale} onSearchProducts={onSearchProducts} />
                     </div>
                     <div className="hidden lg:block">
                         <NavbarContact 
@@ -1181,7 +1411,7 @@ export function Navbar({
                             strokeWidth={2}
                         />
                     </button>
-                    <NavbarSearch searchPlaceholder={searchPlaceholder} compact />
+                    <NavbarSearch searchPlaceholder={searchPlaceholder} compact locale={locale} onSearchProducts={onSearchProducts} />
                 </div>
             </div>
 
