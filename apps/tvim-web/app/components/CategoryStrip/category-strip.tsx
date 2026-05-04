@@ -31,6 +31,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const supportsPointerRef = useRef(false);
+    const activeInputRef = useRef<"pointer" | "touch" | null>(null);
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const startScrollLeftRef = useRef(0);
@@ -41,21 +42,32 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
     useEffect(() => {
         supportsPointerRef.current = typeof window !== "undefined" && "PointerEvent" in window;
 
-        const mq = window.matchMedia("(max-width: 767.98px)");
-        const update = () => setDragEnabled(mq.matches);
+        const widthMq = window.matchMedia("(max-width: 1023.98px)");
+        const coarseMq = window.matchMedia("(hover: none) and (pointer: coarse)");
+        const update = () => setDragEnabled(widthMq.matches || coarseMq.matches);
         update();
-        if (mq.addEventListener) mq.addEventListener("change", update);
-        else mq.addListener(update);
+
+        if (widthMq.addEventListener) widthMq.addEventListener("change", update);
+        else widthMq.addListener(update);
+
+        if (coarseMq.addEventListener) coarseMq.addEventListener("change", update);
+        else coarseMq.addListener(update);
+
         return () => {
-            if (mq.removeEventListener) mq.removeEventListener("change", update);
-            else mq.removeListener(update);
+            if (widthMq.removeEventListener) widthMq.removeEventListener("change", update);
+            else widthMq.removeListener(update);
+
+            if (coarseMq.removeEventListener) coarseMq.removeEventListener("change", update);
+            else coarseMq.removeListener(update);
         };
     }, []);
 
-    const startDrag = (clientX: number) => {
+    const startDrag = (clientX: number, inputType: "pointer" | "touch") => {
         const el = containerRef.current;
         if (!el) return;
+        if (activeInputRef.current && activeInputRef.current !== inputType) return;
 
+        activeInputRef.current = inputType;
         isDraggingRef.current = true;
         setIsDragging(true);
         startXRef.current = clientX;
@@ -75,6 +87,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
     const finishDrag = () => {
         if (!isDraggingRef.current) return;
         isDraggingRef.current = false;
+        activeInputRef.current = null;
         setIsDragging(false);
         // keep suppressClick for a tick so click handlers can be ignored
         setTimeout(() => (suppressClickRef.current = false), 0);
@@ -82,7 +95,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.pointerType === "mouse" && e.button !== 0) return;
-        startDrag(e.clientX);
+        startDrag(e.clientX, "pointer");
         try {
             (e.currentTarget as Element).setPointerCapture(e.pointerId);
         } catch {}
@@ -101,12 +114,14 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
     };
 
     const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (activeInputRef.current === "pointer") return;
         const t = e.touches[0];
         if (!t) return;
-        startDrag(t.clientX);
+        startDrag(t.clientX, "touch");
     };
 
     const onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (activeInputRef.current === "pointer") return;
         const t = e.touches[0];
         if (!t) return;
         moveDrag(t.clientX);
@@ -135,10 +150,10 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                     onPointerUp={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
                     onPointerCancel={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
                     onPointerLeave={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
-                    onTouchStart={dragEnabled && !supportsPointerRef.current ? onTouchStart : undefined}
-                    onTouchMove={dragEnabled && !supportsPointerRef.current ? onTouchMove : undefined}
-                    onTouchEnd={dragEnabled && !supportsPointerRef.current ? onTouchEnd : undefined}
-                    onTouchCancel={dragEnabled && !supportsPointerRef.current ? onTouchEnd : undefined}
+                    onTouchStart={dragEnabled ? onTouchStart : undefined}
+                    onTouchMove={dragEnabled ? onTouchMove : undefined}
+                    onTouchEnd={dragEnabled ? onTouchEnd : undefined}
+                    onTouchCancel={dragEnabled ? onTouchEnd : undefined}
                     onClickCapture={onClickCapture}
                     style={{ touchAction: "pan-y" }}
                     className={`grid grid-flow-col auto-cols-[minmax(120px,auto)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex md:flex-wrap md:justify-center md:gap-4 md:overflow-visible lg:grid lg:grid-flow-row lg:grid-cols-9 py-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"} md:cursor-default`}
