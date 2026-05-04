@@ -30,6 +30,7 @@ import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
 import Spinner from "../Spinner/Spinner";
+import "./navbar.css";
 
 const navbarClasses = {
     root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)]",
@@ -321,10 +322,19 @@ function CatalogButton({ open = false, onClick, toggleRef }: { open?: boolean; o
         <button
             type="button"
             ref={toggleRef}
-            onClick={onClick}
+            onPointerDown={(e) => {
+                if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
+                    e.preventDefault();
+                    onClick?.();
+                }
+            }}
+            onClick={(e) => {
+                // Keep keyboard activation (Enter/Space), ignore pointer-generated click.
+                if (e.detail === 0) onClick?.();
+            }}
             aria-haspopup="true"
             aria-expanded={open}
-            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
+            className="inline-flex cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
         >
             <Grid2X2 className="size-[15px] lg:size-4" />
             Kataloq
@@ -383,6 +393,35 @@ function NavbarActions({ locale }: { locale: string }) {
             >
                 <ShoppingCart className="size-[19px]" />
             </button>
+        </div>
+    );
+}
+
+function MobileCatalogCollapsible({
+    expanded,
+    renderContent,
+}: {
+    expanded: boolean;
+    renderContent: () => React.ReactNode;
+}) {
+    const [shouldRender, setShouldRender] = useState(expanded);
+
+    useEffect(() => {
+        if (expanded) {
+            setShouldRender(true);
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setShouldRender(false);
+        }, 180);
+
+        return () => window.clearTimeout(timer);
+    }, [expanded]);
+
+    return (
+        <div className={cn("mobile-catalog-children", expanded && "is-expanded")} aria-hidden={!expanded}>
+            <div className="overflow-hidden">{shouldRender ? renderContent() : null}</div>
         </div>
     );
 }
@@ -452,6 +491,10 @@ export function Navbar({
     const [catalogPortalPos, setCatalogPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
     const [catalogOverlayTop, setCatalogOverlayTop] = useState<number | null>(null);
     const catalogFetchPromiseRef = useRef<Promise<any[]> | null>(null);
+    const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+    const [isDesktopCatalogMounted, setIsDesktopCatalogMounted] = useState(false);
+    const [isDesktopCatalogActive, setIsDesktopCatalogActive] = useState(false);
+    const desktopCatalogCloseTimerRef = useRef<number | null>(null);
 
     const buildTree = useCallback((items: any[]) => {
         if (!Array.isArray(items)) return [];
@@ -551,6 +594,56 @@ export function Navbar({
             return next;
         });
     }, [catalogItems.length, catalogLoading, fetchCategories]);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(min-width: 1024px)");
+        const onChange = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
+
+        setIsDesktopViewport(mediaQuery.matches);
+
+        if (typeof mediaQuery.addEventListener === "function") {
+            mediaQuery.addEventListener("change", onChange);
+            return () => mediaQuery.removeEventListener("change", onChange);
+        }
+
+        mediaQuery.addListener(onChange);
+        return () => mediaQuery.removeListener(onChange);
+    }, []);
+
+    useEffect(() => {
+        if (!isDesktopViewport) {
+            setIsDesktopCatalogActive(false);
+            setIsDesktopCatalogMounted(false);
+            return;
+        }
+
+        if (desktopCatalogCloseTimerRef.current !== null) {
+            window.clearTimeout(desktopCatalogCloseTimerRef.current);
+            desktopCatalogCloseTimerRef.current = null;
+        }
+
+        if (isCatalogOpen) {
+            setIsDesktopCatalogMounted(true);
+            const rafId = window.requestAnimationFrame(() => setIsDesktopCatalogActive(true));
+            return () => window.cancelAnimationFrame(rafId);
+        }
+
+        setIsDesktopCatalogActive(false);
+        desktopCatalogCloseTimerRef.current = window.setTimeout(() => {
+            setIsDesktopCatalogMounted(false);
+            desktopCatalogCloseTimerRef.current = null;
+        }, 200);
+
+        return undefined;
+    }, [isCatalogOpen, isDesktopViewport]);
+
+    useEffect(() => {
+        return () => {
+            if (desktopCatalogCloseTimerRef.current !== null) {
+                window.clearTimeout(desktopCatalogCloseTimerRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -724,7 +817,7 @@ export function Navbar({
     };
 
     useEffect(() => {
-        if (!isCatalogOpen) {
+        if (!isDesktopCatalogMounted) {
             setCatalogPortalPos(null);
             setCatalogOverlayTop(null);
             return;
@@ -767,7 +860,7 @@ export function Navbar({
             window.removeEventListener("resize", update);
             window.removeEventListener("scroll", update);
         };
-    }, [isCatalogOpen]);
+    }, [isDesktopCatalogMounted]);
 
     const toggleMobileExpanded = (id: number) => {
         setMobileExpandedIds((prev) => {
@@ -780,16 +873,20 @@ export function Navbar({
         if (!Array.isArray(items) || items.length === 0) return null;
 
         return (
-            <ul className="space-y-1">
+            <ul className="space-y-0">
                 {items.map((item: any) => {
                     const hasChildren = Array.isArray(item.children) && item.children.length > 0;
                     const expanded = mobileExpandedIds.includes(Number(item.id));
                     const href = `/${(locale || "az").toLowerCase()}/${(item.multi_links && item.multi_links[(locale || "az").toLowerCase()]) || item.link || ""}`;
                     const isRoot = level === 0 || !item.parent_id || Number(item.parent_id) === 0;
+                    const rowIndent = level <= 1 ? 0 : 36 * Math.pow(2, level - 2);
 
                     return (
-                        <li key={item.id}>
-                            <div className="flex items-center justify-between gap-3 rounded-lg px-0 py-2 text-left lg:px-0 lg:py-3">
+                        <li key={item.id} className="border-b border-[#e5e7eb] last:border-b-0">
+                            <div
+                                className="flex items-center justify-between gap-3 rounded-lg px-0 py-2 text-left lg:px-0 lg:py-3"
+                                style={{ paddingLeft: rowIndent }}
+                            >
                                 <a href={href} className="flex items-center gap-3 flex-1" onClick={() => setIsCatalogOpen(false)}>
                                     {isRoot ? (
                                         <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-md lg:h-10 lg:w-10">
@@ -818,29 +915,23 @@ export function Navbar({
                                     <button
                                         type="button"
                                         aria-expanded={expanded}
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                        }}
-                                        onClick={(e) => {
+                                        onPointerDown={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             toggleMobileExpanded(Number(item.id));
                                         }}
-                                        className="inline-flex cursor-pointer items-center justify-center rounded-full p-2 text-[#1d2230] hover:bg-[#f3f4f6]"
+                                        className="inline-flex cursor-pointer touch-manipulation items-center justify-center rounded-full p-2 text-[#1d2230] hover:bg-[#f3f4f6]"
                                     >
-                                        <ChevronDown className={cn("size-[16px] transform transition-transform duration-150", expanded ? "rotate-180" : "rotate-0")} strokeWidth={2} />
+                                        <ChevronDown className={cn("mobile-catalog-chevron size-5 shrink-0", expanded && "is-expanded")} strokeWidth={2} />
                                     </button>
                                 )}
                             </div>
 
-                            {hasChildren && expanded && (
-                                <div
-                                    className="mt-2"
-                                    style={{ paddingLeft: level === 0 ? 0 : `${(level + 1) * 12}px` }}
-                                >
-                                    {renderMobileTree(item.children, level + 1)}
-                                </div>
+                            {hasChildren && (
+                                <MobileCatalogCollapsible
+                                    expanded={expanded}
+                                    renderContent={() => renderMobileTree(item.children, level + 1)}
+                                />
                             )}
                         </li>
                     );
@@ -936,8 +1027,16 @@ export function Navbar({
                         <button
                             type="button"
                             aria-label="Menyunu aç"
-                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[10px] bg-white text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
-                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="inline-flex size-8 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] bg-white text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
+                            onPointerDown={(e) => {
+                                if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
+                                    e.preventDefault();
+                                    setIsMobileMenuOpen(true);
+                                }
+                            }}
+                            onClick={(e) => {
+                                if (e.detail === 0) setIsMobileMenuOpen(true);
+                            }}
                         >
                             <Menu className="size-5" />
                         </button>
@@ -948,7 +1047,7 @@ export function Navbar({
                     <div className="relative">
                         <CatalogButton open={isCatalogOpen} onClick={toggleCatalog} toggleRef={catalogToggleRef} />
 
-                        {isCatalogOpen && catalogOverlayTop !== null && typeof document !== "undefined"
+                        {isDesktopCatalogMounted && catalogOverlayTop !== null && typeof document !== "undefined"
                             ? createPortal(
                                   <div
                                       role="presentation"
@@ -962,13 +1061,13 @@ export function Navbar({
                                           background: "rgba(0,0,0,0.55)",
                                           zIndex: 1040,
                                       }}
-                                      className="hidden lg:block transition-opacity duration-200"
+                                      className={cn("desktop-catalog-overlay hidden lg:block", isDesktopCatalogActive && "is-active")}
                                   />,
                                   document.body
                               )
                             : null}
 
-                        {isCatalogOpen && catalogPortalPos !== null && typeof document !== "undefined"
+                        {isDesktopCatalogMounted && catalogPortalPos !== null && typeof document !== "undefined"
                             ? createPortal(
                                   <div
                                       ref={catalogRef}
@@ -982,7 +1081,10 @@ export function Navbar({
                                           transform: "none",
                                           zIndex: 1050,
                                       }}
-                                      className="hidden lg:block h-[560px] overflow-hidden border border-[#dfe3eb] border-t-0 bg-white shadow-[0_-10px_24px_rgba(17,24,39,0.10)]"
+                                      className={cn(
+                                          "desktop-catalog-panel hidden lg:block h-[560px] overflow-hidden border border-[#dfe3eb] border-t-0 bg-white shadow-[0_-10px_24px_rgba(17,24,39,0.10)]",
+                                          isDesktopCatalogActive && "is-active"
+                                      )}
                                   >
                                       {catalogLoading ? (
                                           <div className="h-full flex items-center justify-center">
@@ -1056,14 +1158,28 @@ export function Navbar({
                     <button
                         type="button"
                         ref={mobileCatalogToggleRef}
-                        onClick={toggleCatalog}
+                        onPointerDown={(e) => {
+                            if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
+                                e.preventDefault();
+                                toggleCatalog();
+                            }
+                        }}
+                        onClick={(e) => {
+                            if (e.detail === 0) toggleCatalog();
+                        }}
                         aria-haspopup="true"
                         aria-expanded={isCatalogOpen}
-                        className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-1 rounded-[10px] bg-[#ffd500] px-3 text-[13px] font-medium text-[#171717]"
+                        className="inline-flex h-9 shrink-0 cursor-pointer touch-manipulation items-center gap-1 rounded-[10px] bg-[#ffd500] px-3 text-[13px] font-medium text-[#171717]"
                     >
                         <Grid2X2 className="size-[14px]" />
                         Kataloq
-                        <ChevronDown className={cn("size-[14px] transform transition-transform duration-200", isCatalogOpen ? "rotate-180" : "rotate-0")} strokeWidth={2} />
+                        <ChevronDown
+                            className={cn(
+                                "size-5 shrink-0 transform transition-transform duration-200",
+                                isCatalogOpen ? "rotate-180" : "rotate-0"
+                            )}
+                            strokeWidth={2}
+                        />
                     </button>
                     <NavbarSearch searchPlaceholder={searchPlaceholder} compact />
                 </div>
@@ -1071,7 +1187,7 @@ export function Navbar({
 
             <div
                 className={cn(
-                    "fixed inset-0 z-40 bg-black/35 transition-opacity duration-300 lg:hidden",
+                    "fixed inset-0 z-40 bg-black/35 transition-opacity duration-200 lg:hidden",
                     isMobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
                 )}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -1079,7 +1195,7 @@ export function Navbar({
 
             <aside
                 className={cn(
-                    "fixed top-0 left-0 z-50 h-full w-[84%] max-w-[320px] bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden",
+                    "fixed top-0 left-0 z-50 h-full w-[84%] max-w-[320px] bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] transition-transform duration-200 ease-out lg:hidden flex flex-col",
                     isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
                 )}
                 aria-hidden={!isMobileMenuOpen}
@@ -1097,76 +1213,83 @@ export function Navbar({
                     <button
                         type="button"
                         aria-label="Menyunu bağla"
-                        className="inline-flex size-9 cursor-pointer items-center justify-center rounded-[10px] text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="inline-flex size-9 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
+                        onPointerDown={(e) => {
+                            if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
+                                e.preventDefault();
+                                setIsMobileMenuOpen(false);
+                            }
+                        }}
+                        onClick={(e) => {
+                            if (e.detail === 0) setIsMobileMenuOpen(false);
+                        }}
                     >
-                        <X className="size-5" />
+                        <X className="size-5 shrink-0" />
                     </button>
                 </div>
 
                 <div className="mx-4 border-b border-[#e8eaef]" />
 
-                <nav className="flex flex-col px-4 py-3">
-                    {effectiveMenuItems.map((item) => (
-                        <a
-                            key={item.label}
-                            href={item.href}
-                            className="cursor-pointer rounded-lg px-2 py-2.5 text-[15px] font-medium text-[#151822] transition-colors hover:bg-[#f3f4f6]"
-                            onClick={() => setIsMobileMenuOpen(false)}
+                <div className="overflow-y-auto px-4 flex-1">
+                    <nav className="flex flex-col py-3">
+                        {effectiveMenuItems.map((item) => (
+                            <a
+                                key={item.label}
+                                href={item.href}
+                                className="cursor-pointer rounded-lg px-2 py-2.5 text-[15px] font-medium text-[#151822] transition-colors hover:bg-[#f3f4f6]"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                {item.label}
+                            </a>
+                        ))}
+                    </nav>
+
+                    <div className="pb-3">
+                        <button
+                            type="button"
+                            className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1f4fff] px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-95"
                         >
-                            {item.label}
-                        </a>
-                    ))}
-                </nav>
+                            <UserRound className="size-[16px]" />
+                            Daxil ol
+                        </button>
+                    </div>
 
-                <div className="px-4 pb-3">
-                    <button
-                        type="button"
-                        className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1f4fff] px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-95"
-                    >
-                        <UserRound className="size-[16px]" />
-                        Daxil ol
-                    </button>
-                </div>
-
-                <div className="flex items-center gap-3 px-4 pb-5">
-                    <button
-                        type="button"
-                        aria-label="Seçilmişlər"
-                        className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
-                    >
-                        <Heart className="size-[18px]" />
-                    </button>
-                    <button
-                        type="button"
-                        aria-label="Müqayisə"
-                        className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
-                    >
-                        <GitCompareArrows className="size-[18px]" />
-                    </button>
-                    <button
-                        type="button"
-                        aria-label="Səbət"
-                        className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
-                    >
-                        <ShoppingCart className="size-[18px]" />
-                    </button>
+                    <div className="flex items-center gap-3 pb-5">
+                        <button
+                            type="button"
+                            aria-label="Seçilmişlər"
+                            className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                        >
+                            <Heart className="size-[18px]" />
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="Müqayisə"
+                            className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                        >
+                            <GitCompareArrows className="size-[18px]" />
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="Səbət"
+                            className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                        >
+                            <ShoppingCart className="size-[18px]" />
+                        </button>
+                    </div>
                 </div>
             </aside>
 
             {/* Mobile catalog overlay */}
             <div
-                className={cn(
-                    "fixed inset-0 z-40 bg-black/35 transition-opacity duration-300 lg:hidden",
-                    isCatalogOpen ? "opacity-100" : "pointer-events-none opacity-0"
-                )}
+                className={cn("mobile-catalog-overlay fixed inset-0 z-40 bg-black/35 lg:hidden", isCatalogOpen && "is-active")}
                 onClick={() => setIsCatalogOpen(false)}
             />
 
             <aside
                 className={cn(
-                    "fixed top-0 left-0 z-50 h-full w-full max-w-none bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out lg:hidden",
-                    isCatalogOpen ? "translate-x-0" : "-translate-x-full"
+                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-full max-w-none overflow-y-auto bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] lg:hidden",
+                    isCatalogOpen && "is-active"
                 )}
                 ref={mobileCatalogRef}
                 aria-hidden={!isCatalogOpen}
@@ -1179,14 +1302,22 @@ export function Navbar({
                     <button
                         type="button"
                         aria-label="Kataloqu bağla"
-                        className="inline-flex size-9 cursor-pointer items-center justify-center rounded-[10px] text-white transition-colors hover:bg-white/10"
-                        onClick={() => setIsCatalogOpen(false)}
+                        className="inline-flex size-9 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] text-white transition-colors hover:bg-white/10"
+                        onPointerDown={(e) => {
+                            if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
+                                e.preventDefault();
+                                setIsCatalogOpen(false);
+                            }
+                        }}
+                        onClick={(e) => {
+                            if (e.detail === 0) setIsCatalogOpen(false);
+                        }}
                     >
-                        <X className="size-5 text-white" />
+                        <X className="size-5 shrink-0 text-white" />
                     </button>
                 </div>
 
-                <div className="px-6 py-2 lg:pl-1 lg:pr-3 lg:py-4">
+                <div className="pl-4 pr-6 lg:pl-1 lg:pr-3 lg:py-4">
                     {renderMobileTree(rootCategories)}
                 </div>
             </aside>

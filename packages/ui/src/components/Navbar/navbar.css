@@ -1,0 +1,80 @@
+@media (min-width: 1024px) {
+    .desktop-catalog-overlay {
+        opacity: 0;
+        transition: opacity 200ms ease-out;
+        will-change: opacity;
+    }
+
+    .desktop-catalog-overlay.is-active {
+        opacity: 1;
+    }
+
+    .desktop-catalog-panel {
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: opacity 200ms ease-out, transform 200ms ease-out;
+        will-change: opacity, transform;
+        pointer-events: none;
+    }
+
+    .desktop-catalog-panel.is-active {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 1023.98px) {
+    .mobile-catalog-overlay {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease-out;
+        will-change: opacity;
+    }
+
+    .mobile-catalog-overlay.is-active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .mobile-catalog-panel {
+        transform: translate3d(-100%, 0, 0);
+        transition: transform 200ms ease-out;
+        will-change: transform;
+        pointer-events: none;
+    }
+
+    .mobile-catalog-panel.is-active {
+        transform: translate3d(0, 0, 0);
+        pointer-events: auto;
+    }
+
+    .mobile-catalog-children {
+        display: grid;
+        grid-template-rows: 0fr;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0 solid #e5e7eb;
+        opacity: 0;
+        overflow: hidden;
+        transition: grid-template-rows 180ms ease-out, opacity 180ms ease-out, padding-top 180ms ease-out, border-top-width 180ms ease-out;
+        will-change: grid-template-rows, opacity, padding-top;
+    }
+
+    .mobile-catalog-children.is-expanded {
+        grid-template-rows: 1fr;
+        padding-top: 0;
+        border-top-width: 1px;
+        opacity: 1;
+    }
+
+    .mobile-catalog-chevron {
+        transform: rotate(0deg);
+        transition: transform 150ms ease-out;
+        will-change: transform;
+    }
+
+    .mobile-catalog-chevron.is-expanded {
+        transform: rotate(180deg);
+    }
+}
