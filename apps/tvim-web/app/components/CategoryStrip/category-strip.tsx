@@ -124,7 +124,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                     onPointerCancel={supportsPointerRef.current ? endDrag : undefined}
                     onPointerLeave={supportsPointerRef.current ? endDrag : undefined}
                     onClickCapture={onClickCapture}
-                    style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
+                    style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
                     className={`grid grid-flow-col auto-cols-[minmax(120px,auto)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex md:flex-wrap md:justify-center md:gap-4 md:overflow-visible lg:grid lg:grid-flow-row lg:grid-cols-9 py-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"} md:cursor-default`}
                 >
                     {categoryItems.map(({ label, href, iconClass, iconImageUrl, iconEmoji }) => (
@@ -132,7 +132,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                             key={`${label}-${href}`}
                             href={href}
                             draggable={false}
-                            style={{ touchAction: "pan-x" }}
+                            style={{ touchAction: "auto" }}
                             className={`select-none group flex h-[170px] max-[512px]:h-[160px] flex-col items-center justify-start gap-6 rounded-[14px] border border-[#e2e6ef] bg-white px-4 max-[512px]:px-6 pt-7 pb-7 text-center shadow-none transition-transform duration-200 ease-out hover:-translate-y-1 md:flex-shrink-0 md:w-[120px] md:min-w-[120px] md:max-w-[120px] ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'} md:cursor-pointer`}
                         >
                             <span className="inline-flex h-11 items-center justify-center select-none" aria-hidden="true">

@@ -402,7 +402,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                         onPointerCancel={!useNativeTouchScroll ? endDrag : undefined}
                         onPointerLeave={!useNativeTouchScroll ? endDrag : undefined}
                         onScroll={useNativeTouchScroll ? onNativeScroll : undefined}
-                        style={useNativeTouchScroll ? { touchAction: "pan-x", WebkitOverflowScrolling: "touch" } : undefined}
+                        style={useNativeTouchScroll ? { touchAction: "auto", WebkitOverflowScrolling: "touch" } : undefined}
                     >
                         <div
                             ref={trackRef}
