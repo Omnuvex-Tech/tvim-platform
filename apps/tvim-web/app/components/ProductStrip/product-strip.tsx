@@ -130,7 +130,9 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const dragOffsetRef = useRef(0);
     const suppressClickRef = useRef(false);
     const rafRef = useRef<number | null>(null);
+    const navUnlockTimerRef = useRef<number | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [isNavLocked, setIsNavLocked] = useState(false);
 
     // Navigation is handled only on the image/link now.
 
@@ -173,6 +175,18 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         const track = trackRef.current;
         const firstChild = track?.children[0] as HTMLElement | undefined;
         return firstChild ? firstChild.getBoundingClientRect().width : viewportWidth / visibleCount || viewportWidth;
+    };
+
+    const lockNavigation = (durationMs: number) => {
+        if (navUnlockTimerRef.current != null) {
+            window.clearTimeout(navUnlockTimerRef.current);
+            navUnlockTimerRef.current = null;
+        }
+        setIsNavLocked(true);
+        navUnlockTimerRef.current = window.setTimeout(() => {
+            setIsNavLocked(false);
+            navUnlockTimerRef.current = null;
+        }, durationMs);
     };
 
     const updateTrackTransform = () => {
@@ -262,6 +276,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
 
     const onNativeScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (!useNativeTouchScroll) return;
+        if (isNavLocked) return;
         const itemWidth = getItemWidth();
         if (!itemWidth) return;
         const nextIndex = Math.round(e.currentTarget.scrollLeft / itemWidth);
@@ -279,7 +294,10 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     }, [maxIndex, index]);
 
     const prev = () => {
+        if (isNavLocked) return;
         const target = Math.max(0, index - 1);
+        if (target === index) return;
+        lockNavigation(useNativeTouchScroll ? 380 : 320);
         setIndex(target);
         if (useNativeTouchScroll && viewportRef.current) {
             const itemWidth = getItemWidth();
@@ -288,7 +306,10 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     };
 
     const next = () => {
+        if (isNavLocked) return;
         const target = Math.min(maxIndex, index + 1);
+        if (target === index) return;
+        lockNavigation(useNativeTouchScroll ? 380 : 320);
         setIndex(target);
         if (useNativeTouchScroll && viewportRef.current) {
             const itemWidth = getItemWidth();
@@ -326,6 +347,10 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                 cancelAnimationFrame(rafRef.current);
                 rafRef.current = null;
             }
+            if (navUnlockTimerRef.current != null) {
+                window.clearTimeout(navUnlockTimerRef.current);
+                navUnlockTimerRef.current = null;
+            }
         };
     }, []);
 
@@ -344,7 +369,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                         <button
                             type="button"
                             onClick={prev}
-                            disabled={index === 0}
+                            disabled={index === 0 || isNavLocked}
                             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                             aria-label="Əvvəlki"
                         >
@@ -356,7 +381,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                         <button
                             type="button"
                             onClick={next}
-                            disabled={index >= maxIndex}
+                            disabled={index >= maxIndex || isNavLocked}
                             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                             aria-label="Növbəti"
                         >
