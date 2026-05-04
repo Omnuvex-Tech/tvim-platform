@@ -123,7 +123,7 @@ export default async function LoginPage({
   )?.number;
 
   return (
-    <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
+    <div className="flex min-h-svh w-full flex-col items-center justify-start gap-3 pt-0 pb-8">
       <NavbarWrapper
         logo={navbarLogo}
         phone={navbarPhone}
@@ -133,8 +133,8 @@ export default async function LoginPage({
         initialCatalogItems={headerCategoryItems}
       />
 
-      <section className="w-full rounded-[20px] bg-white px-4 py-8 sm:px-8 sm:py-10 lg:px-12">
-        <nav className="mb-7 flex items-center gap-2 text-[13px] text-[#9aa3b2]">
+      <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
+        <nav className="mb-7 flex items-center gap-2 text-[13px] text-[#9aa3b2] lg:-ml-10">
           <Link href={`/${locale}`} className="hover:text-[#2050f5]">Ana səhifə</Link>
           <span>»</span>
           <span>Hesab</span>
@@ -143,7 +143,7 @@ export default async function LoginPage({
         </nav>
 
         <div className="mx-auto w-full max-w-[640px]">
-          <h1 className="mb-6 text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">Giriş</h1>
+          <h1 className="mb-10 text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">Giriş</h1>
 
           <form className="space-y-4" autoComplete="off">
             <label className="relative block h-[64px] w-full rounded-[20px] border border-[#d8dde6]">
@@ -168,17 +168,17 @@ export default async function LoginPage({
             </label>
 
             <div className="-mt-2 text-center">
-              <Link href="#" className="inline-block text-[14px] font-normal text-[#1f2430] no-underline hover:no-underline">
+              <Link href="#" className="inline-block text-[13px] font-[500] text-[#1f2430] no-underline hover:no-underline">
                 Şifrənizi unutmusunuz?
               </Link>
             </div>
 
-            <div className="-mt-2 text-center">
+            <div className="mt-0 text-center">
               <button
                 type="submit"
                 className="inline-flex h-[62px] min-w-[136px] items-center justify-center rounded-[18px] bg-[#ffd500] px-7 text-[15px] leading-none font-[780] text-[#000000]"
               >
-                Giriş
+                <span className="-translate-y-[1px]">Giriş</span>
               </button>
             </div>
 
