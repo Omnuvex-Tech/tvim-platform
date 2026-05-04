@@ -18,6 +18,13 @@ export default async function LoginPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const normalizedLocale = (["az", "ru", "en"].includes(locale.toLowerCase())
+    ? locale.toLowerCase()
+    : "az") as "az" | "ru" | "en";
+  const homePageMeta = config.endpoints.pages.anaSehife[normalizedLocale];
+  const loginPageMeta = config.endpoints.pages.giris[normalizedLocale];
+  const withLocale = (url: string) =>
+    `/${normalizedLocale}${url === "/" ? "" : url}`;
 
   const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -135,15 +142,15 @@ export default async function LoginPage({
 
       <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
         <nav className="mb-7 flex items-center gap-2 text-[13px] text-[#9aa3b2] lg:-ml-10">
-          <Link href={`/${locale}`} className="hover:text-[#2050f5]">Ana səhifə</Link>
+          <Link href={withLocale(homePageMeta.url)} className="hover:text-[#2050f5]">{homePageMeta.name}</Link>
           <span>»</span>
           <span>Hesab</span>
           <span>»</span>
-          <span className="text-[#6c7484]">Giriş</span>
+          <span className="text-[#6c7484]">{loginPageMeta.name}</span>
         </nav>
 
         <div className="mx-auto w-full max-w-[640px]">
-          <h1 className="mb-10 text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">Giriş</h1>
+          <h1 className="mb-10 text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">{loginPageMeta.title}</h1>
 
           <form className="space-y-4" autoComplete="off">
             <label className="relative block h-[64px] w-full rounded-[20px] border border-[#d8dde6]">

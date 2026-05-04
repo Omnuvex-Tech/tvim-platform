@@ -1,4 +1,41 @@
 export const endpoints = {
+    pages: {
+        giris: {
+            az: {
+                url: "/giris",
+                title: "Giriş",
+                name: "Giriş",
+            },
+            ru: {
+                url: "/giris",
+                title: "Вход",
+                name: "Вход",
+            },
+            en: {
+                url: "/giris",
+                title: "Login",
+                name: "Login",
+            },
+        },
+        anaSehife: {
+            az: {
+                url: "/",
+                title: "Ana səhifə",
+                name: "Ana səhifə",
+            },
+            ru: {
+                url: "/",
+                title: "Главная",
+                name: "Главная",
+            },
+            en: {
+                url: "/",
+                title: "Home",
+                name: "Home",
+            },
+        },
+    },
+
     auth: {
         login: "/auth/login",
         register: "/auth/register",
