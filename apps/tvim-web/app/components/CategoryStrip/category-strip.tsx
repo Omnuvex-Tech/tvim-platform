@@ -93,9 +93,6 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
         // On real touch devices we rely on native horizontal scrolling for stability.
         if (e.pointerType !== "mouse" || e.button !== 0) return;
         startDrag(e.clientX);
-        try {
-            (e.currentTarget as Element).setPointerCapture(e.pointerId);
-        } catch {}
     };
 
     const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -105,12 +102,10 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
     const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
         if (!isDraggingRef.current) return;
         finishDrag();
-        try {
-            (e.currentTarget as Element).releasePointerCapture(e.pointerId);
-        } catch {}
     };
 
     const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!dragEnabled && !supportsPointerRef.current) return;
         if (suppressClickRef.current) {
             e.preventDefault();
             e.stopPropagation();
@@ -123,11 +118,11 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
             <div className="mx-auto w-full max-w-[1280px] px-0">
                 <div
                     ref={containerRef}
-                    onPointerDown={dragEnabled && supportsPointerRef.current ? onPointerDown : undefined}
-                    onPointerMove={dragEnabled && supportsPointerRef.current ? onPointerMove : undefined}
-                    onPointerUp={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
-                    onPointerCancel={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
-                    onPointerLeave={dragEnabled && supportsPointerRef.current ? endDrag : undefined}
+                    onPointerDown={supportsPointerRef.current ? onPointerDown : undefined}
+                    onPointerMove={supportsPointerRef.current ? onPointerMove : undefined}
+                    onPointerUp={supportsPointerRef.current ? endDrag : undefined}
+                    onPointerCancel={supportsPointerRef.current ? endDrag : undefined}
+                    onPointerLeave={supportsPointerRef.current ? endDrag : undefined}
                     onClickCapture={onClickCapture}
                     style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }}
                     className={`grid grid-flow-col auto-cols-[minmax(120px,auto)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex md:flex-wrap md:justify-center md:gap-4 md:overflow-visible lg:grid lg:grid-flow-row lg:grid-cols-9 py-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"} md:cursor-default`}
