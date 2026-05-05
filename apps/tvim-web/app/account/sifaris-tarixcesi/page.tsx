@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import type {
     FooterMenusData,
     Language,
@@ -29,16 +30,6 @@ type NavItem = {
     icon: ComponentType<{ className?: string }>;
 };
 
-type ActionItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string; strokeWidth?: number }>;
-};
-
-const FontAwesomeNewspaperIcon = ({ className }: { className?: string }) => (
-    <i className={`account-index__icon fa fa-newspaper text-[34px] leading-none ${className ?? ""}`} aria-hidden="true" />
-);
-
 const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
     <i
         className={`account-index__icon fa fa-reply ${className ?? ""}`}
@@ -66,16 +57,6 @@ const navItems: NavItem[] = [
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];
 
-const actionItems: ActionItem[] = [
-    { label: "Sifariş tarixçəsi", href: "/account/sifaris-tarixcesi", icon: Archive },
-    { label: "Məlumatları redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlərə düzəliş et", href: "/account/wishlist", icon: Heart },
-    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: Reply },
-    { label: "Xəbər bülleteninə abunə ol / olma", href: "/account/newsletter", icon: FontAwesomeNewspaperIcon },
-];
-
 const extractHeaderItems = (rawHeaderData: unknown) => {
     if (Array.isArray(rawHeaderData)) return rawHeaderData;
     if (!rawHeaderData || typeof rawHeaderData !== "object") return [];
@@ -90,10 +71,16 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function AccountPage() {
-    const locale = config.project.defLang;
+export default async function OrderHistoryPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await params;
+    const currentLocale = locale.toLowerCase();
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+
     if (!langResponse.success || !langResponse.data) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
@@ -102,18 +89,23 @@ export default async function AccountPage() {
         );
     }
 
+    // ✅ FIX BURDADIR
+    if (!langResponse.data.some((language) => language.code.toLowerCase() === currentLocale)) {
+        notFound();
+    }
+
     const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
         params: { in_footer: "1" },
-        locale,
+        locale: currentLocale,
     });
 
     const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale,
+        locale: currentLocale,
     });
 
     const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
         params: { in_header: "1" },
-        locale,
+        locale: currentLocale,
     });
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
@@ -125,20 +117,21 @@ export default async function AccountPage() {
     const headerMenuItems = headerTopLevel
         .filter((item: any) => (((item.type ?? "") + "").toLowerCase() !== "categories"))
         .map((item: any) => {
-            const hrefPart = (item.multi_links && item.multi_links[locale]) || item.link || "";
-            const path = hrefPart ? `/${locale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
+            const hrefPart = (item.multi_links && item.multi_links[currentLocale]) || item.link || "";
+            const path = hrefPart ? `/${currentLocale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
             return { label: item.name ?? item.title ?? item.link ?? "", href: path };
         });
 
     const categoriesResponse = await api.get<any>("/product/categories", {
         params: { in_header: "1" },
-        locale,
+        locale: currentLocale,
     });
 
     let headerCategoryItems: any[] = [];
     if (categoriesResponse.success && categoriesResponse.data) {
         const raw = categoriesResponse.data;
         let items: any[] = [];
+
         if (Array.isArray(raw)) items = raw;
         else if (Array.isArray(raw.data)) items = raw.data;
         else if (Array.isArray(raw.items)) items = raw.items;
@@ -152,6 +145,7 @@ export default async function AccountPage() {
                 !!item &&
                 (item.in_header === true || item.in_header === 1 || item.in_header === "1" || item.in_header === "true")
         );
+
         headerCategoryItems = filtered.length > 0 ? filtered : items;
     } else {
         headerCategoryItems = headerTopLevel.filter((item: any) => (((item.type ?? "") + "").toLowerCase() === "categories"));
@@ -188,7 +182,7 @@ export default async function AccountPage() {
             <NavbarWrapper
                 logo={navbarLogo}
                 phone={navbarPhone}
-                locale={locale}
+                locale={currentLocale}
                 languages={langResponse.data}
                 menuItems={headerMenuItems}
                 initialCatalogItems={headerCategoryItems}
@@ -196,42 +190,25 @@ export default async function AccountPage() {
 
             <section className="mx-auto w-full max-w-[1280px] px-5 pt-5 pb-12 sm:px-10 lg:px-0 lg:pt-6 lg:pb-14">
                 <nav className="mb-4 flex items-center gap-1.5 text-[11px] text-[#9AA2B1]">
-                    <Link href="/" className="hover:text-[#6f7788]">Ana səhifə</Link>
+                    <Link href={`/${currentLocale}`}>Ana səhifə</Link>
                     <span>»</span>
-                    <span>Hesab</span>
+                    <Link href={`/${currentLocale}/account`}>Hesab</Link>
+                    <span>»</span>
+                    <span>Sifariş tarixçəsi</span>
                 </nav>
 
-                <h1 className="text-[34px] leading-none font-bold tracking-[-0.02em] text-[#0F131A] sm:text-[42px]">
-                    Hesabım
-                </h1>
+                <h1 className="text-[34px] font-bold">Sifariş tarixçəsi</h1>
 
-                <div className="mt-16 grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="w-full max-w-[320px]">
-                        <h2 className="-mt-1 pl-6 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
-                        <div className="mt-5 ml-2 border-t border-[#D2D9E4]" />
-
-                        <ul className="mt-0.5 space-y-0.5 pl-6">
+                <div className="mt-16 grid gap-8 lg:grid-cols-[320px_1fr]">
+                    <aside>
+                        <ul>
                             {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = label === "Ünvan kitabçası";
+                                const isActive = label === "Sifariş tarixçəsi";
 
                                 return (
                                     <li key={label}>
-                                        <Link
-                                            href={`/${locale}${href}`}
-                                            className={`group inline-flex w-full items-center gap-2.5 py-2 text-left text-[14px] font-medium transition-colors ${
-                                                isActive
-                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
-                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
-                                            }`}
-                                        >
-                                            <Icon
-                                                className={`size-4 transition-colors ${
-                                                    isActive
-                                                        ? "text-[#0D47FF]"
-                                                        : "text-[#707887] group-hover:text-[#0D47FF]"
-                                                }`}
-                                            />
-                                            <span>{label}</span>
+                                        <Link href={`/${currentLocale}${href}`}>
+                                            {label}
                                         </Link>
                                     </li>
                                 );
@@ -239,30 +216,16 @@ export default async function AccountPage() {
                         </ul>
                     </aside>
 
-                    <div className="grid w-full max-w-[900px] justify-self-start grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 md:grid-cols-4 md:gap-x-6 md:gap-y-1 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
-                        {actionItems.map(({ label, href, icon: Icon }) => (
-                            <Link
-                                href={`/${locale}${href}`}
-                                key={label}
-                                className="flex flex-col items-center text-center"
-                            >
-                                <Icon className="size-[34px] text-[#808080]" strokeWidth={1.9} />
-                                <p className="mt-3 max-w-[150px] text-[14px] leading-[1.25] font-medium text-[#565F6F]">
-                                    {label}
-                                </p>
-                            </Link>
-                        ))}
+                    <div>
+                        <div>
+                            Sizin hər hansı bir sifarişiniz mövcud deyil!
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <div className="mx-auto mt-12 w-full max-w-[1280px] px-5 sm:px-10 lg:mt-14 lg:px-0">
-                <RequestForm />
-            </div>
-
-            <div className="mt-24 w-full lg:mt-28">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
-            </div>
+            <RequestForm />
+            <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
         </div>
     );
 }
