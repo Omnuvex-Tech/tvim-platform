@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Eye, Lock, Mail } from "lucide-react";
 import type {
   FooterMenusData,
   Language,
@@ -11,6 +10,7 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
+import { LoginForm } from "./login-form";
 
 export default async function LoginPage({
   params,
@@ -152,51 +152,7 @@ export default async function LoginPage({
         <div className="mx-auto w-full max-w-[640px]">
           <h1 className="mb-10 text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">{loginPageMeta.title}</h1>
 
-          <form className="space-y-4" autoComplete="off">
-            <label className="relative block h-[64px] w-full rounded-[20px] border border-[#d8dde6]">
-              <Mail className="absolute top-1/2 left-5 size-6 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="email"
-                placeholder="E-mail ünvanı"
-                autoComplete="off"
-                className="h-full w-full rounded-[20px] bg-transparent pl-[55px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-            </label>
-
-            <label className="relative block h-[64px] w-full rounded-[20px] border border-[#d8dde6]">
-              <Lock className="absolute top-1/2 left-5 size-6 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="password"
-                placeholder="Şifrə"
-                autoComplete="new-password"
-                className="h-full w-full rounded-[20px] bg-transparent pl-[55px] pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-              <Eye className="absolute top-1/2 right-5 size-5 -translate-y-1/2 text-[#8ea1bf]" strokeWidth={2.1} />
-            </label>
-
-            <div className="-mt-2 text-center">
-              <Link href="#" className="inline-block text-[13px] font-[500] text-[#1f2430] no-underline hover:no-underline">
-                Şifrənizi unutmusunuz?
-              </Link>
-            </div>
-
-            <div className="mt-0 text-center">
-              <button
-                type="submit"
-                className="inline-flex h-[62px] min-w-[136px] items-center justify-center rounded-[18px] bg-[#ffd500] px-7 text-[15px] leading-none font-[780] text-[#000000]"
-              >
-                <span className="-translate-y-[1px]">Giriş</span>
-              </button>
-            </div>
-
-            <div className="pt-4 text-center text-[15px] font-[450] text-[#111111]">
-              Hesab yaradaraq saytın bütün imkanlarından istifadə edə bilərsiniz.
-            </div>
-
-            <div className="text-center text-[15px]">
-              <Link href={`/${locale}/qeydiyyat`} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
-            </div>
-          </form>
+          <LoginForm locale={locale} />
         </div>
       </section>
 

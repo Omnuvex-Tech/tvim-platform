@@ -1,7 +1,5 @@
 import Link from "next/link";
-import Script from "next/script";
 import { notFound } from "next/navigation";
-import { Lock, Mail, Phone, UserRound } from "lucide-react";
 import type {
   FooterMenusData,
   Language,
@@ -12,6 +10,7 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
+import { RegisterForm } from "./register-form";
 
 export default async function RegisterPage({
   params,
@@ -125,8 +124,6 @@ export default async function RegisterPage({
 
   return (
     <div className="flex min-h-svh w-full flex-col items-center justify-start gap-3 pt-0 pb-8">
-      <Script src="https://www.google.com/recaptcha/api.js" strategy="afterInteractive" />
-
       <NavbarWrapper
         logo={navbarLogo}
         phone={navbarPhone}
@@ -151,105 +148,7 @@ export default async function RegisterPage({
             Əlaqə məlumatlarınız yalnız sifariş vermək və saytda daha rahat işləmək üçün istifadə olunacaq
           </p>
 
-          <form className="mt-6 space-y-4" autoComplete="off">
-            <label className="relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-              <UserRound className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="text"
-                placeholder="Ad"
-                autoComplete="given-name"
-                className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-            </label>
-
-            <label className="relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-              <UserRound className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="text"
-                placeholder="Soyad"
-                autoComplete="family-name"
-                className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-            </label>
-
-            <label className="relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-              <Phone className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="tel"
-                placeholder="+994 (_) __-__-__"
-                autoComplete="tel"
-                className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-            </label>
-
-            <label className="relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-              <Mail className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="email"
-                placeholder="E-poçtunuz"
-                autoComplete="email"
-                className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-            </label>
-
-            <label className="relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-              <Lock className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
-              <input
-                type="password"
-                placeholder="Şifrə yaradın"
-                autoComplete="new-password"
-                className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
-              />
-            </label>
-
-            <div className="w-full pt-2">
-              <div className="flex items-start gap-6 pl-2">
-                <span className="pt-[2px] text-[19px] font-[450] leading-none text-[#171717]">Abunə ol</span>
-                <div className="pt-[2px] space-y-4 text-[19px] font-[450] leading-none text-[#171717]">
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="subscribe" defaultChecked className="size-4" />
-                    <span>Bəli</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="radio" name="subscribe" className="size-4" />
-                    <span>Xeyr</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="captcha form-group required mt-10">
-                <div className="col-sm-12">
-                  <div
-                    className="g-recaptcha"
-                    data-sitekey="6LfBGlosAAAAAPihskFz31qEqDsmH9Xn_odO_VRl"
-                    style={{ transformOrigin: "0", display: "flex", justifyContent: "center" }}
-                  />
-                </div>
-              </div>
-
-              <div className="mx-auto mt-4 w-fit">
-                <label className="input flex items-center gap-3 text-[16px] leading-[1.3] text-[#171717]">
-                  <input type="checkbox" name="agree" value="1" className="size-[18px]" />
-                  <span>
-                    Mən <a href="https://tvim.az/index.php?route=information/information/agree&information_id=20" className="agree"><strong className="font-extrabold">İstifadə şərtləri</strong></a>-ni oxudum və razıyam
-                  </span>
-                </label>
-              </div>
-
-              <div className="mt-6 text-center">
-                <button
-                  type="submit"
-                  className="inline-flex h-[66px] w-[182px] items-center justify-center rounded-[22px] bg-[#ffd500] px-8 text-[15px] leading-none font-bold text-[#000000]"
-                >
-                  Davam et
-                </button>
-              </div>
-
-              <p className="pt-16 text-center text-[13px] font-[495] text-[#1f2430]">
-                Əgər artıq hesabınızı yaratmısınızsa, <Link href={`/${locale}/giris`} className="underline">giriş səhifəsinə</Link> keçin.
-              </p>
-            </div>
-          </form>
+          <RegisterForm locale={locale} />
         </div>
       </section>
 

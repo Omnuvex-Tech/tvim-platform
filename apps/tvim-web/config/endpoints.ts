@@ -37,8 +37,10 @@ export const endpoints = {
     },
 
     auth: {
-        login: "/auth/login",
-        register: "/auth/register",
+        login: "/customer/auth/login",
+        register: "/customer/auth/register",
+        emailVerify: "/customer/auth/email/verify",
+        emailResend: "/customer/auth/email/resend",
         logout: "/auth/logout",
         me: "/auth/me",
     },

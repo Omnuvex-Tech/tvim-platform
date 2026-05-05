@@ -4,7 +4,7 @@ import { toHref } from "@repo/shared/utils";
 import type { Slider } from "@repo/types/types";
 import mitreapelLogo from "@/public/images/mitreapel-logo.jpg";
 import { HomeSlider } from "@/app/components/HomeSlider/home-slider";
-import { CategoryStrip2, type CategoryStripItem } from "@/app/components/CategoryStrip/category-strip";
+import { CategoryStrip, type CategoryStripItem } from "@/app/components/CategoryStrip/category-strip";
 import { BenefitsStrip } from "@/app/components/BenefitsStrip/benefits-strip";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
@@ -269,7 +269,7 @@ export function MainPageBlocks({ blocks = [] }: MainPageBlocksProps) {
                 if (block?.source_type === "show_on_main_page_categories") {
                     return (
                         <Fragment key={key}>
-                            <CategoryStrip2 items={mapCategoryItems(block)} />
+                            <CategoryStrip items={mapCategoryItems(block)} />
                         </Fragment>
                     );
                 }

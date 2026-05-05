@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { Language } from "@repo/types/types";
 import type { NavbarSearchProduct } from "@repo/ui";
@@ -18,6 +18,23 @@ interface NavbarWrapperProps {
     initialCatalogItems?: any[];
 }
 
+type SessionUser = {
+    id?: number | string;
+    name?: string | null;
+    surname?: string | null;
+    email?: string | null;
+    avatar_url?: string | null;
+    avatar_path?: string | null;
+};
+
+type SessionResponse = {
+    success?: boolean;
+    data?: {
+        isAuthenticated?: boolean;
+        user?: SessionUser | null;
+    };
+};
+
 const NavbarWrapper = ({
     logo,
     phone,
@@ -29,6 +46,44 @@ const NavbarWrapper = ({
 }: NavbarWrapperProps) => {
     const router = useRouter();
     const pathname = usePathname();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [authUser, setAuthUser] = useState<SessionUser | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadAuthSession = async () => {
+            try {
+                const response = await fetch("/api/auth/session", {
+                    method: "GET",
+                    credentials: "include",
+                    cache: "no-store",
+                    headers: {
+                        Accept: "application/json",
+                    },
+                });
+
+                if (!response.ok) return;
+
+                const payload = (await response.json()) as SessionResponse;
+                if (!isMounted) return;
+
+                const nextIsAuthenticated = payload.data?.isAuthenticated === true;
+                setIsAuthenticated(nextIsAuthenticated);
+                setAuthUser(payload.data?.user ?? null);
+            } catch {
+                if (!isMounted) return;
+                setIsAuthenticated(false);
+                setAuthUser(null);
+            }
+        };
+
+        void loadAuthSession();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleLocaleChange = useCallback((nextLocale: string) => {
         const segments = pathname.split("/").filter(Boolean);
@@ -254,6 +309,8 @@ const NavbarWrapper = ({
             menuItems={menuItems}
             initialCatalogItems={initialCatalogItems}
             onSearchProducts={handleSearchProducts}
+            isAuthenticated={isAuthenticated}
+            authUser={authUser}
         />
     );
 };

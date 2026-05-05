@@ -102,6 +102,15 @@ export type NavbarSearchProduct = {
     href: string;
 };
 
+export type NavbarAuthUser = {
+    id?: number | string;
+    name?: string | null;
+    surname?: string | null;
+    email?: string | null;
+    avatar_url?: string | null;
+    avatar_path?: string | null;
+};
+
 function toProductHref(item: any, locale: string) {
     const hrefPart =
         (item?.multi_links && item.multi_links[locale]) ||
@@ -166,6 +175,8 @@ export interface NavbarProps {
     onLocaleChange?: (locale: string) => void;
     initialCatalogItems?: any[];
     onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchProduct[]>;
+    isAuthenticated?: boolean;
+    authUser?: NavbarAuthUser | null;
 }
 
 const defaultMenuItems: NavbarMenuItem[] = [
@@ -194,6 +205,27 @@ function sanitizePhone(phone: string) {
 
 function toWhatsappHref(phone: string) {
     return `https://wa.me/${sanitizePhone(phone).replace(/^\+/, "")}`;
+}
+
+function getAuthDisplayName(user?: NavbarAuthUser | null) {
+    if (!user) return "Profil";
+
+    const safeName = typeof user.name === "string" ? user.name.trim() : "";
+    const safeSurname = typeof user.surname === "string" ? user.surname.trim() : "";
+
+    if (safeName && safeSurname) {
+        return `${safeName} ${safeSurname[0]}.`;
+    }
+
+    if (safeName) return safeName;
+
+    if (typeof user.email === "string" && user.email.trim()) {
+        const email = user.email.trim();
+        const atIndex = email.indexOf("@");
+        return atIndex > 1 ? email.slice(0, atIndex) : email;
+    }
+
+    return "Profil";
 }
 
 function getParentIcon(name: string) {
@@ -609,16 +641,37 @@ function NavbarMenu({ menuItems }: { menuItems: NavbarMenuItem[] }) {
     );
 }
 
-function NavbarActions({ locale }: { locale: string }) {
+function NavbarActions({
+    locale,
+    isAuthenticated,
+    authUser,
+}: {
+    locale: string;
+    isAuthenticated: boolean;
+    authUser?: NavbarAuthUser | null;
+}) {
+    const displayName = getAuthDisplayName(authUser);
+
     return (
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
-            <Link
-                href={`/${locale.toLowerCase()}/giris`}
-                className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-[#1f4fff] px-11 text-[16px] font-medium text-white"
-            >
-                <UserRound className="size-[17px]" />
-                Daxil ol
-            </Link>
+            {isAuthenticated ? (
+                <Link
+                    href={`/${locale.toLowerCase()}`}
+                    className="inline-flex h-12 cursor-pointer items-center gap-2.5 rounded-full bg-[#1448F4] px-7 text-[15px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                    aria-label="Profil"
+                >
+                    <UserRound className="size-[18px]" strokeWidth={2.2} />
+                    <span className="max-w-[170px] truncate text-[15px] leading-none">{displayName}</span>
+                </Link>
+            ) : (
+                <Link
+                    href={`/${locale.toLowerCase()}/giris`}
+                    className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-[#1f4fff] px-11 text-[16px] font-medium text-white"
+                >
+                    <UserRound className="size-[17px]" />
+                    Daxil ol
+                </Link>
+            )}
 
             <button
                 type="button"
@@ -687,6 +740,8 @@ export function Navbar({
     onLocaleChange,
     initialCatalogItems,
     onSearchProducts,
+    isAuthenticated = false,
+    authUser = null,
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
@@ -1381,7 +1436,7 @@ export function Navbar({
                                                         : null}
                     </div>
                     <NavbarMenu menuItems={effectiveMenuItems} />
-                    <NavbarActions locale={locale} />
+                    <NavbarActions locale={locale} isAuthenticated={isAuthenticated} authUser={authUser} />
                 </div>
 
                 <div className="mt-1 flex items-center gap-2 bg-[#f4f5f7] px-2 py-2.5 lg:hidden">
@@ -1475,13 +1530,21 @@ export function Navbar({
                     </nav>
 
                     <div className="pb-3">
-                        <button
-                            type="button"
-                            className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1f4fff] px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-95"
-                        >
-                            <UserRound className="size-[16px]" />
-                            Daxil ol
-                        </button>
+                        {isAuthenticated ? (
+                            <div className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#1448F4] px-6 text-[14px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                                <UserRound className="size-[16px]" />
+                                <span className="max-w-[210px] truncate">{getAuthDisplayName(authUser)}</span>
+                            </div>
+                        ) : (
+                            <Link
+                                href={`/${locale.toLowerCase()}/giris`}
+                                className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1f4fff] px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-95"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <UserRound className="size-[16px]" />
+                                Daxil ol
+                            </Link>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-3 pb-5">
