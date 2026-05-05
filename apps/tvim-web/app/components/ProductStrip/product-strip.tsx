@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useNotify } from "@repo/ui";
+import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 
 type ApiItem = any;
 
@@ -14,6 +16,8 @@ type Product = {
     imageUrl: string;
     href: string;
     cartVariant?: "yellow" | "blue";
+    productVariationId?: number | null;
+    isFavorited?: boolean;
 };
 
 type Props = {
@@ -40,30 +44,31 @@ const getVisibleCount = (width: number) => {
 };
 
 const defaultLatest: Product[] = [
-    { id: 1, title: "Cilalama maşını 230mm 2200W Emtop", price: "130.00₼", imageUrl: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue" },
-    { id: 2, title: "Cilalama maşını 230mm 2400W Emtop", price: "160.00₼", imageUrl: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue" },
-    { id: 3, title: "Cilalama maşını 230mm 2600W Emtop", price: "170.00₼", imageUrl: "https://images.unsplash.com/photo-1581147036324-c1c1c3f4f7d8?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue" },
-    { id: 4, title: "Cilalama maşını 230mm 3000W Emtop", price: "190.00₼", imageUrl: "https://images.unsplash.com/photo-1604448002775-06fefb4774cb?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue" },
-    { id: 5, title: "Plasmas köşə 3m GLOSSY", price: "0.95₼", imageUrl: "https://images.unsplash.com/photo-1614632537423-8b599f26b0f7?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue" },
+    { id: 1, title: "Cilalama maşını 230mm 2200W Emtop", price: "130.00₼", imageUrl: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 2, title: "Cilalama maşını 230mm 2400W Emtop", price: "160.00₼", imageUrl: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 3, title: "Cilalama maşını 230mm 2600W Emtop", price: "170.00₼", imageUrl: "https://images.unsplash.com/photo-1581147036324-c1c1c3f4f7d8?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 4, title: "Cilalama maşını 230mm 3000W Emtop", price: "190.00₼", imageUrl: "https://images.unsplash.com/photo-1604448002775-06fefb4774cb?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 5, title: "Plasmas köşə 3m GLOSSY", price: "0.95₼", imageUrl: "https://images.unsplash.com/photo-1614632537423-8b599f26b0f7?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
 ];
 
 const defaultSelected: Product[] = [
-    { id: 1, title: "Fasad boya 10kq COLART", price: "26.00₼", imageUrl: "https://images.unsplash.com/photo-1581147036324-c1c1c3f4f7d8?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow" },
-    { id: 2, title: "Razetka 1li RSb20-3-FSr kontaktlı Fors İEK", price: "7.00₼", imageUrl: "https://images.unsplash.com/photo-1611859266727-a398589ce572?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow" },
-    { id: 3, title: "A9D31640 2x40A 30mA SCHNEIDER", price: "61.00₼", imageUrl: "https://images.unsplash.com/photo-1581093458791-9d15482442f6?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow" },
-    { id: 4, title: "TV ASILQAN YP-460 Yupiter", price: "32.00₼", imageUrl: "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow" },
-    { id: 5, title: "Telefon yuvası K2 akrilik boz Aylex 1-79", price: "4.80₼", imageUrl: "https://images.unsplash.com/photo-1589492477829-5e65395b66cc?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue" },
+    { id: 1, title: "Fasad boya 10kq COLART", price: "26.00₼", imageUrl: "https://images.unsplash.com/photo-1581147036324-c1c1c3f4f7d8?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow", productVariationId: null, isFavorited: false },
+    { id: 2, title: "Razetka 1li RSb20-3-FSr kontaktlı Fors İEK", price: "7.00₼", imageUrl: "https://images.unsplash.com/photo-1611859266727-a398589ce572?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow", productVariationId: null, isFavorited: false },
+    { id: 3, title: "A9D31640 2x40A 30mA SCHNEIDER", price: "61.00₼", imageUrl: "https://images.unsplash.com/photo-1581093458791-9d15482442f6?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow", productVariationId: null, isFavorited: false },
+    { id: 4, title: "TV ASILQAN YP-460 Yupiter", price: "32.00₼", imageUrl: "https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "yellow", productVariationId: null, isFavorited: false },
+    { id: 5, title: "Telefon yuvası K2 akrilik boz Aylex 1-79", price: "4.80₼", imageUrl: "https://images.unsplash.com/photo-1589492477829-5e65395b66cc?auto=format&fit=crop&w=360&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
 ];
 
 const defaultProducts: Product[] = [
-    { id: 1, title: "Alət dəsti 96 parça Emtop EEDK09601", oldPrice: "87.00₼", price: "73.08₼", discount: "-16%", imageUrl: "https://images.unsplash.com/photo-1581147036324-c1c1c3f4f7d8?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
-    { id: 2, title: "Drel batareyalı 20V Emtop 118 ECDL6200118", oldPrice: "80.00₼", price: "64.80₼", discount: "-19%", imageUrl: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
-    { id: 3, title: "Mini moyka aparatı K2 Karcher 1.600-979.0", oldPrice: "199.00₼", price: "159.00₼", discount: "-20%", imageUrl: "https://images.unsplash.com/photo-1604448002775-06fefb4774cb?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
-    { id: 4, title: "Mini yuyucu aparatı universal K4 Karcher 1.679-300.0", oldPrice: "399.00₼", price: "299.00₼", discount: "-25%", imageUrl: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
-    { id: 5, title: "Yuyucu aparat K 5 Basic Karcher 1.180-580.0", oldPrice: "649.00₼", price: "499.00₼", discount: "-23%", imageUrl: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue" },
+    { id: 1, title: "Alət dəsti 96 parça Emtop EEDK09601", oldPrice: "87.00₼", price: "73.08₼", discount: "-16%", imageUrl: "https://images.unsplash.com/photo-1581147036324-c1c1c3f4f7d8?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 2, title: "Drel batareyalı 20V Emtop 118 ECDL6200118", oldPrice: "80.00₼", price: "64.80₼", discount: "-19%", imageUrl: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 3, title: "Mini moyka aparatı K2 Karcher 1.600-979.0", oldPrice: "199.00₼", price: "159.00₼", discount: "-20%", imageUrl: "https://images.unsplash.com/photo-1604448002775-06fefb4774cb?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 4, title: "Mini yuyucu aparatı universal K4 Karcher 1.679-300.0", oldPrice: "399.00₼", price: "299.00₼", discount: "-25%", imageUrl: "https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
+    { id: 5, title: "Yuyucu aparat K 5 Basic Karcher 1.180-580.0", oldPrice: "649.00₼", price: "499.00₼", discount: "-23%", imageUrl: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
 ];
 
 const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyDiscountProducts = false, only_discount_products = false, viewAllHref = "/discounts", viewAllText = "Bütün məhsullara bax" }) => {
+    const notify = useNotify();
     const raw = Array.isArray(items) ? items : [];
 
     const products: Product[] = raw.length > 0
@@ -74,6 +79,22 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
               const oldNum = typeof it.old_price === "number" ? it.old_price : it.old_price ? Number(it.old_price) : undefined;
               const image = it.main_image ?? it.image ?? it.main_photo ?? (it.gallery && it.gallery[0] && it.gallery[0].url) ?? "";
               const slug = it.slug ?? it.uuid ?? id;
+              const variationCandidate =
+                  it.product_variation_id ??
+                  it.variation_id ??
+                  it.variation?.id ??
+                  it.id ??
+                  null;
+              const parsedVariationId = Number(variationCandidate);
+              const productVariationId = Number.isFinite(parsedVariationId) && parsedVariationId > 0
+                  ? parsedVariationId
+                  : null;
+              const isFavorited =
+                  it.is_favorite === true ||
+                  it.is_favourited === true ||
+                  it.is_favorited === true ||
+                  it.favorite === true ||
+                  it.in_favorites === true;
 
               if (variant === "special") {
                   const discount = oldNum && oldNum > 0 ? `-${Math.max(0, Math.round(100 * (1 - priceNum / oldNum)))}%` : "";
@@ -86,6 +107,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                       imageUrl: image,
                       href: `/product/${slug}`,
                       cartVariant: "blue",
+                      productVariationId,
+                      isFavorited,
                   } as Product;
               }
 
@@ -98,6 +121,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                       imageUrl: image,
                       href: `/product/${slug}`,
                       cartVariant: "yellow",
+                      productVariationId,
+                      isFavorited,
                   } as Product;
               }
 
@@ -109,6 +134,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   imageUrl: image,
                   href: `/product/${slug}`,
                   cartVariant: "blue",
+                  productVariationId,
+                  isFavorited,
               } as Product;
           })
         : variant === "special"
@@ -119,6 +146,15 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
 
     const viewportRef = useRef<HTMLDivElement | null>(null);
     const trackRef = useRef<HTMLDivElement | null>(null);
+    const preselectedFavoriteIds = useMemo(
+        () => products
+            .filter((product) => product.isFavorited && typeof product.productVariationId === "number")
+            .map((product) => product.productVariationId as number),
+        [products]
+    );
+    const preselectedFavoritesSignature = preselectedFavoriteIds.join(",");
+    const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set(preselectedFavoriteIds));
+    const [favoritePendingIds, setFavoritePendingIds] = useState<Set<number>>(new Set());
     const [visibleCount, setVisibleCountState] = useState<number>(1);
     const [index, setIndex] = useState<number>(0);
     const [useNativeTouchScroll, setUseNativeTouchScroll] = useState(false);
@@ -135,6 +171,118 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const [isNavLocked, setIsNavLocked] = useState(false);
 
     // Navigation is handled only on the image/link now.
+
+    useEffect(() => {
+        if (preselectedFavoriteIds.length === 0) return;
+
+        setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            let changed = false;
+            preselectedFavoriteIds.forEach((id) => {
+                if (!next.has(id)) {
+                    next.add(id);
+                    changed = true;
+                }
+            });
+
+            return changed ? next : prev;
+        });
+    }, [preselectedFavoritesSignature]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const hydrateFavorites = async () => {
+            try {
+                const response = await listFavorites();
+                if (!isMounted) return;
+
+                const nextIds = new Set<number>();
+                response.data.items.forEach((item) => {
+                    const value = Number(item.product_variation_id);
+                    if (Number.isFinite(value) && value > 0) {
+                        nextIds.add(value);
+                    }
+                });
+
+                setFavoriteIds((prev) => {
+                    const merged = new Set<number>(nextIds);
+                    preselectedFavoriteIds.forEach((id) => merged.add(id));
+
+                    if (merged.size === prev.size && Array.from(merged).every((id) => prev.has(id))) {
+                        return prev;
+                    }
+
+                    return merged;
+                });
+            } catch {
+                // Silently ignore initial load failures; user can still toggle manually.
+            }
+        };
+
+        void hydrateFavorites();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [preselectedFavoritesSignature]);
+
+    const handleFavoriteToggle = async (product: Product) => {
+        const variationId = product.productVariationId;
+
+        if (!variationId) {
+            notify.error("Bu məhsul favorilərə əlavə edilə bilmədi.");
+            return;
+        }
+
+        if (favoritePendingIds.has(variationId)) return;
+
+        const wasFavorite = favoriteIds.has(variationId);
+
+        setFavoritePendingIds((prev) => {
+            const next = new Set(prev);
+            next.add(variationId);
+            return next;
+        });
+
+        setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            if (wasFavorite) next.delete(variationId);
+            else next.add(variationId);
+            return next;
+        });
+
+        try {
+            const response = await toggleFavorite(variationId);
+
+            setFavoriteIds((prev) => {
+                const next = new Set(prev);
+                if (response.data.action === "deleted") next.delete(variationId);
+                else next.add(variationId);
+                return next;
+            });
+
+            if (response.message) {
+                notify.success(response.message);
+            }
+        } catch (error) {
+            setFavoriteIds((prev) => {
+                const next = new Set(prev);
+                if (wasFavorite) next.add(variationId);
+                else next.delete(variationId);
+                return next;
+            });
+
+            const message = error instanceof Error ? error.message : "Favorilərə əlavə edilərkən xəta baş verdi.";
+            notify.error(message);
+        } finally {
+            setFavoritePendingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(variationId);
+                return next;
+            });
+        }
+    };
 
     useEffect(() => {
         const update = () => setVisibleCountState(getVisibleCount(window.innerWidth));
@@ -410,6 +558,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                         >
                             {products.map((product) => (
                                 <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border px-2 sm:px-3">
+                                    {(() => {
+                                        const isFavorite = typeof product.productVariationId === "number" && favoriteIds.has(product.productVariationId);
+                                        const isFavoritePending = typeof product.productVariationId === "number" && favoritePendingIds.has(product.productVariationId);
+
+                                        return (
                                     <article
                                         className={`group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                                     >
@@ -417,10 +570,20 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                                         <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
                                             <button
                                                 type="button"
-                                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#e0e5ee] text-[#7b8596] hover:bg-[#0f57d6] hover:text-white transition-colors duration-150 cursor-pointer"
+                                                disabled={isFavoritePending || !product.productVariationId}
+                                                onClick={(event) => {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    void handleFavoriteToggle(product);
+                                                }}
+                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                                                    isFavorite
+                                                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                                        : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                                                } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                                                 aria-label="Seçilmişlər"
                                             >
-                                                <i className="far fa-heart text-[14px] leading-none" aria-hidden="true" />
+                                                <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
                                             </button>
                                             <button
                                                 type="button"
@@ -481,6 +644,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                                             </button>
                                         </div>
                                     </article>
+                                        );
+                                    })()}
                                 </div>
                             ))}
                         </div>

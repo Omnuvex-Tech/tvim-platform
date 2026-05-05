@@ -42,7 +42,8 @@ export const endpoints = {
         emailVerify: "/customer/auth/email/verify",
         emailResend: "/customer/auth/email/resend",
         logout: "/auth/logout",
-        me: "/auth/me",
+        me: "/customer/auth/user",
+        user: "/customer/auth/user",
     },
 
     languages: {
@@ -73,5 +74,11 @@ export const endpoints = {
         list: "/products",
         detail: (slug: string) => `/products/${slug}`,
         categories: "/categories",
+    },
+
+    favorites: {
+        list: "/favorites",
+        toggle: "/favorites/toggle",
+        token: "/favorites/token",
     },
 } as const;

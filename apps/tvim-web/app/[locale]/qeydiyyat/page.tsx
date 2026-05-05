@@ -144,7 +144,7 @@ export default async function RegisterPage({
 
         <div className="mx-auto w-full max-w-[640px]">
           <h1 className="text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">Hesab qeydiyyatı</h1>
-          <p className="mx-auto mt-4 max-w-[560px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
+          <p className="mx-auto mt-6 max-w-[560px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
             Əlaqə məlumatlarınız yalnız sifariş vermək və saytda daha rahat işləmək üçün istifadə olunacaq
           </p>
 

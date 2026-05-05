@@ -180,33 +180,45 @@ const LoginForm = ({ locale }: LoginFormProps) => {
 
     return (
         <form className="space-y-4" autoComplete="off" onSubmit={onSubmit}>
-            <label className="relative block h-[64px] w-full rounded-[20px] border border-[#d8dde6]">
-                <Mail className="absolute top-1/2 left-5 size-6 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+            <label className="group relative flex h-[64px] w-full items-center rounded-[20px] border border-[#d8dde6]">
+                <Mail className="ml-5 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                 <input
                     type="email"
-                    placeholder="E-mail ünvanı"
+                    placeholder=""
+                    aria-label="E-mail ünvanı"
                     autoComplete="email"
                     value={formData.email}
                     onChange={(event) => updateField("email", event.target.value)}
-                    className="h-full w-full rounded-[20px] bg-transparent pl-[55px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
+                    className="h-5 w-full bg-transparent pr-5 text-[15px] leading-5 font-normal text-[#161922] outline-none"
                 />
+                <span
+                    className={`pointer-events-none absolute top-1/2 left-[52px] -translate-y-1/2 text-[15px] leading-5 text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.email ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                >
+                    E-mail ünvanı
+                </span>
             </label>
             {errors.email ? <p className="-mt-2 text-sm text-red-600">{errors.email}</p> : null}
 
-            <label className="relative block h-[64px] w-full rounded-[20px] border border-[#d8dde6]">
-                <Lock className="absolute top-1/2 left-5 size-6 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+            <label className="group relative flex h-[64px] w-full items-center rounded-[20px] border border-[#d8dde6]">
+                <Lock className="ml-5 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                 <input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Şifrə"
+                    placeholder=""
+                    aria-label="Şifrə"
                     autoComplete="current-password"
                     value={formData.password}
                     onChange={(event) => updateField("password", event.target.value)}
-                    className="h-full w-full rounded-[20px] bg-transparent pl-[55px] pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
+                    className="h-5 w-full bg-transparent pr-14 text-[15px] leading-5 font-normal text-[#161922] outline-none"
                 />
+                <span
+                    className={`pointer-events-none absolute top-1/2 left-[52px] -translate-y-1/2 text-[15px] leading-5 text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                >
+                    Şifrə
+                </span>
                 <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute top-1/2 right-5 -translate-y-1/2 text-[#8ea1bf]"
+                    className="absolute top-1/2 right-5 -translate-y-1/2 cursor-pointer text-[#8ea1bf]"
                     aria-label="Şifrəni göstər/gizlət"
                 >
                     {showPassword ? <EyeOff className="size-5" strokeWidth={2.1} /> : <Eye className="size-5" strokeWidth={2.1} />}
@@ -224,17 +236,17 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex h-[62px] min-w-[136px] items-center justify-center rounded-[18px] bg-[#ffd500] px-7 text-[15px] leading-none font-[780] text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-[62px] min-w-[136px] cursor-pointer items-center justify-center rounded-[18px] bg-[#ffd500] px-7 text-[15px] leading-none font-[780] text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     <span className="-translate-y-[1px]">{isSubmitting ? "Yoxlanılır..." : "Giriş"}</span>
                 </button>
             </div>
 
-            <div className="pt-4 text-center text-[15px] font-[450] text-[#111111]">
+            <div className="mt-8 text-center text-[15px] font-[450] text-[#111111]">
                 Hesab yaradaraq saytın bütün imkanlarından istifadə edə bilərsiniz.
             </div>
 
-            <div className="text-center text-[15px]">
+            <div className="-mt-2 text-center text-[15px]">
                 <Link href={`/${locale}/qeydiyyat`} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
             </div>
         </form>
