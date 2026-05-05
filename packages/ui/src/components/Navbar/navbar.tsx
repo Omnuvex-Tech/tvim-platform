@@ -656,7 +656,7 @@ function NavbarActions({
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
             {isAuthenticated ? (
                 <Link
-                    href={`/${locale.toLowerCase()}`}
+                    href="/account"
                     className="inline-flex h-12 cursor-pointer items-center gap-2.5 rounded-full bg-[#1448F4] px-7 text-[15px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                     aria-label="Profil"
                 >
@@ -1531,10 +1531,14 @@ export function Navbar({
 
                     <div className="pb-3">
                         {isAuthenticated ? (
-                            <div className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#1448F4] px-6 text-[14px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                            <Link
+                                href="/account"
+                                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#1448F4] px-6 text-[14px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
                                 <UserRound className="size-[16px]" />
                                 <span className="max-w-[210px] truncate">{getAuthDisplayName(authUser)}</span>
-                            </div>
+                            </Link>
                         ) : (
                             <Link
                                 href={`/${locale.toLowerCase()}/giris`}
