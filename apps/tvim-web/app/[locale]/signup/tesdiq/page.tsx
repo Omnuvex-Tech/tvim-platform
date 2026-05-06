@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type {
     FooterMenusData,
@@ -6,6 +5,7 @@ import type {
     ProjectSettingsData,
     ProjectSettingsResponseData,
 } from "@repo/types/types";
+import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
@@ -17,11 +17,16 @@ export default async function RegisterVerificationPage({
     searchParams,
 }: {
     params: Promise<{ locale: string }>;
-    searchParams: Promise<{ email?: string }>;
+    searchParams: Promise<{ email?: string; flow?: string }>;
 }) {
     const { locale } = await params;
+    const normalizedLocale = (["az", "ru", "en"].includes(locale.toLowerCase())
+        ? locale.toLowerCase()
+        : "az") as "az" | "ru" | "en";
     const query = await searchParams;
     const email = typeof query.email === "string" ? query.email : "";
+    const flow = query.flow === "forgot" ? "forgot" : "signup";
+    const homePageMeta = config.pages.home[normalizedLocale];
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -127,7 +132,7 @@ export default async function RegisterVerificationPage({
     )?.number;
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-3 pt-0 pb-8">
+        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
             <NavbarWrapper
                 logo={navbarLogo}
                 phone={navbarPhone}
@@ -137,22 +142,21 @@ export default async function RegisterVerificationPage({
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
-                <nav className="mb-7 flex items-center gap-2 text-[13px] text-[#9aa3b2] lg:-ml-12">
-                    <Link href={`/${locale}`} className="hover:text-[#2050f5]">Ana səhifə</Link>
-                    <span>»</span>
-                    <span>Hesab</span>
-                    <span>»</span>
-                    <span className="text-[#6c7484]">Kod təsdiqi</span>
-                </nav>
+            <Breadcrumb
+                items={[
+                    { label: homePageMeta.name, href: homePageMeta.url },
+                    { label: "Kod təsdiqi", isCurrent: true },
+                ]}
+            />
 
+            <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
                 <div className="mx-auto w-full max-w-[560px]">
                     <h1 className="text-center text-[46px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[52px]">Kod təsdiqi</h1>
                     <p className="mx-auto mt-4 max-w-[520px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
                         Qeydiyyatı tamamlamaq üçün sizə göndərilən 4 rəqəmli kodu daxil edin.
                     </p>
 
-                    <VerificationForm locale={locale} email={email} />
+                    <VerificationForm locale={locale} email={email} flow={flow} />
                 </div>
             </section>
 

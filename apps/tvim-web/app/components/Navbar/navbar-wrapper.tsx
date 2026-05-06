@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { Language } from "@repo/types/types";
 import type { NavbarSearchProduct } from "@repo/ui";
 import { Navbar } from "@repo/ui";
+import { useLanguageStore } from "@/stores";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 
@@ -46,8 +47,48 @@ const NavbarWrapper = ({
 }: NavbarWrapperProps) => {
     const router = useRouter();
     const pathname = usePathname();
+    const { locale: storedLocale, setLocale } = useLanguageStore();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authUser, setAuthUser] = useState<SessionUser | null>(null);
+
+    const supportedLocales = useMemo(
+        () => new Set(languages.map((language) => language.code.toLowerCase())),
+        [languages]
+    );
+
+    const localeFromPath = useMemo(() => {
+        const firstSegment = pathname.split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
+        return supportedLocales.has(firstSegment) ? firstSegment : "";
+    }, [pathname, supportedLocales]);
+
+    const effectiveLocale = useMemo(() => {
+        if (localeFromPath) {
+            return localeFromPath;
+        }
+
+        const normalizedStored = storedLocale.trim().toLowerCase();
+        if (supportedLocales.has(normalizedStored)) {
+            return normalizedStored;
+        }
+
+        const normalizedRoute = locale.trim().toLowerCase();
+        if (supportedLocales.has(normalizedRoute)) {
+            return normalizedRoute;
+        }
+
+        const normalizedDefault = config.project.defLang.trim().toLowerCase();
+        if (supportedLocales.has(normalizedDefault)) {
+            return normalizedDefault;
+        }
+
+        return "az";
+    }, [locale, localeFromPath, storedLocale, supportedLocales]);
+
+    useEffect(() => {
+        if (!localeFromPath) return;
+        if (storedLocale.trim().toLowerCase() === localeFromPath) return;
+        setLocale(localeFromPath);
+    }, [localeFromPath, setLocale, storedLocale]);
 
     useEffect(() => {
         let isMounted = true;
@@ -85,17 +126,64 @@ const NavbarWrapper = ({
         };
     }, []);
 
+    const localizedMenuItems = useMemo(() => {
+        if (!Array.isArray(menuItems)) return menuItems;
+
+        return menuItems.map((item: any) => {
+            const href = typeof item?.href === "string" ? item.href : "";
+            if (!href || href === "#") return item;
+
+            if (href === "/") {
+                return { ...item, href: `/${effectiveLocale}` };
+            }
+
+            if (!href.startsWith("/")) return item;
+
+            const segments = href.split("/").filter(Boolean);
+            if (segments.length === 0) {
+                return { ...item, href: `/${effectiveLocale}` };
+            }
+
+            const firstSegment = segments[0]?.toLowerCase() ?? "";
+            if (!supportedLocales.has(firstSegment)) {
+                return item;
+            }
+
+            segments[0] = effectiveLocale;
+            return { ...item, href: `/${segments.join("/")}` };
+        });
+    }, [effectiveLocale, menuItems, supportedLocales]);
+
     const handleLocaleChange = useCallback((nextLocale: string) => {
-        const segments = pathname.split("/").filter(Boolean);
-        if (segments.length === 0) {
-            // Root path - sadece locale'ye git
-            router.push(`/${nextLocale}`);
-        } else {
-            // Mevcut path'in locale kısmını değiştir
-            segments[0] = nextLocale;
-            router.push(`/${segments.join("/")}`);
+        const normalizedNextLocale = nextLocale.trim().toLowerCase();
+        if (!supportedLocales.has(normalizedNextLocale)) {
+            return;
         }
-    }, [pathname, router]);
+
+        setLocale(normalizedNextLocale);
+
+        const segments = pathname.split("/").filter(Boolean);
+
+        if (segments.length === 0) {
+            router.push(`/${normalizedNextLocale}`);
+            return;
+        }
+
+        const firstSegment = segments[0]?.toLowerCase() ?? "";
+
+        if (supportedLocales.has(firstSegment)) {
+            segments[0] = normalizedNextLocale;
+            router.push(`/${segments.join("/")}`);
+            return;
+        }
+
+        if (["signin", "signup", "forgot-password"].includes(firstSegment)) {
+            router.push(`/${normalizedNextLocale}/${segments.join("/")}`);
+            return;
+        }
+
+        router.refresh();
+    }, [pathname, router, setLocale, supportedLocales]);
 
     const handleSearchProducts = useCallback(async (query: string, localeCode: string): Promise<NavbarSearchProduct[]> => {
         const trimmedQuery = query.trim();
@@ -301,12 +389,12 @@ const NavbarWrapper = ({
         <Navbar
             logo={logo}
             phone={phone}
-            locale={locale}
+            locale={effectiveLocale}
             languages={languages}
             defLang={config.project.defLang}
             onLocaleChange={handleLocaleChange}
             searchPlaceholder={searchPlaceholder}
-            menuItems={menuItems}
+            menuItems={localizedMenuItems}
             initialCatalogItems={initialCatalogItems}
             onSearchProducts={handleSearchProducts}
             isAuthenticated={isAuthenticated}

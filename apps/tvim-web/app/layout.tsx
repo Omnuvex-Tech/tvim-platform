@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { NotifyProvider, NotifyContainer } from "@repo/ui";
 import { QueryProvider } from "@/app/providers";
 import { config } from "@/config";
@@ -35,12 +36,6 @@ export default function RootLayout({
     return (
         <html lang="az">
             <head>
-                <script
-                    // Remove attributes injected by browser extensions (e.g. fdprocessedid)
-                    dangerouslySetInnerHTML={{
-                        __html: `(function(){try{['fdprocessedid','data-fdprocessedid'].forEach(function(attr){var els=document.querySelectorAll('['+attr+']');for(var i=0;i<els.length;i++){els[i].removeAttribute(attr);}});}catch(e){} })();`,
-                    }}
-                />
                 <link
                     rel="stylesheet"
                     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
@@ -49,6 +44,9 @@ export default function RootLayout({
                 />
             </head>
             <body className={inter.variable}>
+                <Script id="strip-extension-attrs" strategy="beforeInteractive">
+                    {`(function(){try{['fdprocessedid','data-fdprocessedid'].forEach(function(attr){var els=document.querySelectorAll('['+attr+']');for(var i=0;i<els.length;i++){els[i].removeAttribute(attr);}});}catch(e){}})();`}
+                </Script>
                 <QueryProvider>
                     <NotifyProvider>
                         <main className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">{children}</main>

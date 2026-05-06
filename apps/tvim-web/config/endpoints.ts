@@ -1,47 +1,12 @@
 export const endpoints = {
-    pages: {
-        giris: {
-            az: {
-                url: "/giris",
-                title: "Giriş",
-                name: "Giriş",
-            },
-            ru: {
-                url: "/giris",
-                title: "Вход",
-                name: "Вход",
-            },
-            en: {
-                url: "/giris",
-                title: "Login",
-                name: "Login",
-            },
-        },
-        anaSehife: {
-            az: {
-                url: "/",
-                title: "Ana səhifə",
-                name: "Ana səhifə",
-            },
-            ru: {
-                url: "/",
-                title: "Главная",
-                name: "Главная",
-            },
-            en: {
-                url: "/",
-                title: "Home",
-                name: "Home",
-            },
-        },
-    },
-
     auth: {
         login: "/customer/auth/login",
         register: "/customer/auth/register",
+        forgotPassword: "/customer/auth/forgot-password",
+        resetPassword: "/customer/auth/reset-password",
         emailVerify: "/customer/auth/email/verify",
         emailResend: "/customer/auth/email/resend",
-        logout: "/auth/logout",
+        logout: "/customer/auth/logout",
         me: "/customer/auth/user",
         user: "/customer/auth/user",
     },
@@ -64,6 +29,10 @@ export const endpoints = {
 
     settings: {
         get: "/settings",
+    },
+
+    subscription: {
+        create: "/subscribe",
     },
 
     mainPage: {

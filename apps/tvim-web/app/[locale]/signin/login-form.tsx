@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { useNotify } from "@repo/ui";
+import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
+import { useLanguageStore } from "@/stores";
 
 type LoginFormProps = {
     locale: string;
@@ -47,10 +48,24 @@ const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
 const LoginForm = ({ locale }: LoginFormProps) => {
     const notify = useNotify();
     const router = useRouter();
+    const { locale: storedLocale } = useLanguageStore();
     const loginUrl = useMemo(
         () => normalizeApiUrl(config.api.url, config.endpoints.auth.login),
         []
     );
+    const effectiveLocale = useMemo(() => {
+        const normalizedRoute = locale.trim().toLowerCase();
+        if (["az", "ru", "en"].includes(normalizedRoute)) {
+            return normalizedRoute;
+        }
+
+        const normalizedStored = storedLocale.trim().toLowerCase();
+        if (["az", "ru", "en"].includes(normalizedStored)) {
+            return normalizedStored;
+        }
+
+        return "az";
+    }, [locale, storedLocale]);
 
     const [formData, setFormData] = useState<LoginPayload>({
         email: "",
@@ -147,7 +162,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
 
                 if (needsVerification) {
                     const nextEmail = encodeURIComponent(formData.email.trim());
-                    router.push(`/${locale}/qeydiyyat/tesdiq${nextEmail ? `?email=${nextEmail}` : ""}`);
+                    router.push(`/${effectiveLocale}/signup/verify${nextEmail ? `?email=${nextEmail}` : ""}`);
                 }
                 return;
             }
@@ -169,7 +184,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             }
 
             notify.success("Giriş uğurla tamamlandı.");
-            router.replace(`/${locale}`);
+            router.replace(`/${effectiveLocale}`);
             router.refresh();
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
@@ -189,7 +204,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     autoComplete="email"
                     value={formData.email}
                     onChange={(event) => updateField("email", event.target.value)}
-                    className="h-5 w-full bg-transparent pr-5 text-[15px] leading-5 font-normal text-[#161922] outline-none"
+                    className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                 />
                 <span
                     className={`pointer-events-none absolute top-1/2 left-[52px] -translate-y-1/2 text-[15px] leading-5 text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.email ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -197,7 +212,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     E-mail ünvanı
                 </span>
             </label>
-            {errors.email ? <p className="-mt-2 text-sm text-red-600">{errors.email}</p> : null}
+            {errors.email ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.email}</p> : null}
 
             <label className="group relative flex h-[64px] w-full items-center rounded-[20px] border border-[#d8dde6]">
                 <Lock className="ml-5 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
@@ -208,7 +223,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     autoComplete="current-password"
                     value={formData.password}
                     onChange={(event) => updateField("password", event.target.value)}
-                    className="h-5 w-full bg-transparent pr-14 text-[15px] leading-5 font-normal text-[#161922] outline-none"
+                    className="h-full w-full bg-transparent pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
                 />
                 <span
                     className={`pointer-events-none absolute top-1/2 left-[52px] -translate-y-1/2 text-[15px] leading-5 text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -224,10 +239,13 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     {showPassword ? <EyeOff className="size-5" strokeWidth={2.1} /> : <Eye className="size-5" strokeWidth={2.1} />}
                 </button>
             </label>
-            {errors.password ? <p className="-mt-2 text-sm text-red-600">{errors.password}</p> : null}
+            {errors.password ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.password}</p> : null}
 
             <div className="-mt-2 text-center">
-                <Link href="#" className="inline-block text-[13px] font-[500] text-[#1f2430] no-underline hover:no-underline">
+                <Link
+                    href={`/${effectiveLocale}/forgot-password`}
+                    className="inline-block text-[13px] font-[500] text-[#1f2430] no-underline hover:no-underline"
+                >
                     Şifrənizi unutmusunuz?
                 </Link>
             </div>
@@ -238,7 +256,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     disabled={isSubmitting}
                     className="inline-flex h-[62px] min-w-[136px] cursor-pointer items-center justify-center rounded-[18px] bg-[#ffd500] px-7 text-[15px] leading-none font-[780] text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    <span className="-translate-y-[1px]">{isSubmitting ? "Yoxlanılır..." : "Giriş"}</span>
+                    {isSubmitting ? <Spinner size={20} /> : <span className="-translate-y-[1px]">Giriş</span>}
                 </button>
             </div>
 
@@ -247,7 +265,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             </div>
 
             <div className="-mt-2 text-center text-[15px]">
-                <Link href={`/${locale}/qeydiyyat`} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
+                <Link href={`/${effectiveLocale}/signup`} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
             </div>
         </form>
     );

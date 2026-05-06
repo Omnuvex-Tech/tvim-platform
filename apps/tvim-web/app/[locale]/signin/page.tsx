@@ -1,23 +1,38 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import type {
   FooterMenusData,
   Language,
   ProjectSettingsData,
   ProjectSettingsResponseData,
 } from "@repo/types/types";
+import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
-import { RegisterForm } from "./register-form";
+import { LoginForm } from "./login-form";
+import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
-export default async function RegisterPage({
+export default async function LoginPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const normalizedLocale = (["az", "ru", "en"].includes(locale.toLowerCase())
+    ? locale.toLowerCase()
+    : "az") as "az" | "ru" | "en";
+
+  const cookieStore = await cookies();
+  const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+  const hasValidRouteLocale = ["az", "ru", "en"].includes(locale.toLowerCase());
+  if (authToken && hasValidRouteLocale) {
+    redirect(`/${normalizedLocale}`);
+  }
+
+  const homePageMeta = config.pages.home[normalizedLocale];
+  const loginPageMeta = config.pages.signin[normalizedLocale];
 
   const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -123,7 +138,7 @@ export default async function RegisterPage({
   )?.number;
 
   return (
-    <div className="flex min-h-svh w-full flex-col items-center justify-start gap-3 pt-0 pb-8">
+    <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
       <NavbarWrapper
         logo={navbarLogo}
         phone={navbarPhone}
@@ -133,22 +148,19 @@ export default async function RegisterPage({
         initialCatalogItems={headerCategoryItems}
       />
 
+      <Breadcrumb
+        items={[
+          { label: homePageMeta.name, href: homePageMeta.url },
+          { label: loginPageMeta.name, isCurrent: true },
+        ]}
+        showTitle
+        pageTitle={loginPageMeta.title}
+        titleClassName="mb-1"
+      />
+
       <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
-        <nav className="mb-7 flex items-center gap-2 text-[13px] text-[#9aa3b2] lg:-ml-12">
-          <Link href={`/${locale}`} className="hover:text-[#2050f5]">Ana səhifə</Link>
-          <span>»</span>
-          <span>Hesab</span>
-          <span>»</span>
-          <span className="text-[#6c7484]">Hesab qeydiyyatı</span>
-        </nav>
-
         <div className="mx-auto w-full max-w-[640px]">
-          <h1 className="text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">Hesab qeydiyyatı</h1>
-          <p className="mx-auto mt-6 max-w-[560px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
-            Əlaqə məlumatlarınız yalnız sifariş vermək və saytda daha rahat işləmək üçün istifadə olunacaq
-          </p>
-
-          <RegisterForm locale={locale} />
+          <LoginForm locale={locale} />
         </div>
       </section>
 

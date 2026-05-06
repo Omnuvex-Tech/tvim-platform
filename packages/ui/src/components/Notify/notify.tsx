@@ -9,12 +9,12 @@ import { useNotify } from "./notify-provider";
 import type { NotifyVariant } from "@repo/types/types";
 
 const notifyVariants = cva(
-    "pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-lg border px-4 py-3 shadow-lg transition-all",
+    "pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-lg border px-4 py-3 shadow-lg transition-all duration-200 ease-out",
     {
         variants: {
             variant: {
-                success: "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100",
-                error: "border-destructive/30 bg-destructive/10 text-destructive dark:border-destructive/50 dark:bg-destructive/20 dark:text-destructive-foreground",
+                success: "border-emerald-300 bg-white text-emerald-800",
+                error: "border-red-300 bg-white text-red-700",
             },
         },
         defaultVariants: {
@@ -52,11 +52,16 @@ const NotifyContainer = () => {
     }
 
     return (
-        <div className="pointer-events-none fixed top-4 right-4 z-50 flex flex-col gap-2">
+        <div className="pointer-events-none fixed top-4 right-4 z-[9999] flex flex-col gap-2">
             {items.map((item) => (
                 <div
                     key={item.id}
-                    className={cn(notifyVariants({ variant: item.variant }))}
+                    className={cn(
+                        notifyVariants({ variant: item.variant }),
+                        item.isEntering && "translate-x-3 opacity-0",
+                        item.isLeaving && "translate-x-3 opacity-0",
+                        !item.isEntering && !item.isLeaving && "translate-x-0 opacity-100"
+                    )}
                     role="alert"
                 >
                     {icons[item.variant]}

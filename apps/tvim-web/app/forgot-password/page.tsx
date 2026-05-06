@@ -1,30 +1,31 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type {
   FooterMenusData,
   Language,
   ProjectSettingsData,
   ProjectSettingsResponseData,
 } from "@repo/types/types";
+import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
-import { LoginForm } from "./login-form";
+import { ForgotPasswordForm } from "@/app/[locale]/forgot-password/forgot-password-form";
+import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
-export default async function LoginPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  const normalizedLocale = (["az", "ru", "en"].includes(locale.toLowerCase())
-    ? locale.toLowerCase()
+export default async function ForgotPasswordPage() {
+  const cookieStore = await cookies();
+  const cookieLocale =
+    cookieStore.get("preferred-locale")?.value?.trim().toLowerCase() ?? "";
+  const normalizedPreferredLocale = (["az", "ru", "en"].includes(cookieLocale)
+    ? cookieLocale
     : "az") as "az" | "ru" | "en";
-  const homePageMeta = config.endpoints.pages.anaSehife[normalizedLocale];
-  const loginPageMeta = config.endpoints.pages.giris[normalizedLocale];
-  const withLocale = (url: string) =>
-    `/${normalizedLocale}${url === "/" ? "" : url}`;
+  const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+
+  if (authToken) {
+    redirect(`/${normalizedPreferredLocale}`);
+  }
 
   const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -36,25 +37,46 @@ export default async function LoginPage({
     );
   }
 
-  if (!langResponse.data.some((language) => language.code === locale)) {
-    notFound();
-  }
+  const siteDefaultLocale =
+    langResponse.data.find((language) => language.is_default_site)?.code ??
+    config.project.defLang;
+
+  const supportedLocales = new Set(
+    langResponse.data.map((language) => language.code.toLowerCase())
+  );
+  const preferredLocale = supportedLocales.has(cookieLocale)
+    ? cookieLocale
+    : siteDefaultLocale.toLowerCase();
+
+  const normalizedLocale = (["az", "ru", "en"].includes(preferredLocale)
+    ? preferredLocale
+    : "az") as "az" | "ru" | "en";
+
+  const homePageMeta = config.pages.home[normalizedLocale];
+  const accountPageMeta = config.pages.account[normalizedLocale];
+  const forgotPasswordPageMeta = config.pages.forgotPassword[normalizedLocale];
 
   const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
     params: { in_footer: "1" },
-    locale,
+    locale: normalizedLocale,
   });
 
-  const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-    locale,
-  });
+  const settingsResponse = await api.get<ProjectSettingsResponseData>(
+    config.endpoints.settings.get,
+    {
+      locale: normalizedLocale,
+    }
+  );
 
   const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
     params: { in_header: "1" },
-    locale,
+    locale: normalizedLocale,
   });
 
-  const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
+  const rawHeaderData =
+    headerMenuResponse.success && headerMenuResponse.data
+      ? headerMenuResponse.data
+      : null;
 
   let headerItems: any[] = [];
   if (Array.isArray(rawHeaderData)) headerItems = rawHeaderData;
@@ -66,19 +88,27 @@ export default async function LoginPage({
     else if (Array.isArray(rawHeaderData.footer)) headerItems = rawHeaderData.footer;
   }
 
-  const headerTopLevel = headerItems.filter((it: any) => !it || !it.parent_id || Number(it.parent_id) === 0).filter(Boolean);
+  const headerTopLevel = headerItems
+    .filter((it: any) => !it || !it.parent_id || Number(it.parent_id) === 0)
+    .filter(Boolean);
 
   const headerMenuItems = headerTopLevel
-    .filter((it: any) => (((it.type ?? "") + "").toString().toLowerCase() !== "categories"))
+    .filter(
+      (it: any) =>
+        (((it.type ?? "") + "").toString().toLowerCase() !== "categories")
+    )
     .map((it: any) => {
-      const hrefPart = (it.multi_links && it.multi_links[locale.toLowerCase()]) || it.link || "";
-      const path = hrefPart ? `/${locale.toLowerCase()}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
+      const hrefPart =
+        (it.multi_links && it.multi_links[normalizedLocale]) || it.link || "";
+      const path = hrefPart
+        ? `/${normalizedLocale}/${String(hrefPart).replace(/^\/+/, "")}`
+        : "#";
       return { label: it.name ?? it.title ?? it.link ?? "", href: path };
     });
 
   const categoriesResponse = await api.get<any>("/product/categories", {
     params: { in_header: "1" },
-    locale,
+    locale: normalizedLocale,
   });
 
   let headerCategoryItems: any[] = [];
@@ -96,11 +126,17 @@ export default async function LoginPage({
     const filtered = items.filter(
       (it) =>
         !!it &&
-        (it.in_header === true || it.in_header === 1 || it.in_header === "1" || it.in_header === "true")
+        (it.in_header === true ||
+          it.in_header === 1 ||
+          it.in_header === "1" ||
+          it.in_header === "true")
     );
     headerCategoryItems = filtered.length > 0 ? filtered : items;
   } else {
-    headerCategoryItems = headerTopLevel.filter((it: any) => (((it.type ?? "") + "").toString().toLowerCase() === "categories"));
+    headerCategoryItems = headerTopLevel.filter(
+      (it: any) =>
+        (((it.type ?? "") + "").toString().toLowerCase() === "categories")
+    );
   }
 
   const footerMenus =
@@ -130,29 +166,34 @@ export default async function LoginPage({
   )?.number;
 
   return (
-    <div className="flex min-h-svh w-full flex-col items-center justify-start gap-3 pt-0 pb-8">
+    <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
       <NavbarWrapper
         logo={navbarLogo}
         phone={navbarPhone}
-        locale={locale}
+        locale={normalizedLocale}
         languages={langResponse.data}
         menuItems={headerMenuItems}
         initialCatalogItems={headerCategoryItems}
       />
 
+      <Breadcrumb
+        items={[
+          { label: homePageMeta.name, href: homePageMeta.url },
+          { label: accountPageMeta.name },
+          { label: forgotPasswordPageMeta.name, isCurrent: true },
+        ]}
+        showTitle
+        pageTitle={forgotPasswordPageMeta.title}
+        titleClassName="mb-6 text-[48px] sm:text-[52px]"
+      />
+
       <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
-        <nav className="mb-7 flex items-center gap-2 text-[13px] text-[#9aa3b2] lg:-ml-10">
-          <Link href={withLocale(homePageMeta.url)} className="hover:text-[#2050f5]">{homePageMeta.name}</Link>
-          <span>»</span>
-          <span>Hesab</span>
-          <span>»</span>
-          <span className="text-[#6c7484]">{loginPageMeta.name}</span>
-        </nav>
-
         <div className="mx-auto w-full max-w-[640px]">
-          <h1 className="mb-10 text-center text-[52px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[56px]">{loginPageMeta.title}</h1>
+          <p className="mx-auto mb-8 max-w-[560px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
+            E-mail ünvanınızı daxil edin, əgər hesab mövcuddursa sizə OTP kodu göndəriləcək.
+          </p>
 
-          <LoginForm locale={locale} />
+          <ForgotPasswordForm locale={normalizedLocale} />
         </div>
       </section>
 

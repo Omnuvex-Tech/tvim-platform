@@ -4,4 +4,6 @@ export type NotifyItem = {
     id: string;
     variant: NotifyVariant;
     message: string;
+    isEntering?: boolean;
+    isLeaving?: boolean;
 };

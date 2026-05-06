@@ -33,14 +33,15 @@ import Spinner from "../Spinner/Spinner";
 import "./navbar.css";
 
 const navbarClasses = {
-    root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)]",
+    root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)] border-b border-gray-200",
     container: "mx-auto flex w-full max-w-[1280px] flex-col",
-    topRow: "flex items-center gap-1.5 pt-5 pb-3 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-5",
-    bottomRow: "hidden items-center gap-5 py-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
+    topRow: "flex items-center gap-1.5 pt-5 pb-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-5",
+    bottomRow: "hidden items-center gap-5 py-3 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
 };
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 const NAVBAR_REQUEST_TIMEOUT_MS = 10000;
+const CONTENT_LOCALE = "az";
 
 function buildApiUrl(path: string, params?: Record<string, string>) {
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -64,7 +65,7 @@ async function fetchNavbarApiJson(path: string, options?: { locale?: string; par
             signal: controller.signal,
             headers: {
                 Accept: "application/json",
-                ...(options?.locale ? { "Content-Language": options.locale } : {}),
+                "Content-Language": CONTENT_LOCALE,
             },
         });
 
@@ -192,6 +193,11 @@ const localeOptions = [
     { code: "RU", country: "RU" },
 ];
 const defaultLocaleOption = localeOptions[0]!;
+
+function normalizeLocaleCode(value?: string) {
+    const code = (value || defaultLocaleOption.code).trim().toUpperCase();
+    return localeOptions.some((item) => item.code === code) ? code : defaultLocaleOption.code;
+}
 
 const defaultLanguages: Language[] = [
     { id: 1, code: "az", name: "Azerbaijani", native_name: "AZ", is_rtl: false, is_default_admin: false, is_default_site: true, is_required: true, sort_order: 1 },
@@ -500,12 +506,17 @@ function NavbarContact({
     onLocaleChange?: (locale: string) => void;
 }) {
     const [isLocaleOpen, setIsLocaleOpen] = useState(false);
-    const [selectedLocale, setSelectedLocale] = useState((locale || "AZ").toUpperCase());
+    const [selectedLocale, setSelectedLocale] = useState(normalizeLocaleCode(locale));
     const localeDropdownRef = useRef<HTMLDivElement | null>(null);
     const activeLocale = useMemo(
         () => localeOptions.find((item) => item.code === selectedLocale) ?? defaultLocaleOption,
         [selectedLocale],
     );
+
+    useEffect(() => {
+        const nextLocale = normalizeLocaleCode(locale);
+        setSelectedLocale((prev) => (prev === nextLocale ? prev : nextLocale));
+    }, [locale]);
 
     useEffect(() => {
         if (!isLocaleOpen) return;
@@ -656,7 +667,7 @@ function NavbarActions({
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
             {isAuthenticated ? (
                 <Link
-                    href="/account"
+                    href={`/${locale.toLowerCase()}/account`}
                     className="inline-flex h-12 cursor-pointer items-center gap-2.5 rounded-full bg-[#1448F4] px-7 text-[15px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                     aria-label="Profil"
                 >
@@ -665,7 +676,7 @@ function NavbarActions({
                 </Link>
             ) : (
                 <Link
-                    href={`/${locale.toLowerCase()}/giris`}
+                    href={`/${locale.toLowerCase()}/signin`}
                     className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-[#1f4fff] px-11 text-[16px] font-medium text-white"
                 >
                     <UserRound className="size-[17px]" />
@@ -746,13 +757,18 @@ export function Navbar({
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
     const mobileLocaleDropdownRef = useRef<HTMLDivElement | null>(null);
-    const [mobileLocale, setMobileLocale] = useState((locale || "AZ").toUpperCase());
+    const [mobileLocale, setMobileLocale] = useState(normalizeLocaleCode(locale));
     const activeMobileLocale = useMemo(
         () => localeOptions.find((item) => item.code === mobileLocale) ?? defaultLocaleOption,
         [mobileLocale]
     );
     const [mobileExpandedIds, setMobileExpandedIds] = useState<number[]>([]);
     const whatsappHref = toWhatsappHref(phone);
+
+    useEffect(() => {
+        const nextLocale = normalizeLocaleCode(locale);
+        setMobileLocale((prev) => (prev === nextLocale ? prev : nextLocale));
+    }, [locale]);
 
     useEffect(() => {
         if (!isMobileLocaleOpen) return;
@@ -1532,7 +1548,7 @@ export function Navbar({
                     <div className="pb-3">
                         {isAuthenticated ? (
                             <Link
-                                href="/account"
+                                href={`/${locale.toLowerCase()}/account`}
                                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#1448F4] px-6 text-[14px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
@@ -1541,7 +1557,7 @@ export function Navbar({
                             </Link>
                         ) : (
                             <Link
-                                href={`/${locale.toLowerCase()}/giris`}
+                                href={`/${locale.toLowerCase()}/signin`}
                                 className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1f4fff] px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-95"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >

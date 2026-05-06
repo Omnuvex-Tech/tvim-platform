@@ -4,12 +4,14 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Mail } from "lucide-react";
-import { useNotify } from "@repo/ui";
+import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
+import { useLanguageStore } from "@/stores";
 
 type VerificationFormProps = {
     locale: string;
     email: string;
+    flow?: "signup" | "forgot";
 };
 
 type VerificationResponse = {
@@ -50,21 +52,39 @@ const extractVerifyMessage = (payload: VerificationResponse, fallback: string) =
     );
 };
 
-const VerificationForm = ({ locale, email }: VerificationFormProps) => {
+const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormProps) => {
     const notify = useNotify();
     const router = useRouter();
+    const { locale: storedLocale } = useLanguageStore();
     const verifyUrl = useMemo(
         () => normalizeApiUrl(config.api.url, config.endpoints.auth.emailVerify),
         []
     );
     const resendUrl = useMemo(
-        () => normalizeApiUrl(config.api.url, config.endpoints.auth.emailResend),
-        []
+        () =>
+            flow === "forgot"
+                ? normalizeApiUrl(config.api.url, config.endpoints.auth.forgotPassword)
+                : normalizeApiUrl(config.api.url, config.endpoints.auth.emailResend),
+        [flow]
     );
     const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isResending, setIsResending] = useState(false);
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+    const effectiveLocale = useMemo(() => {
+        const normalizedRoute = locale.trim().toLowerCase();
+        if (["az", "ru", "en"].includes(normalizedRoute)) {
+            return normalizedRoute;
+        }
+
+        const normalizedStored = storedLocale.trim().toLowerCase();
+        if (["az", "ru", "en"].includes(normalizedStored)) {
+            return normalizedStored;
+        }
+
+        return "az";
+    }, [locale, storedLocale]);
 
     const code = useMemo(() => digits.join(""), [digits]);
 
@@ -177,8 +197,16 @@ const VerificationForm = ({ locale, email }: VerificationFormProps) => {
                 return;
             }
 
+            if (flow === "forgot") {
+                notify.success(extractVerifyMessage(payload, "Kod uğurla təsdiqləndi."));
+                const nextEmail = encodeURIComponent(normalizedEmail);
+                const nextCode = encodeURIComponent(code);
+                router.push(`/${effectiveLocale}/forgot-password/reset-password?email=${nextEmail}&code=${nextCode}`);
+                return;
+            }
+
             notify.success(extractVerifyMessage(payload, "Email uğurla təsdiqləndi."));
-            router.push(`/${locale}/giris`);
+            router.push(`/${effectiveLocale}/signin`);
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
         } finally {
@@ -219,7 +247,11 @@ const VerificationForm = ({ locale, email }: VerificationFormProps) => {
                 return;
             }
 
-            notify.success(extractVerifyMessage(payload, "Təsdiq kodu uğurla yenidən göndərildi."));
+            const resendSuccessMessage =
+                flow === "forgot"
+                    ? "Şifrə yeniləmə kodu uğurla yenidən göndərildi."
+                    : "Təsdiq kodu uğurla yenidən göndərildi.";
+            notify.success(extractVerifyMessage(payload, resendSuccessMessage));
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
         } finally {
@@ -234,7 +266,7 @@ const VerificationForm = ({ locale, email }: VerificationFormProps) => {
                     <Mail className="mt-0.5 size-5 shrink-0 text-[#2050f5]" />
                     <p>
                         {email
-                            ? `${email} ünvanına 4 rəqəmli təsdiq kodu göndərildi.`
+                            ? `${email} ünvanına 4 rəqəmli ${flow === "forgot" ? "şifrə yeniləmə" : "təsdiq"} kodu göndərildi.`
                             : "E-poçt ünvanınıza 4 rəqəmli təsdiq kodu göndərildi."}
                     </p>
                 </div>
@@ -265,24 +297,25 @@ const VerificationForm = ({ locale, email }: VerificationFormProps) => {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex h-[62px] w-[190px] items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-8 text-[15px] leading-none font-bold text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-[62px] w-[190px] cursor-pointer items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-8 text-[15px] leading-none font-bold text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    <CheckCircle2 className="size-5" />
-                    {isSubmitting ? "Təsdiqlənir..." : "Kodu təsdiqlə"}
+                    {isSubmitting ? <Spinner size={20} /> : <><CheckCircle2 className="size-5" /><span>Kodu təsdiqlə</span></>}
                 </button>
             </div>
 
-            <div className="pt-8 text-center text-[13px] text-[#1f2430]">
+            <div className="pt-0 flex items-center justify-center text-[13px] text-[#1f2430]">
                 <button
                     type="button"
                     onClick={handleResendCode}
                     disabled={isResending}
-                    className="underline disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-w-[130px] cursor-pointer items-center justify-center underline disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    {isResending ? "Kod göndərilir..." : "Kodu yenidən göndər"}
+                    {isResending ? <Spinner size={14} /> : "Kodu yenidən göndər"}
                 </button>
-                <span className="mx-2">|</span>
-                <Link href={`/${locale}/qeydiyyat`} className="underline">qeydiyyat səhifəsinə qayıdın</Link>
+                <span className="mx-2 inline-flex items-center">|</span>
+                <Link href={`/${effectiveLocale}/${flow === "forgot" ? "forgot-password" : "signup"}`} className="underline">
+                    {flow === "forgot" ? "şifrə bərpası səhifəsinə qayıdın" : "qeydiyyat səhifəsinə qayıdın"}
+                </Link>
             </div>
         </form>
     );

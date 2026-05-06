@@ -1,0 +1,58 @@
+.breadcrumb {
+    list-style: none;
+    margin-bottom: 10px;
+    padding: 0 0 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    background: 0;
+    font-size: 1.1em;
+}
+
+.breadcrumb li {
+    display: inline;
+}
+
+.breadcrumb li + li::before {
+    padding: 0 5px;
+    color: #ccc;
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 0.9em;
+    content: "\f101";
+}
+
+.breadcrumb li {
+    font-size: 16px;
+}
+
+.breadcrumb-current {
+    color: rgba(132, 150, 171, 1);
+}
+
+.breadcrumb-previous {
+    color: rgba(97, 114, 136, 1);
+}
+
+.breadcrumb li a:hover {
+    color: #2050f5;
+}
+
+.breadcrumb-page-title {
+    margin-top: 10px;
+    display: block;
+    overflow: visible;
+    text-align: center;
+    font-size: clamp(48px, 5vw, 56px);
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #000000;
+    padding-bottom: 6px;
+}
+
+.breadcrumb::before,
+.breadcrumb::after,
+.breadcrumb li::before,
+.breadcrumb li::after {
+    box-sizing: border-box;
+}

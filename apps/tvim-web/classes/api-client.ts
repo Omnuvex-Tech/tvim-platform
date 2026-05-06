@@ -2,6 +2,8 @@ import { config } from "@/config";
 import { ApiResponse } from "@/classes";
 import type { ApiResponseBody, RequestOptions } from "@repo/types/types";
 
+const CONTENT_LOCALE = "az";
+
 export class ApiClient {
     baseUrl: string;
     timeout: number;
@@ -12,28 +14,70 @@ export class ApiClient {
     }
 
     private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-        const { params, locale, ...init } = options;
-        const url = new URL(`${this.baseUrl}${endpoint}`);
-        if (params) {
-            Object.entries(params).forEach(([key, value]) => {
-                url.searchParams.append(key, value);
-            });
-        }
+        const { params, locale: requestedLocale, ...init } = options;
+        void requestedLocale;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), this.timeout);
-        const response = await fetch(url.toString(), {
-            ...init,
-            signal: controller.signal,
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                ...(locale && { "Content-Language": locale }),
-                ...init.headers,
-            },
-        });
-        clearTimeout(timeout);
-        const body = await response.json() as ApiResponseBody<T>;
-        return new ApiResponse<T>(body);
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+        try {
+            const url = new URL(`${this.baseUrl}${endpoint}`);
+            if (params) {
+                Object.entries(params).forEach(([key, value]) => {
+                    url.searchParams.append(key, value);
+                });
+            }
+
+            const response = await fetch(url.toString(), {
+                ...init,
+                signal: controller.signal,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...init.headers,
+                    "Content-Language": CONTENT_LOCALE,
+                },
+            });
+
+            const text = await response.text();
+            const parsedBody = text ? (JSON.parse(text) as ApiResponseBody<T>) : null;
+
+            if (parsedBody && typeof parsedBody.success === "boolean") {
+                return new ApiResponse<T>(parsedBody);
+            }
+
+            return new ApiResponse<T>({
+                success: false,
+                message: "API-dan gözlənilməz cavab gəldi",
+                data: null,
+                errors: [
+                    {
+                        code: response.status ? `HTTP_${response.status}` : "INVALID_RESPONSE",
+                        message: response.statusText || "Gözlənilməz cavab formatı",
+                    },
+                ],
+            });
+        } catch (error: unknown) {
+            const errorName = typeof error === "object" && error !== null && "name" in error
+                ? String((error as { name: string }).name)
+                : "";
+
+            const isTimeout = errorName === "AbortError";
+            const message = error instanceof Error ? error.message : "Naməlum xəta";
+
+            return new ApiResponse<T>({
+                success: false,
+                message: isTimeout ? "API sorğusunun vaxtı bitdi" : "API sorğusu alınmadı",
+                data: null,
+                errors: [
+                    {
+                        code: isTimeout ? "TIMEOUT" : "NETWORK_ERROR",
+                        message,
+                    },
+                ],
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
     }
 
     get<T>(endpoint: string, options?: RequestOptions) {

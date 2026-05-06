@@ -13,6 +13,7 @@ type NotifyContextValue = {
 const NotifyContext = createContext<NotifyContextValue | null>(null);
 
 const NOTIFY_DURATION = 5000;
+const EXIT_ANIMATION_DURATION = 220;
 
 const generateId = (): string => {
     return Math.random().toString(36).substring(2, 9);
@@ -22,13 +23,31 @@ const NotifyProvider = ({ children }: { children: ReactNode }) => {
     const [items, setItems] = useState<NotifyItem[]>([]);
 
     const dismiss = useCallback((id: string) => {
-        setItems((prev) => prev.filter((item) => item.id !== id));
+        setItems((prev) =>
+            prev.map((item) => {
+                if (item.id !== id || item.isLeaving) {
+                    return item;
+                }
+
+                return { ...item, isLeaving: true };
+            })
+        );
+
+        setTimeout(() => {
+            setItems((prev) => prev.filter((item) => item.id !== id));
+        }, EXIT_ANIMATION_DURATION);
     }, []);
 
     const addItem = useCallback(
         (variant: NotifyVariant, message: string) => {
             const id = generateId();
-            setItems((prev) => [...prev, { id, variant, message }]);
+            setItems((prev) => [...prev, { id, variant, message, isEntering: true, isLeaving: false }]);
+
+            requestAnimationFrame(() => {
+                setItems((prev) =>
+                    prev.map((item) => (item.id === id ? { ...item, isEntering: false } : item))
+                );
+            });
 
             setTimeout(() => {
                 dismiss(id);

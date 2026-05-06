@@ -5,8 +5,9 @@ import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, Phone, UserRound } from "lucide-react";
-import { useNotify } from "@repo/ui";
+import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
+import { useLanguageStore } from "@/stores";
 
 type RegisterFormProps = {
     locale: string;
@@ -36,6 +37,19 @@ type RegisterResponse = {
         field?: string;
         message?: string;
     }>;
+};
+
+type SubscribeResponse = {
+    success?: boolean;
+    message?: string;
+    data?: {
+        id?: number;
+        email?: string;
+        created_at?: string;
+    };
+    errors?: {
+        email?: string[];
+    };
 };
 
 type ReCaptchaVerifyResponse = {
@@ -197,6 +211,25 @@ const extractFieldErrors = (payload: unknown): RegisterErrors => {
 
     const data = payload as Record<string, unknown>;
 
+    const nestedErrors = data.errors;
+    if (nestedErrors && typeof nestedErrors === "object" && !Array.isArray(nestedErrors)) {
+        for (const [key, value] of Object.entries(nestedErrors as Record<string, unknown>)) {
+            if (!isKnownField(key) || result[key]) continue;
+
+            if (typeof value === "string" && value.trim()) {
+                result[key] = value;
+                continue;
+            }
+
+            if (Array.isArray(value) && value.length > 0) {
+                const first = value.find((item) => typeof item === "string" && item.trim());
+                if (typeof first === "string") {
+                    result[key] = first;
+                }
+            }
+        }
+    }
+
     if (Array.isArray(data.errors)) {
         for (const item of data.errors) {
             if (!item || typeof item !== "object") continue;
@@ -227,9 +260,45 @@ const extractFieldErrors = (payload: unknown): RegisterErrors => {
     return result;
 };
 
+const sanitizeSummaryMessage = (message: string) => {
+    return message.replace(/\s*\(and\s+\d+\s+more\s+errors\)\s*$/i, "").trim();
+};
+
+const getFirstFieldError = (errors: RegisterErrors) => {
+    const firstMessage = Object.values(errors).find((value) => typeof value === "string" && value.trim());
+    return typeof firstMessage === "string" ? firstMessage : "";
+};
+
+const extractSubscribeErrorMessage = (payload: unknown): string => {
+    if (!payload || typeof payload !== "object") {
+        return "";
+    }
+
+    const data = payload as Record<string, unknown>;
+    const responseMessage = typeof data.message === "string" ? data.message : "";
+    const errors = data.errors;
+
+    if (errors && typeof errors === "object" && !Array.isArray(errors)) {
+        const emailErrors = (errors as Record<string, unknown>).email;
+        if (Array.isArray(emailErrors)) {
+            const firstError = emailErrors.find((item) => typeof item === "string" && item.trim());
+            if (typeof firstError === "string") {
+                return firstError;
+            }
+        }
+
+        if (typeof emailErrors === "string" && emailErrors.trim()) {
+            return emailErrors;
+        }
+    }
+
+    return responseMessage;
+};
+
 const RegisterForm = ({ locale }: RegisterFormProps) => {
     const notify = useNotify();
     const router = useRouter();
+    const { locale: storedLocale } = useLanguageStore();
     const recaptchaSiteKey = useMemo(() => {
         const envKey = (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "").trim();
         if (envKey) {
@@ -246,6 +315,23 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
         () => normalizeApiUrl(config.api.url, config.endpoints.auth.register),
         []
     );
+    const subscribeUrl = useMemo(
+        () => normalizeApiUrl(config.api.url, config.endpoints.subscription.create),
+        []
+    );
+    const effectiveLocale = useMemo(() => {
+        const normalizedRoute = locale.trim().toLowerCase();
+        if (["az", "ru", "en"].includes(normalizedRoute)) {
+            return normalizedRoute;
+        }
+
+        const normalizedStored = storedLocale.trim().toLowerCase();
+        if (["az", "ru", "en"].includes(normalizedStored)) {
+            return normalizedStored;
+        }
+
+        return "az";
+    }, [locale, storedLocale]);
 
     const [formData, setFormData] = useState<RegisterPayload>({
         name: "",
@@ -522,12 +608,15 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                 }
 
                 const fallbackMessage = "Qeydiyyat zamanı xəta baş verdi.";
-                const serverMessage =
+                const serverMessage = sanitizeSummaryMessage(
                     (payload as RegisterResponse)?.data?.message ||
                     (payload as RegisterResponse)?.message ||
-                    fallbackMessage;
+                    fallbackMessage
+                );
 
-                notify.error(serverMessage);
+                const firstFieldMessage = getFirstFieldError(fieldErrors);
+
+                notify.error(firstFieldMessage || serverMessage);
                 resetRecaptchaWidget();
                 return;
             }
@@ -547,8 +636,43 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             }));
             setErrors({});
 
+            const wantsSubscription = subscribeToNews === "yes";
+
+            if (wantsSubscription) {
+                try {
+                    const subscribeResponse = await fetch(subscribeUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Accept: "application/json",
+                        },
+                        body: JSON.stringify({ email: formData.email.trim() }),
+                    });
+
+                    let subscribePayload: SubscribeResponse | Record<string, unknown> = {};
+                    try {
+                        subscribePayload = (await subscribeResponse.json()) as SubscribeResponse | Record<string, unknown>;
+                    } catch {
+                        subscribePayload = {};
+                    }
+
+                    const subscribeSucceeded =
+                        subscribeResponse.ok &&
+                        ((subscribePayload as SubscribeResponse)?.success ?? true);
+
+                    if (!subscribeSucceeded) {
+                        const subscribeErrorMessage =
+                            extractSubscribeErrorMessage(subscribePayload) ||
+                            "Abunəlik zamanı xəta baş verdi.";
+                        notify.error(subscribeErrorMessage);
+                    }
+                } catch {
+                    notify.error("Abunəlik üçün serverə qoşulmaq mümkün olmadı.");
+                }
+            }
+
             const nextEmail = encodeURIComponent(formData.email.trim());
-            router.push(`/${locale}/qeydiyyat/tesdiq${nextEmail ? `?email=${nextEmail}` : ""}`);
+            router.push(`/${effectiveLocale}/signup/verify${nextEmail ? `?email=${nextEmail}` : ""}`);
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
             resetRecaptchaWidget();
@@ -567,8 +691,8 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             />
 
             <form className="mt-6 space-y-4" autoComplete="off" onSubmit={onSubmit}>
-                <label className="group relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-                    <UserRound className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+                <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                    <UserRound className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                     <input
                         type="text"
                         placeholder=""
@@ -576,7 +700,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         autoComplete="given-name"
                         value={formData.name}
                         onChange={(e) => updateField("name", e.target.value)}
-                        className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.name ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -584,10 +708,10 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         Ad
                     </span>
                 </label>
-                {errors.name ? <p className="-mt-2 text-sm text-red-600">{errors.name}</p> : null}
+                {errors.name ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.name}</p> : null}
 
-                <label className="group relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-                    <UserRound className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+                <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                    <UserRound className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                     <input
                         type="text"
                         placeholder=""
@@ -595,7 +719,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         autoComplete="family-name"
                         value={formData.surname}
                         onChange={(e) => updateField("surname", e.target.value)}
-                        className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.surname ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -603,10 +727,10 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         Soyad
                     </span>
                 </label>
-                {errors.surname ? <p className="-mt-2 text-sm text-red-600">{errors.surname}</p> : null}
+                {errors.surname ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.surname}</p> : null}
 
-                <label className="group relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-                    <Phone className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+                <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                    <Phone className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                     <input
                         ref={phoneInputRef}
                         type="tel"
@@ -616,7 +740,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         value={formData.phone}
                         onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)}
                         onKeyDown={handlePhoneBackspace}
-                        className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.phone ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -624,10 +748,10 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         Telefon
                     </span>
                 </label>
-                {errors.phone ? <p className="-mt-2 text-sm text-red-600">{errors.phone}</p> : null}
+                {errors.phone ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.phone}</p> : null}
 
-                <label className="group relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-                    <Mail className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+                <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                    <Mail className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                     <input
                         type="email"
                         placeholder=""
@@ -635,7 +759,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         autoComplete="email"
                         value={formData.email}
                         onChange={(e) => updateField("email", e.target.value)}
-                        className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.email ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -643,10 +767,10 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         E-poçtunuz
                     </span>
                 </label>
-                {errors.email ? <p className="-mt-2 text-sm text-red-600">{errors.email}</p> : null}
+                {errors.email ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.email}</p> : null}
 
-                <label className="group relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-                    <Lock className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+                <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                    <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                     <input
                         type={showPassword ? "text" : "password"}
                         placeholder=""
@@ -654,7 +778,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         autoComplete="new-password"
                         value={formData.password}
                         onChange={(e) => updateField("password", e.target.value)}
-                        className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        className="h-full w-full bg-transparent pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -670,10 +794,10 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                     </button>
                 </label>
-                {errors.password ? <p className="-mt-2 text-sm text-red-600">{errors.password}</p> : null}
+                {errors.password ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.password}</p> : null}
 
-                <label className="group relative block h-[64px] w-full rounded-[18px] border border-[#d8dde6]">
-                    <Lock className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-[#2050f5]" strokeWidth={2.1} />
+                <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                    <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                     <input
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder=""
@@ -681,7 +805,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         autoComplete="new-password"
                         value={formData.password_confirmation}
                         onChange={(e) => updateField("password_confirmation", e.target.value)}
-                        className="h-full w-full rounded-[18px] bg-transparent pl-[50px] pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        className="h-full w-full bg-transparent pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password_confirmation ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
@@ -697,15 +821,15 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         {showConfirmPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                     </button>
                 </label>
-                {errors.password_confirmation ? <p className="-mt-2 text-sm text-red-600">{errors.password_confirmation}</p> : null}
+                {errors.password_confirmation ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.password_confirmation}</p> : null}
 
                 {successMessage ? <p className="rounded-[12px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</p> : null}
 
                 <div className="mt-6 space-y-6">
-                    <fieldset className="flex items-start gap-4 whitespace-nowrap">
-                        <span className="pt-[2px] text-[16px] leading-none font-medium text-[#000000]">Abunə ol</span>
+                    <fieldset className="flex items-start gap-4 whitespace-nowrap px-1">
+                        <span className="-mt-[0.5px] pt-0 text-[18px] leading-none font-medium text-[#000000]">Abunə ol</span>
 
-                        <div className="flex flex-col items-start gap-4">
+                        <div className="flex items-center gap-6">
                             <label className="inline-flex cursor-pointer items-center gap-3 text-[16px] leading-none text-[#000000]">
                                 <input
                                     type="radio"
@@ -732,11 +856,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         </div>
                     </fieldset>
 
-                    <div className="mx-auto flex flex-col items-center gap-0">
-                        <div ref={recaptchaRef} className="min-h-[78px] w-fit overflow-hidden leading-none" />
-                    </div>
-
-                    <label className="mx-auto flex w-fit max-w-full cursor-pointer select-none items-center gap-3 text-[16px] leading-[1.2] text-[#000000]">
+                    <label className="flex w-full max-w-full cursor-pointer select-none items-start justify-start gap-3 px-1 text-[16px] leading-[1.2] text-[#000000]">
                         <input
                             type="checkbox"
                             checked={acceptedTerms}
@@ -754,6 +874,10 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     </label>
 
                     {termsError ? <p className="-mt-2 text-sm text-red-600">{termsError}</p> : null}
+
+                    <div className="mx-auto flex flex-col items-center gap-0">
+                        <div ref={recaptchaRef} className="min-h-[78px] w-fit overflow-hidden leading-none" />
+                    </div>
                 </div>
 
                 <div className="mt-4 text-center">
@@ -762,12 +886,12 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         disabled={isSubmitting}
                         className="inline-flex h-[66px] w-[210px] cursor-pointer items-center justify-center rounded-[22px] bg-[#ffd500] px-8 text-[15px] leading-none font-bold text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {isSubmitting ? "Göndərilir..." : "Davam et"}
+                        {isSubmitting ? <Spinner size={20} /> : "Davam et"}
                     </button>
                 </div>
 
-                <p className="pt-8 text-center text-[13px] font-[495] text-[#1f2430]">
-                    Əgər artıq hesabınızı yaratmısınızsa, <Link href={`/${locale}/giris`} className="underline">giriş səhifəsinə</Link> keçin.
+                <p className="pt-3 text-center text-[13px] font-[495] text-[#1f2430]">
+                    Əgər artıq hesabınızı yaratmısınızsa, <Link href={`/${effectiveLocale}/signin`} className="underline">giriş səhifəsinə</Link> keçin.
                 </p>
             </form>
         </>

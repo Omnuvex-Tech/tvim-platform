@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type {
     FooterMenusData,
     Language,
@@ -16,7 +16,6 @@ import {
     MapPin,
     Package,
     Reply,
-    RotateCcw,
     UserRound,
 } from "lucide-react";
 import { config } from "@/config";
@@ -93,16 +92,18 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function AccountPage() {
-    const cookieStore = await cookies();
-    const cookieLocale = cookieStore.get("preferred-locale")?.value?.trim().toLowerCase() ?? "";
-    const normalizedPreferredLocale = (["az", "ru", "en"].includes(cookieLocale)
-        ? cookieLocale
-        : "az") as "az" | "ru" | "en";
-    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+export default async function AccountPage({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale: routeLocale } = await params;
+    const locale = routeLocale.trim().toLowerCase();
 
+    const cookieStore = await cookies();
+    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     if (!authToken) {
-        redirect(`/${normalizedPreferredLocale}/signin`);
+        redirect(`/${locale}/signin`);
     }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -114,14 +115,9 @@ export default async function AccountPage() {
         );
     }
 
-    const siteDefaultLocale =
-        langResponse.data.find((language) => language.is_default_site)?.code ??
-        config.project.defLang;
-
-    const supportedLocales = new Set(langResponse.data.map((language) => language.code.toLowerCase()));
-    const locale = supportedLocales.has(cookieLocale)
-        ? cookieLocale
-        : siteDefaultLocale.toLowerCase();
+    if (!langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
+        notFound();
+    }
 
     const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
         params: { in_footer: "1" },
@@ -217,7 +213,7 @@ export default async function AccountPage() {
 
             <section className="mx-auto w-full max-w-[1280px] px-5 pt-5 pb-12 sm:px-10 lg:px-0 lg:pt-6 lg:pb-14">
                 <nav className="mb-4 flex items-center gap-1.5 text-[11px] text-[#9AA2B1]">
-                    <Link href="/" className="hover:text-[#6f7788]">Ana səhifə</Link>
+                    <Link href={`/${locale}`} className="hover:text-[#6f7788]">Ana səhifə</Link>
                     <span>»</span>
                     <span>Hesab</span>
                 </nav>

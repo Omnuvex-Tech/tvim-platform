@@ -20,7 +20,7 @@ const LanguageSwitcher = ({
     const router = useRouter();
     const pathname = usePathname();
     const { locale, setLocale } = useLanguageStore();
-    const effectiveLocale = routeLocale ?? locale;
+    const effectiveLocale = routeLocale ?? locale || config.project.defLang;
 
     const fetchTranslations = useCallback(async (locale: string): Promise<Translation[]> => {
         const response = await api.get<Translation[]>(config.endpoints.translations.list, {
@@ -32,16 +32,23 @@ const LanguageSwitcher = ({
 
     const handleLocaleChange = useCallback((nextLocale: string) => {
         setLocale(nextLocale);
+        const segments = pathname.split("/").filter(Boolean);
 
-        if (!routeLocale) {
+        if (segments.length === 0) {
+            router.push(`/${nextLocale}`);
             return;
         }
 
-        const segments = pathname.split("/").filter(Boolean);
-        if (segments.length > 0) {
+        if (routeLocale) {
             segments[0] = nextLocale;
+            router.push(`/${segments.join("/")}`);
+            return;
         }
-        router.push(`/${segments.join("/")}`);
+
+        const firstSegment = segments[0]?.toLowerCase() ?? "";
+        if (["signin", "signup", "forgot-password"].includes(firstSegment)) {
+            router.push(`/${nextLocale}/${segments.join("/")}`);
+        }
     }, [pathname, routeLocale, router, setLocale]);
 
     useEffect(() => {
