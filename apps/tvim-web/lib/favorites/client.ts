@@ -37,7 +37,7 @@ const toErrorMessage = (payload: { message?: string } | null, fallback: string) 
     return message || fallback;
 };
 
-const parseResponse = async <T>(response: Response) => {
+const parseResponse = async <T>(response: Response): Promise<ApiPayload<T>> => {
     let payload: ApiPayload<T> | null = null;
 
     try {
@@ -50,7 +50,7 @@ const parseResponse = async <T>(response: Response) => {
         throw new Error(toErrorMessage(payload, "Server Error"));
     }
 
-    return payload;
+    return payload ?? {};
 };
 
 export const listFavorites = async (page = 1, perPage = 20) => {

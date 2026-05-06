@@ -20,7 +20,7 @@ const LanguageSwitcher = ({
     const router = useRouter();
     const pathname = usePathname();
     const { locale, setLocale } = useLanguageStore();
-    const effectiveLocale = routeLocale ?? locale || config.project.defLang;
+    const effectiveLocale = routeLocale ?? (locale || config.project.defLang);
 
     const fetchTranslations = useCallback(async (locale: string): Promise<Translation[]> => {
         const response = await api.get<Translation[]>(config.endpoints.translations.list, {

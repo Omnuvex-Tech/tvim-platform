@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type {
     FooterMenusData,
     Language,
@@ -23,6 +24,7 @@ import { api } from "@/lib/api";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
+import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
 type NavItem = {
     label: string;
@@ -71,13 +73,17 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function OrderHistoryPage({
-    params,
-}: {
-    params: Promise<{ locale: string }>;
-}) {
-    const { locale } = await params;
-    const currentLocale = locale.toLowerCase();
+export default async function OrderHistoryPage() {
+    const cookieStore = await cookies();
+    const cookieLocale = cookieStore.get("preferred-locale")?.value?.trim().toLowerCase() ?? "";
+    const normalizedPreferredLocale = (["az", "ru", "en"].includes(cookieLocale)
+        ? cookieLocale
+        : "az") as "az" | "ru" | "en";
+    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+
+    if (!authToken) {
+        redirect(`/${normalizedPreferredLocale}/signin`);
+    }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -89,10 +95,13 @@ export default async function OrderHistoryPage({
         );
     }
 
-    // ✅ FIX BURDADIR
-    if (!langResponse.data.some((language) => language.code.toLowerCase() === currentLocale)) {
-        notFound();
-    }
+    const siteDefaultLocale =
+        langResponse.data.find((language) => language.is_default_site)?.code ??
+        config.project.defLang;
+    const supportedLocales = new Set(langResponse.data.map((language) => language.code.toLowerCase()));
+    const currentLocale = supportedLocales.has(cookieLocale)
+        ? cookieLocale
+        : siteDefaultLocale.toLowerCase();
 
     const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
         params: { in_footer: "1" },
