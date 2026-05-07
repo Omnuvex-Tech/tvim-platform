@@ -50,4 +50,10 @@ export const endpoints = {
         toggle: "/favorites/toggle",
         token: "/favorites/token",
     },
+
+    compare: {
+        list: "/compare",
+        toggle: "/compare/toggle",
+        token: "/compare/token",
+    },
 } as const;

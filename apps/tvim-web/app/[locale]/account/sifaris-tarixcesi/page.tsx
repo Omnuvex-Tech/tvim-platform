@@ -9,7 +9,6 @@ import type {
     ProjectSettingsResponseData,
 } from "@repo/types/types";
 import {
-    Archive,
     Heart,
     LogOut,
     Lock,
@@ -30,35 +29,9 @@ type NavItem = {
     icon: ComponentType<{ className?: string }>;
 };
 
-type ActionItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string; strokeWidth?: number }>;
-};
-
-const FontAwesomeNewspaperIcon = ({ className }: { className?: string }) => (
-    <i className={`account-index__icon fa fa-newspaper text-[35px] leading-none ${className ?? ""}`} aria-hidden="true" />
-);
-
 const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
     <i
-        className={`account-index__icon fa-solid fa-reply ${className ?? ""}`}
-        style={{
-            MozOsxFontSmoothing: "grayscale",
-            WebkitFontSmoothing: "antialiased",
-            display: "inline-block",
-            fontStyle: "normal",
-            fontVariant: "normal",
-            textRendering: "auto",
-            lineHeight: 1,
-        }}
-        aria-hidden="true"
-    />
-);
-
-const FontAwesomeReplyActionIcon = ({ className }: { className?: string }) => (
-    <i
-        className={`account-index__icon fa-solid fa-reply text-[34px] leading-none ${className ?? ""}`}
+        className={`account-index__icon fa fa-reply ${className ?? ""}`}
         style={{
             MozOsxFontSmoothing: "grayscale",
             WebkitFontSmoothing: "antialiased",
@@ -83,16 +56,6 @@ const navItems: NavItem[] = [
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];
 
-const actionItems: ActionItem[] = [
-    { label: "Sifariş tarixçəsi", href: "/account/sifaris-tarixcesi", icon: Archive },
-    { label: "Məlumatları redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlərə düzəliş et", href: "/wishlist", icon: Heart },
-    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: FontAwesomeReplyActionIcon },
-    { label: "Xəbər bülleteninə abunə ol / olma", href: "/account/newsletter", icon: FontAwesomeNewspaperIcon },
-];
-
 const extractHeaderItems = (rawHeaderData: unknown) => {
     if (Array.isArray(rawHeaderData)) return rawHeaderData;
     if (!rawHeaderData || typeof rawHeaderData !== "object") return [];
@@ -107,7 +70,7 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function AccountPage({
+export default async function OrderHistoryPage({
     params,
 }: {
     params: Promise<{ locale: string }>;
@@ -117,6 +80,7 @@ export default async function AccountPage({
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+
     if (!authToken) {
         redirect(`/${locale}/signin`);
     }
@@ -227,49 +191,45 @@ export default async function AccountPage({
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-5 pt-5 pb-12 sm:px-10 lg:px-0 lg:pt-6 lg:pb-14">
-                <nav className="mb-4 flex items-center gap-1.5 text-[13px] font-medium">
-                    <Link href={`/${locale}`} className="text-[13px] text-[rgba(132,150,171,1)] hover:text-[rgba(120,139,161,1)]">Ana səhifə</Link>
-                    <span className="text-[16px] leading-none text-[#c6cedb]">»</span>
-                    <span className="text-[#8496ab]">Hesab</span>
+                <nav className="mb-4 flex items-center gap-1.5 text-[11px] text-[#9AA2B1]">
+                    <Link href={`/${locale}`} className="hover:text-[#6f7788]">Ana səhifə</Link>
+                    <span>»</span>
+                    <Link href={`/${locale}/account`} className="hover:text-[#6f7788]">Hesab</Link>
+                    <span>»</span>
+                    <span>Sifariş tarixçəsi</span>
                 </nav>
 
-                <h1 className="text-[39px] leading-[39px] font-bold text-[rgba(15,15,15,1)]">
-                    Hesabım
+                <h1 className="text-[48px] leading-none font-bold tracking-[-0.02em] text-[#0F131A]">
+                    Sifariş tarixçəsi
                 </h1>
 
-                <div className="mt-16 grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="w-full max-w-[320px]">
-                        <h2 className="-mt-1 pl-6 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
-                        <div className="mt-5 ml-2 border-t border-[#D2D9E4]" />
+                <div className="mt-10 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
+                    <aside className="w-full max-w-[280px]">
+                        <h2 className="pl-3 text-[28px] leading-none font-bold text-[#0F131A]">Naviqasiya</h2>
+                        <div className="mt-4 ml-2 border-t border-[#D2D9E4]" />
 
-                        <ul className="mt-0.5 space-y-0.5 pl-6">
+                        <ul className="mt-1 space-y-0.5 pl-3">
                             {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = label === "Ünvan kitabçası";
+                                const isActive = label === "Sifariş tarixçəsi";
 
                                 return (
                                     <li key={label}>
                                         <Link
                                             href={`/${locale}${href}`}
-                                            className={`group inline-flex min-h-0 w-full items-center gap-2.5 py-2 text-left text-[14px] transition-colors ${
+                                            className={`group inline-flex w-full items-center gap-2 py-2 text-left text-[26px] font-medium transition-colors ${
                                                 isActive
-                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
-                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
+                                                    ? "text-[#0D47FF]"
+                                                    : "text-[#0F131A] hover:text-[#0D47FF]"
                                             }`}
-                                            style={{
-                                                fontFamily: "'Twemoji Country Flags', var(--body-font, \"Verdana\")",
-                                                fontWeight: 540,
-                                                WebkitFontSmoothing: "antialiased",
-                                                MozOsxFontSmoothing: "grayscale",
-                                            }}
                                         >
                                             <Icon
-                                                className={`size-4 transition-colors ${
+                                                className={`size-5 transition-colors ${
                                                     isActive
                                                         ? "text-[#0D47FF]"
                                                         : "text-[#707887] group-hover:text-[#0D47FF]"
                                                 }`}
                                             />
-                                            <span className="min-h-0 text-[14px] font-[540]">{label}</span>
+                                            <span>{label}</span>
                                         </Link>
                                     </li>
                                 );
@@ -277,19 +237,10 @@ export default async function AccountPage({
                         </ul>
                     </aside>
 
-                    <div className="grid w-full max-w-[900px] justify-self-start grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 md:grid-cols-4 md:gap-x-6 md:gap-y-1 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
-                        {actionItems.map(({ label, href, icon: Icon }) => (
-                            <Link
-                                href={`/${locale}${href}`}
-                                key={label}
-                                className="flex flex-col items-center text-center"
-                            >
-                                <Icon className="size-[34px] text-[#808080]" strokeWidth={1.9} />
-                                <p className="mt-3 max-w-[150px] text-[14px] leading-[1.25] font-medium text-[#565F6F]">
-                                    {label}
-                                </p>
-                            </Link>
-                        ))}
+                    <div className="pt-2">
+                        <div className="w-full rounded-[14px] bg-[#F2F2F2] px-5 py-4 text-[22px] font-medium text-[#4E5766]">
+                            Sizin hər hansı bir sifarişiniz mövcud deyil!
+                        </div>
                     </div>
                 </div>
             </section>

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useNotify } from "@repo/ui";
+import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 
 type ApiItem = any;
@@ -18,6 +19,7 @@ type Product = {
     cartVariant?: "yellow" | "blue";
     productVariationId?: number | null;
     isFavorited?: boolean;
+    isCompared?: boolean;
 };
 
 type Props = {
@@ -161,6 +163,15 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   it.is_favorited === true ||
                   it.favorite === true ||
                   it.in_favorites === true;
+              const isCompared =
+                  base?.is_compared === true ||
+                  base?.is_compare === true ||
+                  base?.compared === true ||
+                  base?.in_compare === true ||
+                  it.is_compared === true ||
+                  it.is_compare === true ||
+                  it.compared === true ||
+                  it.in_compare === true;
 
               if (variant === "special") {
                   const discount = oldNum && oldNum > 0 ? `-${Math.max(0, Math.round(100 * (1 - priceNum / oldNum)))}%` : "";
@@ -175,6 +186,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                       cartVariant: "blue",
                       productVariationId,
                       isFavorited,
+                      isCompared,
                   } as Product;
               }
 
@@ -189,6 +201,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                       cartVariant: "yellow",
                       productVariationId,
                       isFavorited,
+                      isCompared,
                   } as Product;
               }
 
@@ -202,6 +215,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   cartVariant: "blue",
                   productVariationId,
                   isFavorited,
+                  isCompared,
               } as Product;
           })
         : variant === "special"
@@ -219,8 +233,17 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         [products]
     );
     const preselectedFavoritesSignature = preselectedFavoriteIds.join(",");
+    const preselectedCompareIds = useMemo(
+        () => products
+            .filter((product) => product.isCompared && typeof product.productVariationId === "number")
+            .map((product) => product.productVariationId as number),
+        [products]
+    );
+    const preselectedCompareSignature = preselectedCompareIds.join(",");
     const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set(preselectedFavoriteIds));
     const [favoritePendingIds, setFavoritePendingIds] = useState<Set<number>>(new Set());
+    const [compareIds, setCompareIds] = useState<Set<number>>(new Set(preselectedCompareIds));
+    const [comparePendingIds, setComparePendingIds] = useState<Set<number>>(new Set());
     const [visibleCount, setVisibleCountState] = useState<number>(1);
     const [index, setIndex] = useState<number>(0);
     const [useNativeTouchScroll, setUseNativeTouchScroll] = useState(false);
@@ -254,6 +277,23 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
             return changed ? next : prev;
         });
     }, [preselectedFavoritesSignature]);
+
+    useEffect(() => {
+        if (preselectedCompareIds.length === 0) return;
+
+        setCompareIds((prev) => {
+            const next = new Set(prev);
+            let changed = false;
+            preselectedCompareIds.forEach((id) => {
+                if (!next.has(id)) {
+                    next.add(id);
+                    changed = true;
+                }
+            });
+
+            return changed ? next : prev;
+        });
+    }, [preselectedCompareSignature]);
 
     useEffect(() => {
         let isMounted = true;
@@ -292,6 +332,44 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
             isMounted = false;
         };
     }, [preselectedFavoritesSignature]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const hydrateCompare = async () => {
+            try {
+                const response = await listCompare();
+                if (!isMounted) return;
+
+                const nextIds = new Set<number>();
+                response.data.items.forEach((item) => {
+                    const value = Number(item.product_variation_id);
+                    if (Number.isFinite(value) && value > 0) {
+                        nextIds.add(value);
+                    }
+                });
+
+                setCompareIds((prev) => {
+                    const merged = new Set<number>(nextIds);
+                    preselectedCompareIds.forEach((id) => merged.add(id));
+
+                    if (merged.size === prev.size && Array.from(merged).every((id) => prev.has(id))) {
+                        return prev;
+                    }
+
+                    return merged;
+                });
+            } catch {
+                // Silently ignore initial load failures; user can still toggle manually.
+            }
+        };
+
+        void hydrateCompare();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [preselectedCompareSignature]);
 
     const handleFavoriteToggle = async (product: Product) => {
         const variationId = product.productVariationId;
@@ -343,6 +421,63 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
             notify.error(message);
         } finally {
             setFavoritePendingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(variationId);
+                return next;
+            });
+        }
+    };
+
+    const handleCompareToggle = async (product: Product) => {
+        const variationId = product.productVariationId;
+
+        if (!variationId) {
+            notify.error("Bu məhsul müqayisəyə əlavə edilə bilmədi.");
+            return;
+        }
+
+        if (comparePendingIds.has(variationId)) return;
+
+        const wasCompared = compareIds.has(variationId);
+
+        setComparePendingIds((prev) => {
+            const next = new Set(prev);
+            next.add(variationId);
+            return next;
+        });
+
+        setCompareIds((prev) => {
+            const next = new Set(prev);
+            if (wasCompared) next.delete(variationId);
+            else next.add(variationId);
+            return next;
+        });
+
+        try {
+            const response = await toggleCompare(variationId);
+
+            setCompareIds((prev) => {
+                const next = new Set(prev);
+                if (response.data.action === "deleted") next.delete(variationId);
+                else next.add(variationId);
+                return next;
+            });
+
+            if (response.message) {
+                notify.success(response.message);
+            }
+        } catch (error) {
+            setCompareIds((prev) => {
+                const next = new Set(prev);
+                if (wasCompared) next.add(variationId);
+                else next.delete(variationId);
+                return next;
+            });
+
+            const message = error instanceof Error ? error.message : "Müqayisə yenilənərkən xəta baş verdi.";
+            notify.error(message);
+        } finally {
+            setComparePendingIds((prev) => {
                 const next = new Set(prev);
                 next.delete(variationId);
                 return next;
@@ -627,6 +762,8 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                                     {(() => {
                                         const isFavorite = typeof product.productVariationId === "number" && favoriteIds.has(product.productVariationId);
                                         const isFavoritePending = typeof product.productVariationId === "number" && favoritePendingIds.has(product.productVariationId);
+                                        const isCompared = typeof product.productVariationId === "number" && compareIds.has(product.productVariationId);
+                                        const isComparePending = typeof product.productVariationId === "number" && comparePendingIds.has(product.productVariationId);
 
                                         return (
                                     <article
@@ -653,7 +790,17 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                                             </button>
                                             <button
                                                 type="button"
-                                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white border border-[#e0e5ee] text-[#7b8596] hover:bg-[#0f57d6] hover:text-white transition-colors duration-150 cursor-pointer"
+                                                disabled={isComparePending || !product.productVariationId}
+                                                onClick={(event) => {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    void handleCompareToggle(product);
+                                                }}
+                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                                                    isCompared
+                                                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                                        : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                                                } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                                                 aria-label="Müqayisə"
                                             >
                                                 <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />

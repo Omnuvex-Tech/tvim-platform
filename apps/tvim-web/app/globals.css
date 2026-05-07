@@ -108,3 +108,17 @@
 	text-rendering: auto;
 	line-height: 1;
 }
+
+.compare-breadcrumb-sm .breadcrumb li {
+	font-size: 13px !important;
+}
+
+.compare-breadcrumb-sm .breadcrumb li a,
+.compare-breadcrumb-sm .breadcrumb-current,
+.compare-breadcrumb-sm .breadcrumb-previous {
+	font-size: 13px !important;
+}
+
+.compare-breadcrumb-sm .breadcrumb li + li::before {
+	font-size: 10px !important;
+}

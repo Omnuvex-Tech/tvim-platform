@@ -43,8 +43,24 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://admin.tvim.az/
 const NAVBAR_REQUEST_TIMEOUT_MS = 10000;
 const CONTENT_LOCALE = "az";
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
+const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
 
 function extractFavoritesCount(payload: any) {
+    const total = Number(payload?.data?.pagination?.total);
+    if (Number.isFinite(total) && total >= 0) {
+        return Math.trunc(total);
+    }
+
+    const items = Array.isArray(payload?.data?.items)
+        ? payload.data.items
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+    return items.length;
+}
+
+function extractCompareCount(payload: any) {
     const total = Number(payload?.data?.pagination?.total);
     if (Number.isFinite(total) && total >= 0) {
         return Math.trunc(total);
@@ -673,14 +689,17 @@ function NavbarActions({
     isAuthenticated,
     authUser,
     favoritesCount,
+    compareCount,
 }: {
     locale: string;
     isAuthenticated: boolean;
     authUser?: NavbarAuthUser | null;
     favoritesCount: number;
+    compareCount: number;
 }) {
     const displayName = getAuthDisplayName(authUser);
     const favoritesBadgeText = favoritesCount > 99 ? "99+" : String(favoritesCount);
+    const compareBadgeText = compareCount > 99 ? "99+" : String(compareCount);
 
     return (
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
@@ -715,13 +734,18 @@ function NavbarActions({
                     </span>
                 ) : null}
             </Link>
-            <button
-                type="button"
+            <Link
+                href={`/${locale.toLowerCase()}/muqayise`}
                 aria-label="Müqayisə"
-                className="inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                className="relative inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
             >
                 <GitCompareArrows className="size-[19px]" />
-            </button>
+                {compareCount > 0 ? (
+                    <span className="absolute -top-1 -right-1 inline-flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-[#ffd500] px-1 text-[11px] leading-none font-bold text-[#121212]">
+                        {compareBadgeText}
+                    </span>
+                ) : null}
+            </Link>
             <button
                 type="button"
                 aria-label="Səbət"
@@ -788,6 +812,7 @@ export function Navbar({
     );
     const [mobileExpandedIds, setMobileExpandedIds] = useState<number[]>([]);
     const [favoritesCount, setFavoritesCount] = useState(0);
+    const [compareCount, setCompareCount] = useState(0);
     const whatsappHref = toWhatsappHref(phone);
 
     const fetchFavoritesCount = useCallback(async () => {
@@ -813,6 +838,29 @@ export function Navbar({
         }
     }, []);
 
+    const fetchCompareCount = useCallback(async () => {
+        try {
+            const response = await fetch("/api/compare?page=1&per_page=1", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                setCompareCount(0);
+                return;
+            }
+
+            const payload = await response.json();
+            setCompareCount(extractCompareCount(payload));
+        } catch {
+            // Ignore transient network errors for badge sync.
+        }
+    }, []);
+
     useEffect(() => {
         const nextLocale = normalizeLocaleCode(locale);
         setMobileLocale((prev) => (prev === nextLocale ? prev : nextLocale));
@@ -821,6 +869,10 @@ export function Navbar({
     useEffect(() => {
         void fetchFavoritesCount();
     }, [fetchFavoritesCount]);
+
+    useEffect(() => {
+        void fetchCompareCount();
+    }, [fetchCompareCount]);
 
     useEffect(() => {
         const onFavoritesUpdated = (event: Event) => {
@@ -845,6 +897,30 @@ export function Navbar({
             window.removeEventListener(FAVORITES_UPDATED_EVENT, onFavoritesUpdated as EventListener);
         };
     }, [fetchFavoritesCount]);
+
+    useEffect(() => {
+        const onCompareUpdated = (event: Event) => {
+            const detail = (event as CustomEvent<{ action?: "created" | "deleted" }>).detail;
+
+            if (detail?.action === "created") {
+                setCompareCount((prev) => prev + 1);
+                return;
+            }
+
+            if (detail?.action === "deleted") {
+                setCompareCount((prev) => Math.max(0, prev - 1));
+                return;
+            }
+
+            void fetchCompareCount();
+        };
+
+        window.addEventListener(COMPARE_UPDATED_EVENT, onCompareUpdated as EventListener);
+
+        return () => {
+            window.removeEventListener(COMPARE_UPDATED_EVENT, onCompareUpdated as EventListener);
+        };
+    }, [fetchCompareCount]);
 
     useEffect(() => {
         if (!isMobileLocaleOpen) return;
@@ -1528,7 +1604,13 @@ export function Navbar({
                                                         : null}
                     </div>
                     <NavbarMenu menuItems={effectiveMenuItems} />
-                    <NavbarActions locale={locale} isAuthenticated={isAuthenticated} authUser={authUser} favoritesCount={favoritesCount} />
+                    <NavbarActions
+                        locale={locale}
+                        isAuthenticated={isAuthenticated}
+                        authUser={authUser}
+                        favoritesCount={favoritesCount}
+                        compareCount={compareCount}
+                    />
                 </div>
 
                 <div className="mt-1 flex items-center gap-2 bg-[#f4f5f7] px-2 py-2.5 lg:hidden">
@@ -1657,13 +1739,19 @@ export function Navbar({
                                 </span>
                             ) : null}
                         </Link>
-                        <button
-                            type="button"
+                        <Link
+                            href={`/${locale.toLowerCase()}/muqayise`}
                             aria-label="Müqayisə"
-                            className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                            className="relative inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                            onClick={() => setIsMobileMenuOpen(false)}
                         >
                             <GitCompareArrows className="size-[18px]" />
-                        </button>
+                            {compareCount > 0 ? (
+                                <span className="absolute -top-1 -right-1 inline-flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-[#ffd500] px-1 text-[11px] leading-none font-bold text-[#121212]">
+                                    {compareCount > 99 ? "99+" : String(compareCount)}
+                                </span>
+                            ) : null}
+                        </Link>
                         <button
                             type="button"
                             aria-label="Səbət"

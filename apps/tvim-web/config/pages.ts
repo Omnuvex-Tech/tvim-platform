@@ -118,4 +118,21 @@ export const pages = {
             name: "Bəyənilənlər",
         },
     },
+    compare: {
+        az: {
+            url: "/az/muqayise",
+            title: "Məhsul müqayisəsi",
+            name: "Məhsul müqayisəsi",
+        },
+        ru: {
+            url: "/ru/muqayise",
+            title: "Məhsul müqayisəsi",
+            name: "Məhsul müqayisəsi",
+        },
+        en: {
+            url: "/en/muqayise",
+            title: "Məhsul müqayisəsi",
+            name: "Məhsul müqayisəsi",
+        },
+    },
 } as const;
