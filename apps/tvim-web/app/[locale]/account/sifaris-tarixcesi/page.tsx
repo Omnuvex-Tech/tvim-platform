@@ -191,21 +191,21 @@ export default async function OrderHistoryPage({
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-5 pt-5 pb-12 sm:px-10 lg:px-0 lg:pt-6 lg:pb-14">
-                <nav className="mb-4 flex items-center gap-1.5 text-[11px] text-[#9AA2B1]">
-                    <Link href={`/${locale}`} className="hover:text-[#6f7788]">Ana səhifə</Link>
-                    <span>»</span>
-                    <Link href={`/${locale}/account`} className="hover:text-[#6f7788]">Hesab</Link>
-                    <span>»</span>
-                    <span>Sifariş tarixçəsi</span>
+                <nav className="mb-4 flex items-center gap-1.5 text-[13px] font-medium">
+                    <Link href={`/${locale}`} className="text-[rgba(132,150,171,1)] hover:text-[rgba(120,139,161,1)]">Ana səhifə</Link>
+                    <span className="text-[16px] leading-none text-[#c6cedb]">»</span>
+                    <Link href={`/${locale}/account`} className="text-[#8496ab] hover:text-[#74879f]">Hesab</Link>
+                    <span className="text-[16px] leading-none text-[#c6cedb]">»</span>
+                    <span className="text-[#8496ab]">Sifariş tarixçəsi</span>
                 </nav>
 
-                <h1 className="text-[48px] leading-none font-bold tracking-[-0.02em] text-[#0F131A]">
+                <h1 className="text-[38px] leading-none font-bold tracking-[-0.02em] text-[#0F131A]">
                     Sifariş tarixçəsi
                 </h1>
 
-                <div className="mt-10 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="w-full max-w-[280px]">
-                        <h2 className="pl-3 text-[28px] leading-none font-bold text-[#0F131A]">Naviqasiya</h2>
+                <div className="mt-10 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
+                    <aside className="w-full max-w-[260px]">
+                        <h2 className="pl-3 text-[18px] leading-none font-bold text-[#0F131A]">Naviqasiya</h2>
                         <div className="mt-4 ml-2 border-t border-[#D2D9E4]" />
 
                         <ul className="mt-1 space-y-0.5 pl-3">
@@ -216,20 +216,26 @@ export default async function OrderHistoryPage({
                                     <li key={label}>
                                         <Link
                                             href={`/${locale}${href}`}
-                                            className={`group inline-flex w-full items-center gap-2 py-2 text-left text-[26px] font-medium transition-colors ${
+                                            className={`group inline-flex min-h-0 w-full items-center gap-2 py-2 text-left text-[14px] transition-colors ${
                                                 isActive
-                                                    ? "text-[#0D47FF]"
-                                                    : "text-[#0F131A] hover:text-[#0D47FF]"
+                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
+                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
                                             }`}
+                                            style={{
+                                                fontFamily: "'Twemoji Country Flags', var(--body-font, \"Verdana\")",
+                                                fontWeight: 540,
+                                                WebkitFontSmoothing: "antialiased",
+                                                MozOsxFontSmoothing: "grayscale",
+                                            }}
                                         >
                                             <Icon
-                                                className={`size-5 transition-colors ${
+                                                className={`size-4 transition-colors ${
                                                     isActive
                                                         ? "text-[#0D47FF]"
                                                         : "text-[#707887] group-hover:text-[#0D47FF]"
                                                 }`}
                                             />
-                                            <span>{label}</span>
+                                            <span className="min-h-0 text-[14px] font-[540] tracking-[-0.01em]">{label}</span>
                                         </Link>
                                     </li>
                                 );
@@ -237,8 +243,8 @@ export default async function OrderHistoryPage({
                         </ul>
                     </aside>
 
-                    <div className="pt-2">
-                        <div className="w-full rounded-[14px] bg-[#F2F2F2] px-5 py-4 text-[22px] font-medium text-[#4E5766]">
+                    <div className="pt-0 -mt-8">
+                        <div className="mb-10 w-full rounded-[20px] bg-[#f7f7f7] p-5 text-[14px] font-medium text-[#202938]">
                             Sizin hər hansı bir sifarişiniz mövcud deyil!
                         </div>
                     </div>

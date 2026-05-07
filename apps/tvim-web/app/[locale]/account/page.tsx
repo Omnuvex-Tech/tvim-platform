@@ -269,7 +269,7 @@ export default async function AccountPage({
                                                         : "text-[#707887] group-hover:text-[#0D47FF]"
                                                 }`}
                                             />
-                                            <span className="min-h-0 text-[14px] font-[540]">{label}</span>
+                                            <span className="min-h-0 text-[14px] font-[540] tracking-[-0.01em]">{label}</span>
                                         </Link>
                                     </li>
                                 );
