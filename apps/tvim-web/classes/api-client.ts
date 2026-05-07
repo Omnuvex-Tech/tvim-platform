@@ -2,8 +2,6 @@ import { config } from "@/config";
 import { ApiResponse } from "@/classes";
 import type { ApiResponseBody, RequestOptions } from "@repo/types/types";
 
-const CONTENT_LOCALE = "az";
-
 export class ApiClient {
     baseUrl: string;
     timeout: number;
@@ -15,7 +13,7 @@ export class ApiClient {
 
     private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
         const { params, locale: requestedLocale, ...init } = options;
-        void requestedLocale;
+        const locale = typeof requestedLocale === "string" ? requestedLocale.trim().toLowerCase() : "";
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -34,7 +32,7 @@ export class ApiClient {
                     "Content-Type": "application/json",
                     Accept: "application/json",
                     ...init.headers,
-                    "Content-Language": CONTENT_LOCALE,
+                    ...(locale ? { "Content-Language": locale } : null),
                 },
             });
 

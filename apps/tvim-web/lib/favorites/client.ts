@@ -1,5 +1,7 @@
 export type FavoriteAction = "created" | "deleted";
 
+const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
+
 export type FavoriteItem = {
     id: number;
     product_variation_id: number;
@@ -32,6 +34,14 @@ type FavoriteToggleData = {
     favorite?: FavoriteItem | null;
 };
 
+const safeEnsureGuestFavoriteToken = async () => {
+    try {
+        await ensureGuestFavoriteToken();
+    } catch {
+        // Auth users or transient errors should not block favorites operations.
+    }
+};
+
 const toErrorMessage = (payload: { message?: string } | null, fallback: string) => {
     const message = typeof payload?.message === "string" ? payload.message.trim() : "";
     return message || fallback;
@@ -54,6 +64,8 @@ const parseResponse = async <T>(response: Response): Promise<ApiPayload<T>> => {
 };
 
 export const listFavorites = async (page = 1, perPage = 20) => {
+    await safeEnsureGuestFavoriteToken();
+
     const params = new URLSearchParams({
         page: String(page),
         per_page: String(perPage),
@@ -81,6 +93,8 @@ export const listFavorites = async (page = 1, perPage = 20) => {
 };
 
 export const toggleFavorite = async (productVariationId: number) => {
+    await safeEnsureGuestFavoriteToken();
+
     const response = await fetch("/api/favorites/toggle", {
         method: "POST",
         credentials: "include",
@@ -96,6 +110,17 @@ export const toggleFavorite = async (productVariationId: number) => {
 
     if (action !== "created" && action !== "deleted") {
         throw new Error("Invalid favorites response.");
+    }
+
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(
+            new CustomEvent(FAVORITES_UPDATED_EVENT, {
+                detail: {
+                    action,
+                    productVariationId,
+                },
+            })
+        );
     }
 
     return {

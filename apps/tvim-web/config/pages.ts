@@ -101,4 +101,21 @@ export const pages = {
             name: "Sifariş tarixçəsi",
         },
     },
+    wishlist: {
+        az: {
+            url: "/az/wishlist",
+            title: "Bəyənilənlər",
+            name: "Bəyənilənlər",
+        },
+        ru: {
+            url: "/ru/wishlist",
+            title: "Bəyənilənlər",
+            name: "Bəyənilənlər",
+        },
+        en: {
+            url: "/en/wishlist",
+            title: "Bəyənilənlər",
+            name: "Bəyənilənlər",
+        },
+    },
 } as const;

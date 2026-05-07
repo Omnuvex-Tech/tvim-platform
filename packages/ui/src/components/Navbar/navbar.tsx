@@ -42,6 +42,22 @@ const navbarClasses = {
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 const NAVBAR_REQUEST_TIMEOUT_MS = 10000;
 const CONTENT_LOCALE = "az";
+const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
+
+function extractFavoritesCount(payload: any) {
+    const total = Number(payload?.data?.pagination?.total);
+    if (Number.isFinite(total) && total >= 0) {
+        return Math.trunc(total);
+    }
+
+    const items = Array.isArray(payload?.data?.items)
+        ? payload.data.items
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+    return items.length;
+}
 
 function buildApiUrl(path: string, params?: Record<string, string>) {
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -656,12 +672,15 @@ function NavbarActions({
     locale,
     isAuthenticated,
     authUser,
+    favoritesCount,
 }: {
     locale: string;
     isAuthenticated: boolean;
     authUser?: NavbarAuthUser | null;
+    favoritesCount: number;
 }) {
     const displayName = getAuthDisplayName(authUser);
+    const favoritesBadgeText = favoritesCount > 99 ? "99+" : String(favoritesCount);
 
     return (
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
@@ -684,13 +703,18 @@ function NavbarActions({
                 </Link>
             )}
 
-            <button
-                type="button"
+            <Link
+                href={`/${locale.toLowerCase()}/wishlist`}
                 aria-label="Seçilmişlər"
-                className="inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                className="relative inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
             >
                 <Heart className="size-[19px]" />
-            </button>
+                {favoritesCount > 0 ? (
+                    <span className="absolute -top-1 -right-1 inline-flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-[#ffd500] px-1 text-[11px] leading-none font-bold text-[#121212]">
+                        {favoritesBadgeText}
+                    </span>
+                ) : null}
+            </Link>
             <button
                 type="button"
                 aria-label="Müqayisə"
@@ -763,12 +787,64 @@ export function Navbar({
         [mobileLocale]
     );
     const [mobileExpandedIds, setMobileExpandedIds] = useState<number[]>([]);
+    const [favoritesCount, setFavoritesCount] = useState(0);
     const whatsappHref = toWhatsappHref(phone);
+
+    const fetchFavoritesCount = useCallback(async () => {
+        try {
+            const response = await fetch("/api/favorites?page=1&per_page=1", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                setFavoritesCount(0);
+                return;
+            }
+
+            const payload = await response.json();
+            setFavoritesCount(extractFavoritesCount(payload));
+        } catch {
+            // Ignore transient network errors for badge sync.
+        }
+    }, []);
 
     useEffect(() => {
         const nextLocale = normalizeLocaleCode(locale);
         setMobileLocale((prev) => (prev === nextLocale ? prev : nextLocale));
     }, [locale]);
+
+    useEffect(() => {
+        void fetchFavoritesCount();
+    }, [fetchFavoritesCount]);
+
+    useEffect(() => {
+        const onFavoritesUpdated = (event: Event) => {
+            const detail = (event as CustomEvent<{ action?: "created" | "deleted" }>).detail;
+
+            if (detail?.action === "created") {
+                setFavoritesCount((prev) => prev + 1);
+                return;
+            }
+
+            if (detail?.action === "deleted") {
+                setFavoritesCount((prev) => Math.max(0, prev - 1));
+                return;
+            }
+
+            void fetchFavoritesCount();
+        };
+
+        window.addEventListener(FAVORITES_UPDATED_EVENT, onFavoritesUpdated as EventListener);
+
+        return () => {
+            window.removeEventListener(FAVORITES_UPDATED_EVENT, onFavoritesUpdated as EventListener);
+        };
+    }, [fetchFavoritesCount]);
 
     useEffect(() => {
         if (!isMobileLocaleOpen) return;
@@ -1452,7 +1528,7 @@ export function Navbar({
                                                         : null}
                     </div>
                     <NavbarMenu menuItems={effectiveMenuItems} />
-                    <NavbarActions locale={locale} isAuthenticated={isAuthenticated} authUser={authUser} />
+                    <NavbarActions locale={locale} isAuthenticated={isAuthenticated} authUser={authUser} favoritesCount={favoritesCount} />
                 </div>
 
                 <div className="mt-1 flex items-center gap-2 bg-[#f4f5f7] px-2 py-2.5 lg:hidden">
@@ -1568,13 +1644,19 @@ export function Navbar({
                     </div>
 
                     <div className="flex items-center gap-3 pb-5">
-                        <button
-                            type="button"
+                        <Link
+                            href={`/${locale.toLowerCase()}/wishlist`}
                             aria-label="Seçilmişlər"
-                            className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                            className="relative inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                            onClick={() => setIsMobileMenuOpen(false)}
                         >
                             <Heart className="size-[18px]" />
-                        </button>
+                            {favoritesCount > 0 ? (
+                                <span className="absolute -top-1 -right-1 inline-flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-[#ffd500] px-1 text-[11px] leading-none font-bold text-[#121212]">
+                                    {favoritesCount > 99 ? "99+" : String(favoritesCount)}
+                                </span>
+                            ) : null}
+                        </Link>
                         <button
                             type="button"
                             aria-label="Müqayisə"

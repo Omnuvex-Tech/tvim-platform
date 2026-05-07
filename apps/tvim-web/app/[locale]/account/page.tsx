@@ -63,7 +63,7 @@ const navItems: NavItem[] = [
     { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
     { label: "Şifrə", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlər", href: "/account/wishlist", icon: Heart },
+    { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
     { label: "Geri qaytarma", href: "/account/returns", icon: FontAwesomeReplyIcon },
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];
@@ -73,8 +73,8 @@ const actionItems: ActionItem[] = [
     { label: "Məlumatları redaktə et", href: "/account/edit", icon: UserRound },
     { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlərə düzəliş et", href: "/account/wishlist", icon: Heart },
-    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: FontAwesomeReplyIcon },
+    { label: "Bəyənilənlərə düzəliş et", href: "/wishlist", icon: Heart },
+    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: Reply },
     { label: "Xəbər bülleteninə abunə ol / olma", href: "/account/newsletter", icon: FontAwesomeNewspaperIcon },
 ];
 
@@ -287,7 +287,7 @@ export default async function AccountPage({
                 </div>
             </section>
 
-            <div className="mx-auto mt-12 w-full max-w-[1280px] px-5 sm:px-10 lg:mt-14 lg:px-0">
+            <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
                 <RequestForm />
             </div>
 

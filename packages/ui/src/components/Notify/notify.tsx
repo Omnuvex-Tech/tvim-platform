@@ -68,7 +68,7 @@ const NotifyContainer = () => {
                     <p className="flex-1 text-sm font-medium">{item.message}</p>
                     <button
                         type="button"
-                        className="shrink-0 rounded-md p-1 opacity-70 hover:opacity-100 transition-opacity"
+                        className="shrink-0 cursor-pointer rounded-md p-1 opacity-70 transition-opacity hover:opacity-100"
                         onClick={() => dismiss(item.id)}
                     >
                         <X className="size-4" />

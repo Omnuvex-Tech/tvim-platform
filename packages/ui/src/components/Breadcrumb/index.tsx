@@ -32,7 +32,7 @@ const Breadcrumb = ({
 
     return (
         <div className="w-full bg-white mt-3">
-            <nav aria-label="Breadcrumb" className={cn("mx-auto max-w-[1280px] px-2", className)}>
+            <nav aria-label="Breadcrumb" className={cn("mx-auto max-w-[1280px] px-1 lg:px-2", className)}>
                 <ul className="breadcrumb">
                     {items.map((item, index) => {
                         const isLast = index === items.length - 1;

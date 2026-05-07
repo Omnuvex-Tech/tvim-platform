@@ -54,7 +54,7 @@ const navItems: NavItem[] = [
     { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
     { label: "Şifrə", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlər", href: "/account/wishlist", icon: Heart },
+    { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
     { label: "Geri qaytarma", href: "/account/returns", icon: FontAwesomeReplyIcon },
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];

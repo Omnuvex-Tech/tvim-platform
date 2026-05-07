@@ -388,6 +388,7 @@ const NavbarWrapper = ({
     return (
         <Navbar
             logo={logo}
+            logoHref={`/${effectiveLocale}`}
             phone={phone}
             locale={effectiveLocale}
             languages={languages}

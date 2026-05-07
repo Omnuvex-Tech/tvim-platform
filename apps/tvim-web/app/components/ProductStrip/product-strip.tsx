@@ -73,16 +73,77 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
 
     const products: Product[] = raw.length > 0
         ? raw.map((it: any, idx: number) => {
-              const id = Number(it.id ?? it.product_id ?? idx);
-              const name = it.name ?? it.title ?? "";
-              const priceNum = typeof it.price === "number" ? it.price : Number(it.price ?? 0);
-              const oldNum = typeof it.old_price === "number" ? it.old_price : it.old_price ? Number(it.old_price) : undefined;
-              const image = it.main_image ?? it.image ?? it.main_photo ?? (it.gallery && it.gallery[0] && it.gallery[0].url) ?? "";
-              const slug = it.slug ?? it.uuid ?? id;
+              const toNumber = (value: unknown) => {
+                  const parsed = typeof value === "number" ? value : Number(value ?? NaN);
+                  return Number.isFinite(parsed) ? parsed : null;
+              };
+
+              const variation = it?.product?.variation && typeof it.product.variation === "object"
+                  ? it.product.variation
+                  : null;
+
+              const base = variation ?? it?.variation ?? it?.product ?? it;
+
+              const resolvedId =
+                  toNumber(base?.id) ??
+                  toNumber(base?.product_id) ??
+                  toNumber(it?.id) ??
+                  toNumber(it?.product_id) ??
+                  idx;
+
+              const id = Number(resolvedId);
+
+              const toText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+              const name =
+                  toText(it?.name) ||
+                  toText(it?.product?.variation?.name) ||
+                  toText(it?.product?.name) ||
+                  "Məhsul";
+
+              const priceNum =
+                  toNumber(base?.price) ??
+                  toNumber(base?.sale_price) ??
+                  toNumber(base?.final_price) ??
+                  toNumber(base?.special) ??
+                  toNumber(it?.price) ??
+                  0;
+
+              const oldNum =
+                  toNumber(base?.old_price) ??
+                  toNumber(base?.compare_price) ??
+                  toNumber(base?.regular_price) ??
+                  toNumber(it?.old_price) ??
+                  undefined;
+
+              const image =
+                  (typeof base?.main_image === "string" ? base.main_image : "") ||
+                  (typeof base?.main_image?.url === "string" ? base.main_image.url : "") ||
+                  (typeof base?.main_image?.image_url === "string" ? base.main_image.image_url : "") ||
+                  (typeof base?.image === "string" ? base.image : "") ||
+                  (typeof base?.image?.url === "string" ? base.image.url : "") ||
+                  (typeof base?.image?.image_url === "string" ? base.image.image_url : "") ||
+                  (typeof base?.main_photo === "string" ? base.main_photo : "") ||
+                  (typeof base?.gallery?.[0]?.url === "string" ? base.gallery[0].url : "") ||
+                  (typeof base?.gallery?.[0]?.image_url === "string" ? base.gallery[0].image_url : "") ||
+                  "";
+
+              const normalizedSlug =
+                  (typeof base?.slug === "string" ? base.slug.trim() : "") ||
+                  (typeof it?.slug === "string" ? it.slug.trim() : "");
+
+              const slug =
+                  normalizedSlug ||
+                  (base?.uuid ??
+                  it?.uuid ??
+                  id);
+
               const variationCandidate =
                   it.product_variation_id ??
                   it.variation_id ??
+                  base?.variation_id ??
+                  base?.product_variation_id ??
                   it.variation?.id ??
+                  base?.id ??
                   it.id ??
                   null;
               const parsedVariationId = Number(variationCandidate);
@@ -90,6 +151,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   ? parsedVariationId
                   : null;
               const isFavorited =
+                  base?.is_favorite === true ||
+                  base?.is_favourited === true ||
+                  base?.is_favorited === true ||
+                  base?.favorite === true ||
+                  base?.in_favorites === true ||
                   it.is_favorite === true ||
                   it.is_favourited === true ||
                   it.is_favorited === true ||

@@ -1,9 +1,10 @@
 import type { Language, FooterMenusData, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
 import { api } from "@/lib/api";
+import { getMainPageBlocks } from "@/lib/main-page";
 import { config } from "@/config";
 import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
 import { Footer } from "./components/Footer/footer";
-import { MainPageBlocks, type MainPageBlock } from "./components/MainPageBlocks/main-page-blocks";
+import { MainPageBlocks } from "./components/MainPageBlocks/main-page-blocks";
 
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -29,9 +30,7 @@ export default async function Home() {
         locale: siteDefaultLocale,
     });
 
-    const mainPageResponse = await api.get<MainPageBlock[]>(config.endpoints.mainPage.list, {
-        locale: siteDefaultLocale,
-    });
+    const mainPageBlocks = await getMainPageBlocks(siteDefaultLocale);
 
     const footerMenus =
         footerMenuResponse.success && footerMenuResponse.data
@@ -114,11 +113,6 @@ export default async function Home() {
     const navbarPhone = projectSettings?.general.phones.find(
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
-
-    const mainPageBlocks =
-        mainPageResponse.success && Array.isArray(mainPageResponse.data)
-            ? (mainPageResponse.data as MainPageBlock[])
-            : [];
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">

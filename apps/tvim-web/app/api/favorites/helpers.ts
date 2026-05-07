@@ -70,7 +70,7 @@ const toHeaders = (
         ...(method === "POST" ? { "Content-Type": "application/json" } : {}),
         ...(contentLanguage ? { "Content-Language": contentLanguage } : {}),
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        ...(!authToken && guestToken ? { "X-Guest-Token": guestToken } : {}),
+        ...(guestToken ? { "X-Guest-Token": guestToken } : {}),
     };
 };
 

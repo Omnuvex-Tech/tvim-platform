@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
-import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
 
 type LoginFormProps = {
@@ -39,20 +38,10 @@ type SessionResponse = {
     message?: string;
 };
 
-const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
-    const cleanBase = baseUrl.replace(/\/+$/, "");
-    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    return `${cleanBase}${cleanEndpoint}`;
-};
-
 const LoginForm = ({ locale }: LoginFormProps) => {
     const notify = useNotify();
     const router = useRouter();
     const { locale: storedLocale } = useLanguageStore();
-    const loginUrl = useMemo(
-        () => normalizeApiUrl(config.api.url, config.endpoints.auth.login),
-        []
-    );
     const effectiveLocale = useMemo(() => {
         const normalizedRoute = locale.trim().toLowerCase();
         if (["az", "ru", "en"].includes(normalizedRoute)) {
@@ -138,11 +127,13 @@ const LoginForm = ({ locale }: LoginFormProps) => {
         setIsSubmitting(true);
 
         try {
-            const response = await fetch(loginUrl, {
+            const response = await fetch("/api/auth/login", {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
+                    "Content-Language": effectiveLocale,
                 },
                 body: JSON.stringify(formData),
             });
