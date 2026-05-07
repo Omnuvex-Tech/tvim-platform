@@ -38,7 +38,7 @@ type ActionItem = {
 };
 
 const FontAwesomeNewspaperIcon = ({ className }: { className?: string }) => (
-    <i className={`account-index__icon fa fa-newspaper text-[34px] leading-none ${className ?? ""}`} aria-hidden="true" />
+    <i className={`account-index__icon fa fa-newspaper text-[35px] leading-none ${className ?? ""}`} aria-hidden="true" />
 );
 
 const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
@@ -74,7 +74,7 @@ const actionItems: ActionItem[] = [
     { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
     { label: "Bəyənilənlərə düzəliş et", href: "/account/wishlist", icon: Heart },
-    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: Reply },
+    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: FontAwesomeReplyIcon },
     { label: "Xəbər bülleteninə abunə ol / olma", href: "/account/newsletter", icon: FontAwesomeNewspaperIcon },
 ];
 
@@ -218,7 +218,7 @@ export default async function AccountPage({
                     <span>Hesab</span>
                 </nav>
 
-                <h1 className="text-[34px] leading-none font-bold tracking-[-0.02em] text-[#0F131A] sm:text-[42px]">
+                <h1 className="text-[39px] leading-[39px] font-bold text-[rgba(15,15,15,1)]">
                     Hesabım
                 </h1>
 
@@ -256,19 +256,33 @@ export default async function AccountPage({
                         </ul>
                     </aside>
 
-                    <div className="grid w-full max-w-[900px] justify-self-start grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 md:grid-cols-4 md:gap-x-6 md:gap-y-1 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
-                        {actionItems.map(({ label, href, icon: Icon }) => (
-                            <Link
-                                href={`/${locale}${href}`}
-                                key={label}
-                                className="flex flex-col items-center text-center"
-                            >
-                                <Icon className="size-[34px] text-[#808080]" strokeWidth={1.9} />
-                                <p className="mt-3 max-w-[150px] text-[14px] leading-[1.25] font-medium text-[#565F6F]">
-                                    {label}
-                                </p>
-                            </Link>
-                        ))}
+                    <div className="grid w-full max-w-[900px] justify-self-start self-start content-start grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-3 md:grid-cols-4 md:gap-x-6 md:gap-y-[3.25rem] lg:gap-x-8 lg:gap-y-[3.75rem] 2xl:grid-cols-3">
+                        {actionItems.map(({ label, href, icon: Icon }) => {
+                            const isReturnRequests = label === "Geri qaytarma sorğuları";
+                            const isAddressBook = label === "Ünvan kitabçası";
+                            const itemClassName = isReturnRequests
+                                ? "flex h-[calc(100%-20px)] flex-col items-center justify-center text-center leading-normal text-[0.95em] font-medium mb-5"
+                                : "flex flex-col items-center text-center";
+                            const iconClassName = isReturnRequests
+                                ? "text-[50px] leading-none text-[#808080]"
+                                : isAddressBook
+                                    ? "h-[46px] w-[50px] text-[#808080]"
+                                    : "h-[44px] w-[50px] text-[#808080]";
+                            const iconStrokeWidth = isReturnRequests ? undefined : isAddressBook ? 2.3 : 2.5;
+
+                            return (
+                                <Link
+                                    href={`/${locale}${href}`}
+                                    key={label}
+                                    className={itemClassName}
+                                >
+                                    <Icon className={iconClassName} strokeWidth={iconStrokeWidth} />
+                                    <p className="mt-2 max-w-[150px] text-[14px] leading-[1.25] font-medium text-[#565F6F]">
+                                        {label}
+                                    </p>
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
             </section>

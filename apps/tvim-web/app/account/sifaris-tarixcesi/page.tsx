@@ -210,7 +210,16 @@ export default async function OrderHistoryPage() {
 
                 <div className="mt-16 grid gap-8 lg:grid-cols-[320px_1fr]">
                     <aside>
-                        <ul>
+                        <div className="inline-block border-b border-[#0F131A] px-5 py-5">
+                            <h2
+                                className="text-[16px] leading-none font-bold text-[#0F131A]"
+                                style={{ fontFamily: "'Twemoji Country Flags'" }}
+                            >
+                                Naviqasiya
+                            </h2>
+                        </div>
+
+                        <ul className="mt-0.5 space-y-0.5 pl-5">
                             {navItems.map(({ label, href, icon: Icon }) => {
                                 const isActive = label === "Sifariş tarixçəsi";
 

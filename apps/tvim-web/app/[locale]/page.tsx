@@ -10,6 +10,7 @@ import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { MainPageBlocks, type MainPageBlock } from "@/app/components/MainPageBlocks/main-page-blocks";
+import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 
 export default async function HomePage({
     params,
@@ -140,6 +141,7 @@ export default async function HomePage({
             />
 
             <MainPageBlocks blocks={mainPageBlocks} />
+            <LogoutToast />
 
             <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
         </div>
