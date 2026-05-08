@@ -20,6 +20,7 @@ type Product = {
     productVariationId?: number | null;
     isFavorited?: boolean;
     isCompared?: boolean;
+    stock?: number | null;
 };
 
 type Props = {
@@ -35,6 +36,12 @@ type Props = {
 const formatPrice = (v: number | string | undefined) => {
     const n = typeof v === "number" ? v : Number(v ?? 0);
     return `${n.toFixed(2)}₼`;
+};
+
+const parsePriceValue = (value: string) => {
+    const normalized = value.replace(/[^\d.,-]/g, "").replace(/,/g, ".");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const getVisibleCount = (width: number) => {
@@ -173,6 +180,18 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   it.compared === true ||
                   it.in_compare === true;
 
+              const stock =
+                  toNumber(base?.body?.stock) ??
+                  toNumber(base?.stock) ??
+                  toNumber(base?.quantity) ??
+                  toNumber(base?.qty) ??
+                  toNumber(it?.body?.stock) ??
+                  toNumber(it?.stock) ??
+                  toNumber(it?.quantity) ??
+                  toNumber(it?.qty);
+
+              const cartVariant: "yellow" | "blue" = stock !== null && stock <= 0 ? "yellow" : "blue";
+
               if (variant === "special") {
                   const discount = oldNum && oldNum > 0 ? `-${Math.max(0, Math.round(100 * (1 - priceNum / oldNum)))}%` : "";
                   return {
@@ -183,10 +202,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                       discount,
                       imageUrl: image,
                       href: `/product/${slug}`,
-                      cartVariant: "blue",
+                      cartVariant,
                       productVariationId,
                       isFavorited,
                       isCompared,
+                      stock,
                   } as Product;
               }
 
@@ -198,10 +218,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                       oldPrice: oldNum ? formatPrice(oldNum) : undefined,
                       imageUrl: image,
                       href: `/product/${slug}`,
-                      cartVariant: "yellow",
+                      cartVariant,
                       productVariationId,
                       isFavorited,
                       isCompared,
+                      stock,
                   } as Product;
               }
 
@@ -212,10 +233,11 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   price: formatPrice(priceNum),
                   imageUrl: image,
                   href: `/product/${slug}`,
-                  cartVariant: "blue",
+                  cartVariant,
                   productVariationId,
                   isFavorited,
                   isCompared,
+                  stock,
               } as Product;
           })
         : variant === "special"
@@ -258,6 +280,15 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const navUnlockTimerRef = useRef<number | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isNavLocked, setIsNavLocked] = useState(false);
+    const [cartModalProduct, setCartModalProduct] = useState<Product | null>(null);
+    const [cartQuantity, setCartQuantity] = useState(1);
+
+    const cartUnitPrice = cartModalProduct ? parsePriceValue(cartModalProduct.price) : 0;
+    const cartTotalPrice = cartUnitPrice * cartQuantity;
+    const showInsufficientStockWarning =
+        typeof cartModalProduct?.stock === "number" &&
+        cartModalProduct.stock > 0 &&
+        cartQuantity > cartModalProduct.stock;
 
     // Navigation is handled only on the image/link now.
 
@@ -519,6 +550,29 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         };
     }, []);
 
+    useEffect(() => {
+        if (!cartModalProduct) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setCartModalProduct(null);
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [cartModalProduct]);
+
+    const handleCartClick = (product: Product) => {
+        if (product.cartVariant !== "blue") {
+            notify.error("Məhsul stokda yoxdur");
+            return;
+        }
+
+        setCartModalProduct(product);
+        setCartQuantity(1);
+    };
+
     const getItemWidth = () => {
         const viewportWidth = viewportRef.current?.clientWidth ?? 0;
         const track = trackRef.current;
@@ -704,6 +758,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     }, []);
 
     return (
+        <>
         <section className="w-full product-carousel">
                 <div className="mx-auto w-full max-w-[1280px] px-0">
                 <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-0">
@@ -850,10 +905,31 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
 
                                             <button
                                                 type="button"
-                                                className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-white cursor-pointer ${product.cartVariant === "blue" ? "bg-[#0f57d6]" : "bg-[#ffd500] text-[#1b212e]"}`}
-                                                aria-label="Səbətə əlavə et"
+                                                onClick={(event) => {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    handleCartClick(product);
+                                                }}
+                                                className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"}`}
+                                                aria-label={product.cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}
                                             >
-                                                <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                                                {product.cartVariant === "blue" ? (
+                                                    <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                                                ) : (
+                                                    <svg
+                                                        width="17"
+                                                        height="17"
+                                                        viewBox="0 0 16 16"
+                                                        fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                        <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                        <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
+                                                        <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                )}
                                             </button>
                                         </div>
                                     </article>
@@ -866,6 +942,119 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                 </div>
             </div>
         </section>
+        {cartModalProduct ? (
+            <div
+                className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-3 py-4 sm:px-6"
+                onClick={() => setCartModalProduct(null)}
+            >
+                <div
+                    className="w-full max-w-[740px] overflow-hidden rounded-[4px] bg-white shadow-[0_20px_50px_rgba(20,30,60,0.22)]"
+                    onClick={(event) => event.stopPropagation()}
+                >
+                    <div className="flex items-stretch border-b border-[#eceff3] bg-[#f3f3f3]">
+                        <h3 className="flex-1 px-5 py-3 text-[24px] leading-none font-semibold text-[#1d2430]">Səbət</h3>
+                        <button
+                            type="button"
+                            onClick={() => setCartModalProduct(null)}
+                            className="inline-flex w-[58px] items-center justify-center border-l border-[#e2e6ee] text-[22px] leading-none text-[#111827] transition-colors hover:bg-[#e9edf3]"
+                            aria-label="Bağla"
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div className="px-5 py-5 sm:px-6 sm:py-6">
+                        <div className="grid grid-cols-1 gap-4 border-b border-[#e9edf3] pb-5 md:grid-cols-[1.45fr_0.7fr_0.35fr_0.35fr_auto] md:items-center md:gap-6">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className="h-[64px] w-[64px] flex-none overflow-hidden rounded-[6px] bg-white">
+                                    {cartModalProduct.imageUrl ? (
+                                        <img
+                                            src={cartModalProduct.imageUrl}
+                                            alt={cartModalProduct.title}
+                                            className="h-full w-full object-contain"
+                                        />
+                                    ) : null}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="truncate text-[18px] leading-[1.2] font-semibold text-[#171d28]">
+                                        {cartModalProduct.title}
+                                    </p>
+                                    {showInsufficientStockWarning ? (
+                                        <p className="mt-1 text-[14px] leading-none font-semibold text-[#ff2e43]">
+                                            Tələb olunan miqdarda yoxdur!
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </div>
+
+                            <div className="inline-flex h-[52px] w-[150px] items-center justify-center rounded-[22px] border border-[#d6deea] px-4 md:justify-between">
+                                <button
+                                    type="button"
+                                    onClick={() => setCartQuantity((prev) => Math.max(1, prev - 1))}
+                                    className="inline-flex h-8 w-8 items-center justify-center text-[24px] leading-none text-[#6f819c] transition-colors hover:text-[#325dd6]"
+                                    aria-label="Azalt"
+                                >
+                                    −
+                                </button>
+                                <span className="mx-3 min-w-[26px] text-center text-[18px] leading-none font-medium text-[#1b2330]">
+                                    {cartQuantity}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCartQuantity((prev) => prev + 1)}
+                                    className="inline-flex h-8 w-8 items-center justify-center text-[24px] leading-none text-[#6f819c] transition-colors hover:text-[#325dd6]"
+                                    aria-label="Artır"
+                                >
+                                    +
+                                </button>
+                            </div>
+
+                            <div className="text-left md:text-right">
+                                <p style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em" }}>Bir ədəd üçün qiymət</p>
+                                <p className="mt-1 text-[20px] leading-none font-bold text-[#171d28]">{formatPrice(cartUnitPrice)}</p>
+                            </div>
+
+                            <div className="text-left md:text-right">
+                                <p style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em" }}>Cəmi</p>
+                                <p className="mt-1 text-[20px] leading-none font-bold text-[#171d28]">{formatPrice(cartTotalPrice)}</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setCartModalProduct(null)}
+                                className="inline-flex h-8 w-8 items-center justify-center self-center text-[#93a1b6] transition-colors hover:text-[#5f6f86] md:justify-self-end"
+                                aria-label="Səbətdən sil"
+                            >
+                                <i className="fa-regular fa-circle-xmark text-[18px]" aria-hidden="true" />
+                            </button>
+                        </div>
+
+                        <div className="mt-6 flex items-center justify-end">
+                            <p className="text-[20px] leading-none font-bold text-[#161c27] sm:text-[22px]">
+                                Toplam qiymət: {formatPrice(cartTotalPrice)}
+                            </p>
+                        </div>
+
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setCartModalProduct(null)}
+                                className="inline-flex h-[44px] min-w-[180px] items-center justify-center rounded-full bg-[#eceff3] px-6 text-[16px] leading-none font-medium text-[#7f8998]"
+                            >
+                                Alış-verişə davam et
+                            </button>
+                            <button
+                                type="button"
+                                className="inline-flex h-[44px] min-w-[180px] items-center justify-center rounded-full bg-[#1a4dff] px-7 text-[16px] leading-none font-semibold text-white"
+                            >
+                                Sifarişi rəsmiləşdir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ) : null}
+        </>
     );
 };
 
