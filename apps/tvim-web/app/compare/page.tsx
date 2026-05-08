@@ -8,5 +8,5 @@ export default async function CompareRedirectPage() {
         ? cookieLocale
         : "az") as "az" | "ru" | "en";
 
-    redirect(`/${normalizedPreferredLocale}/muqayise`);
+    redirect(`/${normalizedPreferredLocale}/compare`);
 }

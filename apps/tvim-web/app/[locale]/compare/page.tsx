@@ -11,10 +11,125 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
+import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { COMPARE_GUEST_TOKEN_COOKIE, decodeCompareTokenFromCookie } from "@/lib/compare/session";
+import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
+import { CompareProductsGrid } from "./compare-products-grid";
 
-type CompareListItem = {
+type LocaleCode = "az" | "ru" | "en";
+
+const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];
+const DISPLAY_LOCALE: LocaleCode = "az";
+
+const COMPARE_PAGE_COPY: Record<LocaleCode, {
+    homeLabel: string;
+    pageTitle: string;
+    pageName: string;
+    productFallbackPrefix: string;
+    boolYes: string;
+    boolNo: string;
+    specLabels: {
+        model: string;
+        brand: string;
+        productCode: string;
+        quantity: string;
+        batteryVoltage: string;
+        batteryCapacity: string;
+        drillDiameter: string;
+        dimensions: string;
+        weight: string;
+    };
+    onlyDifferentLabel: string;
+    emptyState: string;
+    orderButton: string;
+    noDifferentSpecs: string;
+    removeCompareFailed: string;
+    favoriteToggleFailed: string;
+}> = {
+    az: {
+        homeLabel: "Ana səhifə",
+        pageTitle: "Məhsul müqayisəsi",
+        pageName: "Məhsul müqayisəsi",
+        productFallbackPrefix: "Məhsul",
+        boolYes: "Bəli",
+        boolNo: "Xeyr",
+        specLabels: {
+            model: "Model",
+            brand: "Brend",
+            productCode: "Məhsul kodu",
+            quantity: "Say",
+            batteryVoltage: "Akkumulyator gərginliyi (V)",
+            batteryCapacity: "Akkumulyator həcmi (Ah)",
+            drillDiameter: "Qazma diametri",
+            dimensions: "Ölçülər (U x E x H)",
+            weight: "Çəki",
+        },
+        onlyDifferentLabel: "Yalnız fərqli göstərin",
+        emptyState: "Müqayisə üçün hər hansı məhsul seçilməyib.",
+        orderButton: "Sifariş et",
+        noDifferentSpecs: "Məhsullar arasında fərqli xüsusiyyət tapılmadı.",
+        removeCompareFailed: "Məhsul müqayisədən silinə bilmədi.",
+        favoriteToggleFailed: "Seçilmişlər yenilənərkən xəta baş verdi.",
+    },
+    ru: {
+        homeLabel: "Главная",
+        pageTitle: "Сравнение товаров",
+        pageName: "Сравнение товаров",
+        productFallbackPrefix: "Товар",
+        boolYes: "Да",
+        boolNo: "Нет",
+        specLabels: {
+            model: "Модель",
+            brand: "Бренд",
+            productCode: "Код товара",
+            quantity: "Количество",
+            batteryVoltage: "Напряжение аккумулятора (В)",
+            batteryCapacity: "Емкость аккумулятора (Ач)",
+            drillDiameter: "Диаметр сверления",
+            dimensions: "Размеры (Д x Ш x В)",
+            weight: "Вес",
+        },
+        onlyDifferentLabel: "Показывать только отличия",
+        emptyState: "Для сравнения не выбраны товары.",
+        orderButton: "Заказать",
+        noDifferentSpecs: "Отличий между товарами не найдено.",
+        removeCompareFailed: "Не удалось удалить товар из сравнения.",
+        favoriteToggleFailed: "Ошибка при обновлении избранного.",
+    },
+    en: {
+        homeLabel: "Home",
+        pageTitle: "Product Comparison",
+        pageName: "Product Comparison",
+        productFallbackPrefix: "Product",
+        boolYes: "Yes",
+        boolNo: "No",
+        specLabels: {
+            model: "Model",
+            brand: "Brand",
+            productCode: "Product Code",
+            quantity: "Quantity",
+            batteryVoltage: "Battery Voltage (V)",
+            batteryCapacity: "Battery Capacity (Ah)",
+            drillDiameter: "Drill Diameter",
+            dimensions: "Dimensions (L x W x H)",
+            weight: "Weight",
+        },
+        onlyDifferentLabel: "Show only differences",
+        emptyState: "No products selected for comparison.",
+        orderButton: "Order",
+        noDifferentSpecs: "No differing specifications were found.",
+        removeCompareFailed: "Could not remove product from comparison.",
+        favoriteToggleFailed: "An error occurred while updating favorites.",
+    },
+};
+
+const normalizeLocale = (value: string): LocaleCode => {
+    const lower = value.trim().toLowerCase();
+    return SUPPORTED_LOCALES.includes(lower as LocaleCode) ? (lower as LocaleCode) : "az";
+};
+
+export type CompareListItem = {
     id: number;
     name: string;
     price: number;
@@ -23,6 +138,7 @@ type CompareListItem = {
     slug?: string;
     main_image?: string;
     product_variation_id: number;
+    is_favorite: boolean;
     specs: Array<{ label: string; value: string }>;
 };
 
@@ -76,10 +192,24 @@ const readNumber = (sources: Record<string, any>[], keys: string[]) => {
     return null;
 };
 
+const isTruthyFlag = (value: unknown) => value === true || value === 1 || value === "1" || value === "true";
+
+const readBooleanFlag = (sources: Record<string, any>[], keys: string[]) => {
+    for (const source of sources) {
+        for (const key of keys) {
+            if (isTruthyFlag(source[key])) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+};
+
 const toDisplayValue = (value: unknown) => {
     if (typeof value === "string" && value.trim()) return value.trim();
     if (typeof value === "number" && Number.isFinite(value)) return String(value);
-    if (typeof value === "boolean") return value ? "Bəli" : "Xeyr";
+    if (typeof value === "boolean") return value ? COMPARE_PAGE_COPY[DISPLAY_LOCALE].boolYes : COMPARE_PAGE_COPY[DISPLAY_LOCALE].boolNo;
     return "";
 };
 
@@ -177,25 +307,34 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
     const resolvedVariationId = variationId ?? id ?? 0;
     const resolvedId = id ?? resolvedVariationId;
 
-    const name = readString(nestedSources, ["name", "title", "product_name", "product_title"]) || `Məhsul #${resolvedVariationId}`;
+    const name = readString(nestedSources, ["name", "title", "product_name", "product_title"])
+        || `${COMPARE_PAGE_COPY[DISPLAY_LOCALE].productFallbackPrefix} #${resolvedVariationId}`;
     const price = readNumber(nestedSources, ["sale_price", "final_price", "special", "price"]) ?? 0;
     const oldPrice = readNumber(nestedSources, ["old_price", "compare_price", "regular_price"]);
     const slug = readString(nestedSources, ["slug", "uuid"]);
     const image = readImage(nestedSources);
+    const isFavorite = readBooleanFlag(nestedSources, [
+        "is_favorite",
+        "is_favourited",
+        "is_favorited",
+        "favorite",
+        "in_favorites",
+    ]);
     const discountPercent = oldPrice && oldPrice > 0 && oldPrice > price
         ? Math.round((1 - price / oldPrice) * 100)
         : undefined;
 
+    const labels = COMPARE_PAGE_COPY[DISPLAY_LOCALE].specLabels;
     const specDefinitions: Array<{ label: string; keys: string[] }> = [
-        { label: "Model", keys: ["model", "model_number"] },
-        { label: "Brend", keys: ["brand", "brand_name", "manufacturer", "vendor"] },
-        { label: "Məhsul kodu", keys: ["sku", "code", "barcode", "product_code"] },
-        { label: "Say", keys: ["quantity", "qty", "count"] },
-        { label: "Akkumulyator gərginliyi (V)", keys: ["battery_voltage", "voltage"] },
-        { label: "Akkumulyator həcmi (Ah)", keys: ["battery_capacity", "capacity_ah", "ah"] },
-        { label: "Qazma diametri", keys: ["drill_diameter", "diameter", "chuck_size"] },
-        { label: "Ölçülər (U x E x H)", keys: ["dimensions", "size", "measurement"] },
-        { label: "Çəki", keys: ["weight", "net_weight"] },
+        { label: labels.model, keys: ["model", "model_number"] },
+        { label: labels.brand, keys: ["brand", "brand_name", "manufacturer", "vendor"] },
+        { label: labels.productCode, keys: ["sku", "code", "barcode", "product_code"] },
+        { label: labels.quantity, keys: ["quantity", "qty", "count"] },
+        { label: labels.batteryVoltage, keys: ["battery_voltage", "voltage"] },
+        { label: labels.batteryCapacity, keys: ["battery_capacity", "capacity_ah", "ah"] },
+        { label: labels.drillDiameter, keys: ["drill_diameter", "diameter", "chuck_size"] },
+        { label: labels.dimensions, keys: ["dimensions", "size", "measurement"] },
+        { label: labels.weight, keys: ["weight", "net_weight"] },
     ];
 
     const specs = specDefinitions
@@ -212,8 +351,13 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
         rawFilters.forEach((filter) => {
             if (!filter || typeof filter !== "object") return;
 
-            const label = toDisplayValue(filter.name ?? filter.title ?? filter.key);
-            const value = toDisplayValue(filter.value ?? filter.option ?? filter.option_name);
+            const label = toDisplayValue(
+                filter.filter_name ?? filter.filterName ?? filter.name ?? filter.title ?? filter.key
+            );
+
+            const value = toDisplayValue(
+                filter.value_name ?? filter.valueName ?? filter.value ?? filter.option ?? filter.option_name ?? filter.optionName
+            );
 
             if (!label || !value) return;
             if (specs.some((spec) => spec.label.toLowerCase() === label.toLowerCase())) return;
@@ -231,6 +375,7 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
         slug: slug || undefined,
         main_image: image || undefined,
         product_variation_id: resolvedVariationId,
+        is_favorite: isFavorite,
         specs,
     };
 };
@@ -244,7 +389,7 @@ const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
 const toBearerToken = (token: string) => token.replace(/^Bearer\s+/i, "").trim();
 
 const fetchCompareProducts = async (
-    locale: string,
+    locale: LocaleCode,
     authToken: string | null,
     guestToken: string | null
 ): Promise<{ message: string; items: CompareListItem[] }> => {
@@ -296,16 +441,97 @@ const fetchCompareProducts = async (
     }
 };
 
+const extractFavoriteItems = (payload: unknown) => {
+    if (!isRecord(payload)) return [] as unknown[];
+
+    const payloadData = payload.data;
+    if (Array.isArray(payloadData)) return payloadData;
+    if (isRecord(payloadData) && Array.isArray(payloadData.items)) return payloadData.items;
+    if (isRecord(payloadData) && Array.isArray(payloadData.data)) return payloadData.data;
+
+    return [] as unknown[];
+};
+
+const extractFavoriteVariationId = (item: unknown) => {
+    if (!isRecord(item)) return null;
+
+    const product = isRecord(item.product) ? item.product : null;
+    const productVariation = product && isRecord(product.variation) ? product.variation : null;
+
+    const nestedSources = [
+        item,
+        item.favorite,
+        item.product_variation,
+        item.productVariation,
+        item.variation,
+        item.product,
+        item.item,
+        item.data,
+        productVariation,
+        product && isRecord(product.data) ? product.data : null,
+        isRecord(item.product_variation) ? item.product_variation.product : null,
+        isRecord(item.product_variation) && isRecord(item.product_variation.variation)
+            ? item.product_variation.variation
+            : null,
+        isRecord(item.variation) ? item.variation.product : null,
+        isRecord(item.variation) && isRecord(item.variation.data)
+            ? item.variation.data
+            : null,
+    ].filter(isRecord);
+
+    return toPositiveNumber(readNumber(nestedSources, ["product_variation_id", "variation_id", "id"]));
+};
+
+const fetchFavoriteVariationIds = async (
+    locale: LocaleCode,
+    authToken: string | null,
+    guestToken: string | null
+) => {
+    const favoritesApiBase = (config.api.url || "https://admin.tvim.az/api/v1").trim();
+    const url = new URL(normalizeApiUrl(favoritesApiBase, config.endpoints.favorites.list));
+    url.searchParams.set("page", "1");
+    url.searchParams.set("per_page", "200");
+
+    const normalizedAuthToken = authToken ? toBearerToken(authToken) : "";
+
+    try {
+        const response = await fetch(url.toString(), {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+                "Content-Language": locale,
+                ...(normalizedAuthToken ? { Authorization: `Bearer ${normalizedAuthToken}` } : {}),
+                ...(guestToken ? { "X-Guest-Token": guestToken } : {}),
+            },
+        });
+
+        if (!response.ok) {
+            return new Set<number>();
+        }
+
+        const payload = (await response.json()) as unknown;
+        const ids = extractFavoriteItems(payload)
+            .map((rawItem) => extractFavoriteVariationId(rawItem))
+            .filter((variationId): variationId is number => variationId !== null);
+
+        return new Set(ids);
+    } catch {
+        return new Set<number>();
+    }
+};
+
 export default async function ComparePage({
     params,
 }: {
     params: Promise<{ locale: string }>;
 }) {
     const { locale: routeLocale } = await params;
-    const locale = routeLocale.trim().toLowerCase();
+    const locale = normalizeLocale(routeLocale);
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
-    const guestToken = decodeCompareTokenFromCookie(cookieStore.get(COMPARE_GUEST_TOKEN_COOKIE)?.value);
+    const compareGuestToken = decodeCompareTokenFromCookie(cookieStore.get(COMPARE_GUEST_TOKEN_COOKIE)?.value);
+    const favoritesGuestToken = decodeGuestTokenFromCookie(cookieStore.get(FAVORITES_GUEST_TOKEN_COOKIE)?.value);
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -317,12 +543,10 @@ export default async function ComparePage({
         );
     }
 
-    if (!langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
+    if (!SUPPORTED_LOCALES.includes(locale) || !langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
         notFound();
     }
-
-    const homePageMeta = config.pages.home[locale as "az" | "ru" | "en"];
-    const comparePageMeta = config.pages.compare[locale as "az" | "ru" | "en"];
+    const copy = COMPARE_PAGE_COPY[DISPLAY_LOCALE];
 
     const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
         params: { in_footer: "1" },
@@ -404,11 +628,14 @@ export default async function ComparePage({
     const navbarPhone = projectSettings?.general.phones.find(
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
-    const compareResponse = await fetchCompareProducts(locale, authToken, guestToken);
-    const compareItems = compareResponse.items;
-    const uniqueSpecLabels = Array.from(
-        new Set(compareItems.flatMap((item) => item.specs.map((spec) => spec.label)))
-    );
+    const [compareResponse, favoriteVariationIds] = await Promise.all([
+        fetchCompareProducts(locale, authToken, compareGuestToken),
+        fetchFavoriteVariationIds(locale, authToken, favoritesGuestToken),
+    ]);
+    const compareItems = compareResponse.items.map((item) => ({
+        ...item,
+        is_favorite: item.is_favorite || favoriteVariationIds.has(item.product_variation_id),
+    }));
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
@@ -423,101 +650,33 @@ export default async function ComparePage({
 
             <Breadcrumb
                 items={[
-                    { label: homePageMeta.name, href: homePageMeta.url },
-                    { label: comparePageMeta.name, isCurrent: true },
+                    { label: copy.homeLabel, href: `/${locale}` },
+                    { label: copy.pageName, isCurrent: true },
                 ]}
-                className="compare-breadcrumb-sm [&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0 [&_ul.breadcrumb]:-ml-3"
+                className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle={comparePageMeta.title}
-                titleClassName="!mt-[-4px] -ml-3 mb-0 !text-left w-full !text-[39px] !font-[700] !leading-[39px] !text-[#0f0f0f]"
+                pageTitle={copy.pageTitle}
+                titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 
-            <section className="mx-auto w-full max-w-[1280px] px-0 pt-5 pb-10 lg:pt-6 lg:pb-12">
-                <label className="mb-[15px] inline-flex items-center gap-2 font-[500] text-[#888]">
-                    <input
-                        type="checkbox"
-                        className="appearance-none h-4 w-4 rounded-[3px] border border-[#c8cfdd] bg-white transition-all duration-150 hover:border-[1.5px] hover:border-[#6f7b95] checked:border-[#2050f5] checked:bg-[#2050f5]"
-                    />
-                    Yalnız fərqli göstərin
-                </label>
-
-                {compareItems.length === 0 ? (
-                    <div className="mt-4 rounded-[14px] bg-[#f2f2f2] px-4 py-5 text-[18px] font-medium text-[#1f2328]">
-                        Müqayisə üçün hər hansı məhsul seçilməyib.
-                    </div>
-                ) : (
-                    <div className="mt-0 overflow-x-auto">
-                        <div
-                            className="grid w-max gap-0"
-                            style={{ gridTemplateColumns: `repeat(${compareItems.length}, 320px)` }}
-                        >
-                            {compareItems.map((item: CompareListItem) => (
-                                <article key={`${item.id}-${item.product_variation_id}`} className="border border-[#e4e8ef] bg-white">
-                                    <div className="relative px-4 pt-4 pb-5 text-center">
-                                        {typeof item.discount_percent === "number" && item.discount_percent > 0 ? (
-                                            <span className="absolute left-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#ff2e43] text-[12px] font-bold text-white">
-                                                -{item.discount_percent}%
-                                            </span>
-                                        ) : null}
-
-                                        <div className="absolute right-3 top-3 flex flex-col gap-3">
-                                            <button
-                                                type="button"
-                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#dce1ea] bg-white text-[12px] text-[#3b4352]"
-                                            >
-                                                <i className="fa-regular fa-trash-can" aria-hidden="true" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#dce1ea] bg-white text-[12px] text-[#6d778a]"
-                                            >
-                                                <i className="fa-regular fa-heart" aria-hidden="true" />
-                                            </button>
-                                        </div>
-
-                                        <a href={item.slug ? `/product/${item.slug}` : "#"} className="block">
-                                            <span className="mx-auto inline-flex h-[190px] w-[250px] items-center justify-center overflow-hidden rounded-[10px]">
-                                                {item.main_image ? (
-                                                    <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
-                                                ) : null}
-                                            </span>
-                                            <span className="mt-3 line-clamp-2 block min-h-[44px] text-[16px] font-medium text-[#1f2328]">{item.name}</span>
-                                        </a>
-
-                                        <div className="mt-2 flex min-h-[92px] flex-col items-center">
-                                            {typeof item.old_price === "number" && item.old_price > 0 ? (
-                                                <span className="block text-[16px] leading-none font-bold text-[#9ba3b5] line-through">{item.old_price.toFixed(2)}₼</span>
-                                            ) : null}
-                                            <span className="mt-1 block text-[28px] leading-none font-bold text-[#ff0000]">{item.price.toFixed(2)}₼</span>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            className="mt-4 inline-flex h-8 items-center justify-center border-none rounded-full bg-[#f5d400] px-3 text-[13px] leading-[1.15] font-semibold text-[#1f2328] transition-all duration-150"
-                                        >
-                                            By order
-                                        </button>
-                                    </div>
-
-                                    <div>
-                                        {uniqueSpecLabels.map((label) => {
-                                            const specValue = item.specs.find((spec) => spec.label === label)?.value || "-";
-
-                                            return (
-                                                <div key={`${item.id}-${label}`} className="border-t border-[#e8ecf3] px-4 py-3 text-left">
-                                                    <p className="text-[12px] font-semibold text-[#9aa3b5]">{label}</p>
-                                                    <p className="mt-1 text-[14px] font-semibold text-[#1f2328]">{specValue}</p>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                )}
+            <section className="mx-auto w-full max-w-[1280px] px-0 pt-5 pb-12 lg:pt-6 lg:pb-14">
+                <CompareProductsGrid
+                    locale={locale}
+                    initialItems={compareItems}
+                    copy={{
+                        onlyDifferentLabel: copy.onlyDifferentLabel,
+                        emptyState: copy.emptyState,
+                        orderButton: copy.orderButton,
+                        noDifferentSpecs: copy.noDifferentSpecs,
+                        removeCompareFailed: copy.removeCompareFailed,
+                        favoriteToggleFailed: copy.favoriteToggleFailed,
+                    }}
+                />
             </section>
+
+            <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
+                <RequestForm />
+            </div>
 
             <div className="mt-16 w-full lg:mt-20">
                 <Footer footerMenus={footerMenus} footerSettings={projectSettings} />

@@ -87,6 +87,10 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                     const variationId = item.product_variation_id;
                     const isFavoritePending = typeof variationId === "number" && pendingVariationIds.has(variationId);
 
+                    const discountPercent = typeof item.old_price === "number" && item.old_price > item.price
+                        ? Math.round((1 - item.price / item.old_price) * 100)
+                        : undefined;
+
                     const media = (
                         <>
                             <div className="product-thumb mx-auto mt-2 flex h-[135px] w-full max-w-[150px] items-center justify-center overflow-hidden rounded-[10px] sm:h-[150px] max-[512px]:h-[160px]">
@@ -106,6 +110,12 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                     return (
                         <li key={itemKey}>
                             <article className="group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none max-[512px]:pb-5 max-[512px]:pt-4">
+                                {typeof discountPercent === "number" ? (
+                                    <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+                                        -{discountPercent}%
+                                    </span>
+                                ) : null}
+
                                 <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
                                     <button
                                         type="button"

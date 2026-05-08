@@ -120,17 +120,17 @@ export const pages = {
     },
     compare: {
         az: {
-            url: "/az/muqayise",
+            url: "/az/compare",
             title: "Məhsul müqayisəsi",
             name: "Məhsul müqayisəsi",
         },
         ru: {
-            url: "/ru/muqayise",
+            url: "/ru/compare",
             title: "Məhsul müqayisəsi",
             name: "Məhsul müqayisəsi",
         },
         en: {
-            url: "/en/muqayise",
+            url: "/en/compare",
             title: "Məhsul müqayisəsi",
             name: "Məhsul müqayisəsi",
         },

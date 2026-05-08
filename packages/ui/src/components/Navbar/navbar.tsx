@@ -735,7 +735,7 @@ function NavbarActions({
                 ) : null}
             </Link>
             <Link
-                href={`/${locale.toLowerCase()}/muqayise`}
+                href={`/${locale.toLowerCase()}/compare`}
                 aria-label="Müqayisə"
                 className="relative inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
             >
@@ -1740,7 +1740,7 @@ export function Navbar({
                             ) : null}
                         </Link>
                         <Link
-                            href={`/${locale.toLowerCase()}/muqayise`}
+                            href={`/${locale.toLowerCase()}/compare`}
                             aria-label="Müqayisə"
                             className="relative inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
                             onClick={() => setIsMobileMenuOpen(false)}
