@@ -210,6 +210,8 @@ export interface NavbarProps {
     onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchProduct[]>;
     isAuthenticated?: boolean;
     authUser?: NavbarAuthUser | null;
+    cartCount?: number;
+    onCartClick?: () => void;
 }
 
 const defaultMenuItems: NavbarMenuItem[] = [
@@ -690,16 +692,21 @@ function NavbarActions({
     authUser,
     favoritesCount,
     compareCount,
+    cartCount,
+    onCartClick,
 }: {
     locale: string;
     isAuthenticated: boolean;
     authUser?: NavbarAuthUser | null;
     favoritesCount: number;
     compareCount: number;
+    cartCount: number;
+    onCartClick?: () => void;
 }) {
     const displayName = getAuthDisplayName(authUser);
     const favoritesBadgeText = favoritesCount > 99 ? "99+" : String(favoritesCount);
     const compareBadgeText = compareCount > 99 ? "99+" : String(compareCount);
+    const cartBadgeText = cartCount > 99 ? "99+" : String(cartCount);
 
     return (
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
@@ -749,9 +756,15 @@ function NavbarActions({
             <button
                 type="button"
                 aria-label="Səbət"
-                className="inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                onClick={onCartClick}
+                className="relative inline-flex size-12 overflow-visible cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
             >
                 <ShoppingCart className="size-[19px]" />
+                {cartCount > 0 ? (
+                    <span className="absolute top-0 right-0 translate-x-[10%] -translate-y-[20%] inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[4px] bg-[#ffd500] text-[10px] leading-none font-bold text-[#121212]">
+                        {cartBadgeText}
+                    </span>
+                ) : null}
             </button>
         </div>
     );
@@ -800,7 +813,9 @@ export function Navbar({
     initialCatalogItems,
     onSearchProducts,
     isAuthenticated = false,
-    authUser = null,
+    authUser,
+    cartCount = 0,
+    onCartClick,
 }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
@@ -1610,6 +1625,8 @@ export function Navbar({
                         authUser={authUser}
                         favoritesCount={favoritesCount}
                         compareCount={compareCount}
+                        cartCount={cartCount}
+                        onCartClick={onCartClick}
                     />
                 </div>
 
@@ -1755,9 +1772,15 @@ export function Navbar({
                         <button
                             type="button"
                             aria-label="Səbət"
-                            className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
+                            onClick={onCartClick}
+                            className="relative inline-flex size-11 overflow-visible cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
                         >
                             <ShoppingCart className="size-[18px]" />
+                            {cartCount > 0 ? (
+                                <span className="absolute top-0 right-0 translate-x-[10%] -translate-y-[20%] inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[4px] bg-[#ffd500] text-[10px] leading-none font-bold text-[#121212]">
+                                    {cartCount > 99 ? "99+" : String(cartCount)}
+                                </span>
+                            ) : null}
                         </button>
                     </div>
                 </div>

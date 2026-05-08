@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useNotify } from "@repo/ui";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
+import { useCartStore } from "@/stores";
+import { CartActionToast } from "./cart-action-toast";
 
 type ApiItem = any;
 
@@ -280,15 +282,9 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const navUnlockTimerRef = useRef<number | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isNavLocked, setIsNavLocked] = useState(false);
-    const [cartModalProduct, setCartModalProduct] = useState<Product | null>(null);
-    const [cartQuantity, setCartQuantity] = useState(1);
-
-    const cartUnitPrice = cartModalProduct ? parsePriceValue(cartModalProduct.price) : 0;
-    const cartTotalPrice = cartUnitPrice * cartQuantity;
-    const showInsufficientStockWarning =
-        typeof cartModalProduct?.stock === "number" &&
-        cartModalProduct.stock > 0 &&
-        cartQuantity > cartModalProduct.stock;
+    const cartToastTrigger = useCartStore((state) => state.toastTrigger);
+    const cartToastProductTitle = useCartStore((state) => state.toastProductTitle);
+    const addCartProduct = useCartStore((state) => state.addProduct);
 
     // Navigation is handled only on the image/link now.
 
@@ -550,27 +546,13 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         };
     }, []);
 
-    useEffect(() => {
-        if (!cartModalProduct) return;
-
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                setCartModalProduct(null);
-            }
-        };
-
-        window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-    }, [cartModalProduct]);
-
     const handleCartClick = (product: Product) => {
         if (product.cartVariant !== "blue") {
             notify.error("Məhsul stokda yoxdur");
             return;
         }
 
-        setCartModalProduct(product);
-        setCartQuantity(1);
+        addCartProduct(product);
     };
 
     const getItemWidth = () => {
@@ -942,118 +924,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                 </div>
             </div>
         </section>
-        {cartModalProduct ? (
-            <div
-                className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-3 py-4 sm:px-6"
-                onClick={() => setCartModalProduct(null)}
-            >
-                <div
-                    className="w-full max-w-[740px] overflow-hidden rounded-[4px] bg-white shadow-[0_20px_50px_rgba(20,30,60,0.22)]"
-                    onClick={(event) => event.stopPropagation()}
-                >
-                    <div className="flex items-stretch border-b border-[#eceff3] bg-[#f3f3f3]">
-                        <h3 className="flex-1 px-5 py-3 text-[24px] leading-none font-semibold text-[#1d2430]">Səbət</h3>
-                        <button
-                            type="button"
-                            onClick={() => setCartModalProduct(null)}
-                            className="inline-flex w-[58px] items-center justify-center border-l border-[#e2e6ee] text-[22px] leading-none text-[#111827] transition-colors hover:bg-[#e9edf3]"
-                            aria-label="Bağla"
-                        >
-                            ×
-                        </button>
-                    </div>
-
-                    <div className="px-5 py-5 sm:px-6 sm:py-6">
-                        <div className="grid grid-cols-1 gap-4 border-b border-[#e9edf3] pb-5 md:grid-cols-[1.45fr_0.7fr_0.35fr_0.35fr_auto] md:items-center md:gap-6">
-                            <div className="flex items-center gap-4 min-w-0">
-                                <div className="h-[64px] w-[64px] flex-none overflow-hidden rounded-[6px] bg-white">
-                                    {cartModalProduct.imageUrl ? (
-                                        <img
-                                            src={cartModalProduct.imageUrl}
-                                            alt={cartModalProduct.title}
-                                            className="h-full w-full object-contain"
-                                        />
-                                    ) : null}
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="truncate text-[18px] leading-[1.2] font-semibold text-[#171d28]">
-                                        {cartModalProduct.title}
-                                    </p>
-                                    {showInsufficientStockWarning ? (
-                                        <p className="mt-1 text-[14px] leading-none font-semibold text-[#ff2e43]">
-                                            Tələb olunan miqdarda yoxdur!
-                                        </p>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            <div className="inline-flex h-[52px] w-[150px] items-center justify-center rounded-[22px] border border-[#d6deea] px-4 md:justify-between">
-                                <button
-                                    type="button"
-                                    onClick={() => setCartQuantity((prev) => Math.max(1, prev - 1))}
-                                    className="inline-flex h-8 w-8 items-center justify-center text-[24px] leading-none text-[#6f819c] transition-colors hover:text-[#325dd6]"
-                                    aria-label="Azalt"
-                                >
-                                    −
-                                </button>
-                                <span className="mx-3 min-w-[26px] text-center text-[18px] leading-none font-medium text-[#1b2330]">
-                                    {cartQuantity}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setCartQuantity((prev) => prev + 1)}
-                                    className="inline-flex h-8 w-8 items-center justify-center text-[24px] leading-none text-[#6f819c] transition-colors hover:text-[#325dd6]"
-                                    aria-label="Artır"
-                                >
-                                    +
-                                </button>
-                            </div>
-
-                            <div className="text-left md:text-right">
-                                <p style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em" }}>Bir ədəd üçün qiymət</p>
-                                <p className="mt-1 text-[20px] leading-none font-bold text-[#171d28]">{formatPrice(cartUnitPrice)}</p>
-                            </div>
-
-                            <div className="text-left md:text-right">
-                                <p style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em" }}>Cəmi</p>
-                                <p className="mt-1 text-[20px] leading-none font-bold text-[#171d28]">{formatPrice(cartTotalPrice)}</p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setCartModalProduct(null)}
-                                className="inline-flex h-8 w-8 items-center justify-center self-center text-[#93a1b6] transition-colors hover:text-[#5f6f86] md:justify-self-end"
-                                aria-label="Səbətdən sil"
-                            >
-                                <i className="fa-regular fa-circle-xmark text-[18px]" aria-hidden="true" />
-                            </button>
-                        </div>
-
-                        <div className="mt-6 flex items-center justify-end">
-                            <p className="text-[20px] leading-none font-bold text-[#161c27] sm:text-[22px]">
-                                Toplam qiymət: {formatPrice(cartTotalPrice)}
-                            </p>
-                        </div>
-
-                        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <button
-                                type="button"
-                                onClick={() => setCartModalProduct(null)}
-                                className="inline-flex h-[44px] min-w-[180px] items-center justify-center rounded-full bg-[#eceff3] px-6 text-[16px] leading-none font-medium text-[#7f8998]"
-                            >
-                                Alış-verişə davam et
-                            </button>
-                            <button
-                                type="button"
-                                className="inline-flex h-[44px] min-w-[180px] items-center justify-center rounded-full bg-[#1a4dff] px-7 text-[16px] leading-none font-semibold text-white"
-                            >
-                                Sifarişi rəsmiləşdir
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        ) : null}
+        <CartActionToast trigger={cartToastTrigger} productTitle={cartToastProductTitle} />
         </>
     );
 };

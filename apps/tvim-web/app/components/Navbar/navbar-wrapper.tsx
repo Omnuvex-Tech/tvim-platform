@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import type { Language } from "@repo/types/types";
 import type { NavbarSearchProduct } from "@repo/ui";
 import { Navbar } from "@repo/ui";
-import { useLanguageStore } from "@/stores";
+import { useCartStore, useLanguageStore } from "@/stores";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import { CartPreviewModal } from "../ProductStrip/cart-preview-modal";
 
 interface NavbarWrapperProps {
     logo?: ReactNode;
@@ -26,6 +27,17 @@ type SessionUser = {
     email?: string | null;
     avatar_url?: string | null;
     avatar_path?: string | null;
+};
+
+const formatPrice = (v: number | string | undefined) => {
+    const n = typeof v === "number" ? v : Number(v ?? 0);
+    return `${n.toFixed(2)}₼`;
+};
+
+const parsePriceValue = (value: string) => {
+    const normalized = value.replace(/[^\d.,-]/g, "").replace(/,/g, ".");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
 };
 
 type SessionResponse = {
@@ -48,8 +60,44 @@ const NavbarWrapper = ({
     const router = useRouter();
     const pathname = usePathname();
     const { locale: storedLocale, setLocale } = useLanguageStore();
+    const isCartModalOpen = useCartStore((state) => state.isCartModalOpen);
+    const cartItems = useCartStore((state) => state.items);
+    const openCartModal = useCartStore((state) => state.openModal);
+    const closeCartModal = useCartStore((state) => state.closeModal);
+    const increaseCartItem = useCartStore((state) => state.increaseQuantity);
+    const decreaseCartItem = useCartStore((state) => state.decreaseQuantity);
+    const removeCartItem = useCartStore((state) => state.removeItem);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authUser, setAuthUser] = useState<SessionUser | null>(null);
+    const cartCount = useMemo(
+        () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
+        [cartItems]
+    );
+    const cartTotalPrice = useMemo(
+        () => cartItems.reduce((sum, item) => sum + parsePriceValue(item.product.price) * item.quantity, 0),
+        [cartItems]
+    );
+    const cartModalItems = useMemo(
+        () =>
+            cartItems.map((item) => {
+                const unitPrice = parsePriceValue(item.product.price);
+                const showInsufficientStockWarning =
+                    typeof item.product.stock === "number" &&
+                    item.product.stock > 0 &&
+                    item.quantity > item.product.stock;
+
+                return {
+                    key: item.key,
+                    title: item.product.title,
+                    imageUrl: item.product.imageUrl,
+                    quantity: item.quantity,
+                    unitPriceText: formatPrice(unitPrice),
+                    totalPriceText: formatPrice(unitPrice * item.quantity),
+                    showInsufficientStockWarning,
+                };
+            }),
+        [cartItems]
+    );
 
     const supportedLocales = useMemo(
         () => new Set(languages.map((language) => language.code.toLowerCase())),
@@ -89,6 +137,19 @@ const NavbarWrapper = ({
         if (storedLocale.trim().toLowerCase() === localeFromPath) return;
         setLocale(localeFromPath);
     }, [localeFromPath, setLocale, storedLocale]);
+
+    useEffect(() => {
+        if (!isCartModalOpen) return;
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                closeCartModal();
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [closeCartModal, isCartModalOpen]);
 
     useEffect(() => {
         let isMounted = true;
@@ -386,21 +447,35 @@ const NavbarWrapper = ({
     }, []);
 
     return (
-        <Navbar
-            logo={logo}
-            logoHref={`/${effectiveLocale}`}
-            phone={phone}
-            locale={effectiveLocale}
-            languages={languages}
-            defLang={config.project.defLang}
-            onLocaleChange={handleLocaleChange}
-            searchPlaceholder={searchPlaceholder}
-            menuItems={localizedMenuItems}
-            initialCatalogItems={initialCatalogItems}
-            onSearchProducts={handleSearchProducts}
-            isAuthenticated={isAuthenticated}
-            authUser={authUser}
-        />
+        <>
+            <Navbar
+                logo={logo}
+                logoHref={`/${effectiveLocale}`}
+                phone={phone}
+                locale={effectiveLocale}
+                languages={languages}
+                defLang={config.project.defLang}
+                onLocaleChange={handleLocaleChange}
+                searchPlaceholder={searchPlaceholder}
+                menuItems={localizedMenuItems}
+                initialCatalogItems={initialCatalogItems}
+                onSearchProducts={handleSearchProducts}
+                isAuthenticated={isAuthenticated}
+                authUser={authUser}
+                cartCount={cartCount}
+                onCartClick={openCartModal}
+            />
+            {isCartModalOpen && cartModalItems.length > 0 ? (
+                <CartPreviewModal
+                    items={cartModalItems}
+                    totalPriceText={formatPrice(cartTotalPrice)}
+                    onClose={closeCartModal}
+                    onDecrease={decreaseCartItem}
+                    onIncrease={increaseCartItem}
+                    onRemove={removeCartItem}
+                />
+            ) : null}
+        </>
     );
 };
 
