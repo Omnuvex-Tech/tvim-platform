@@ -1,13 +1,15 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-type CartActionToastProps = {
+type NotifyV2Props = {
     trigger: number;
-    productTitle?: string;
+    message?: string;
     durationMs?: number;
 };
 
-const CartActionToast = ({ trigger, productTitle, durationMs = 2200 }: CartActionToastProps) => {
+const NotifyV2 = ({ trigger, message, durationMs = 2200 }: NotifyV2Props) => {
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [isProgressing, setIsProgressing] = useState(false);
@@ -77,6 +79,8 @@ const CartActionToast = ({ trigger, productTitle, durationMs = 2200 }: CartActio
 
     if (!isMounted || typeof document === "undefined") return null;
 
+    const text = message ?? "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!";
+
     return createPortal(
         <div className="pointer-events-none fixed top-4 right-4 z-[9999] w-[min(92vw,380px)]">
             <div
@@ -97,9 +101,7 @@ const CartActionToast = ({ trigger, productTitle, durationMs = 2200 }: CartActio
                         aria-hidden="true"
                     />
                 </span>
-                <p className="text-[16px] leading-[1.35] font-semibold text-[#222a33]">
-                    {productTitle ? `${productTitle} səbətinizə müvəffəqiyyətlə əlavə edildi!` : "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!"}
-                </p>
+                <p className="text-[16px] leading-[1.35] font-semibold text-[#222a33]">{text}</p>
                 <span className="pointer-events-none absolute bottom-0 left-0 right-0 h-[3px] bg-[#d5d5d5]" />
                 <span
                     className="pointer-events-none absolute bottom-0 left-0 h-[3px] bg-[#8f8f8f]"
@@ -114,4 +116,4 @@ const CartActionToast = ({ trigger, productTitle, durationMs = 2200 }: CartActio
     );
 };
 
-export { CartActionToast };
+export { NotifyV2 };

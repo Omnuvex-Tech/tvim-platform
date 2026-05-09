@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useNotify } from "@repo/ui";
 import type { CompareListItem } from "./page";
@@ -37,22 +37,33 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
 
     const allSpecLabels = useMemo(() => getUniqueSpecLabels(items), [items]);
 
-    const [columnWidth, setColumnWidth] = useState<number>(280);
-    const [isDesktop, setIsDesktop] = useState<boolean>(false);
+    const getInitialSizes = () => {
+        if (typeof window === "undefined") return { columnWidth: 280, isDesktop: false };
+        const w = window.innerWidth;
+        const initialColumnWidth = w < 640 ? 220 : w < 1024 ? 260 : 280;
+        return { columnWidth: initialColumnWidth, isDesktop: w >= 1024 };
+    };
+
+    const initialSizes = getInitialSizes();
+    const [columnWidth, setColumnWidth] = useState<number>(initialSizes.columnWidth);
+    const [isDesktop, setIsDesktop] = useState<boolean>(initialSizes.isDesktop);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const update = () => {
-            const w = window.innerWidth;
-            if (w < 640) setColumnWidth(220);
-            else if (w < 1024) setColumnWidth(260);
-            else setColumnWidth(280);
-            setIsDesktop(w >= 1024);
+            const w = typeof window !== "undefined" ? window.innerWidth : 0;
+            const colW = w < 640 ? 220 : w < 1024 ? 260 : 280;
+            setColumnWidth(colW);
+
+            const containerWidth = containerRef.current?.clientWidth ?? w;
+            const canStretch = Number.isFinite(containerWidth) && containerWidth >= items.length * colW;
+            setIsDesktop(!!canStretch);
         };
 
         update();
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
-    }, []);
+    }, [items.length]);
 
     const visibleSpecLabels = useMemo(() => {
         if (!showOnlyDifferent) {
@@ -191,20 +202,13 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
 
             <div className="mt-0 overflow-x-auto">
                 <div
+                    ref={containerRef}
                     className="grid gap-0 mx-auto"
-                    style={(() => {
-                        if (isDesktop) {
-                            return {
-                                gridTemplateColumns: `repeat(${items.length}, 1fr)`,
-                                width: "100%",
-                            } as React.CSSProperties;
-                        }
-
-                        return {
-                            gridTemplateColumns: `repeat(${items.length}, ${columnWidth}px)`,
-                            minWidth: `${items.length * columnWidth}px`,
-                        } as React.CSSProperties;
-                    })()}
+                    style={{
+                        gridTemplateColumns: `repeat(${items.length}, minmax(${columnWidth}px, 1fr))`,
+                        width: "100%",
+                        minWidth: `${items.length * columnWidth}px`,
+                    } as React.CSSProperties}
                 >
                     {items.map((item, index) => {
                         const itemKey = `${item.id}-${item.product_variation_id}`;

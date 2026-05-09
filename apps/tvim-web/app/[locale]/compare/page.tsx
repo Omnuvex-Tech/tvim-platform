@@ -352,12 +352,31 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
             if (!filter || typeof filter !== "object") return;
 
             const label = toDisplayValue(
-                filter.filter_name ?? filter.filterName ?? filter.name ?? filter.title ?? filter.key
+                filter.filter_name ?? filter.filterName ?? filter.name ?? filter.title ?? filter.key ?? filter.label
             );
 
-            const value = toDisplayValue(
-                filter.value_name ?? filter.valueName ?? filter.value ?? filter.option ?? filter.option_name ?? filter.optionName
-            );
+            // Support new API shape where a filter contains a `values` array
+            // Each value may have `name`, `value`, `value_name`, `slug`, etc.
+            let value = "";
+
+            if (Array.isArray(filter.values) && filter.values.length > 0) {
+                const parts: string[] = [];
+                for (const v of filter.values) {
+                    if (!v || typeof v !== "object") continue;
+                    const name = v.name ?? v.value_name ?? v.value ?? v.title ?? v.slug ?? "";
+                    const clean = toDisplayValue(name);
+                    if (clean) parts.push(clean);
+                }
+
+                value = parts.join(", ");
+            }
+
+            // Fallback to legacy single-value fields
+            if (!value) {
+                value = toDisplayValue(
+                    filter.value_name ?? filter.valueName ?? filter.value ?? filter.option ?? filter.option_name ?? filter.optionName
+                );
+            }
 
             if (!label || !value) return;
             if (specs.some((spec) => spec.label.toLowerCase() === label.toLowerCase())) return;

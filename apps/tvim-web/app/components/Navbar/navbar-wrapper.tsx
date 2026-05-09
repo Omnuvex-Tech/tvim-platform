@@ -465,7 +465,7 @@ const NavbarWrapper = ({
                 cartCount={cartCount}
                 onCartClick={openCartModal}
             />
-            {isCartModalOpen && cartModalItems.length > 0 ? (
+            {isCartModalOpen ? (
                 <CartPreviewModal
                     items={cartModalItems}
                     totalPriceText={formatPrice(cartTotalPrice)}

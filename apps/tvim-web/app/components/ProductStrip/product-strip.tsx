@@ -6,7 +6,6 @@ import { useNotify } from "@repo/ui";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 import { useCartStore } from "@/stores";
-import { CartActionToast } from "./cart-action-toast";
 
 type ApiItem = any;
 
@@ -282,9 +281,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const navUnlockTimerRef = useRef<number | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isNavLocked, setIsNavLocked] = useState(false);
-    const cartToastTrigger = useCartStore((state) => state.toastTrigger);
-    const cartToastProductTitle = useCartStore((state) => state.toastProductTitle);
-    const addCartProduct = useCartStore((state) => state.addProduct);
+    const addCartProductAsync = useCartStore((state) => state.addProductAsync);
 
     // Navigation is handled only on the image/link now.
 
@@ -546,13 +543,31 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         };
     }, []);
 
-    const handleCartClick = (product: Product) => {
+    const handleCartClick = async (product: Product) => {
         if (product.cartVariant !== "blue") {
             notify.error("Məhsul stokda yoxdur");
             return;
         }
 
-        addCartProduct(product);
+        try {
+            await addCartProductAsync({
+                id: product.id,
+                title: product.title,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                productVariationId: product.productVariationId ?? null,
+                stock: product.stock,
+            });
+
+            const message = product.title
+                ? `${product.title} səbətinizə müvəffəqiyyətlə əlavə edildi!`
+                : "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!";
+
+            notify.success(message);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Səbətə əlavə edərkən xəta baş verdi.";
+            notify.error(message);
+        }
     };
 
     const getItemWidth = () => {
@@ -888,10 +903,10 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                                             <button
                                                 type="button"
                                                 onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    handleCartClick(product);
-                                                }}
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        void handleCartClick(product);
+                                                    }}
                                                 className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"}`}
                                                 aria-label={product.cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}
                                             >
@@ -924,7 +939,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                 </div>
             </div>
         </section>
-        <CartActionToast trigger={cartToastTrigger} productTitle={cartToastProductTitle} />
+        
         </>
     );
 };

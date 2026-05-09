@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { api } from "@/lib/api";
 
 type CartProduct = {
     id: number;
@@ -23,10 +24,14 @@ type CartState = {
     items: CartItem[];
     toastTrigger: number;
     toastProductTitle: string;
+    isAdding: boolean;
+    addingProductTitle: string;
 };
 
 type CartActions = {
     addProduct: (product: CartProduct) => void;
+    addProductAsync: (product: CartProduct) => Promise<void>;
+    setAdding: (flag: boolean, title?: string) => void;
     openModal: () => void;
     closeModal: () => void;
     increaseQuantity: (itemKey: string) => void;
@@ -49,6 +54,8 @@ export const useCartStore = create<CartState & CartActions>()(
             items: [],
             toastTrigger: 0,
             toastProductTitle: "",
+            isAdding: false,
+            addingProductTitle: "",
 
             addProduct: (product) =>
                 set((state) => {
@@ -82,9 +89,69 @@ export const useCartStore = create<CartState & CartActions>()(
                     };
                 }),
 
+            setAdding: (flag: boolean, title?: string) =>
+                set(() => ({ isAdding: flag, addingProductTitle: title ?? "" })),
+
+            addProductAsync: async (product) => {
+                // mark adding state
+                set(() => ({ isAdding: true, addingProductTitle: product.title ?? "" }));
+
+                try {
+                    // attempt to call remote API if available; ignore failures and fallback to local add
+                    const payload: any = {
+                        product_variation_id: product.productVariationId ?? product.id,
+                        quantity: 1,
+                    };
+
+                    try {
+                        await api.post("/cart", payload);
+                    } catch {
+                        try {
+                            await api.post("/cart/add", payload);
+                        } catch {
+                            // ignore remote errors, fallback to local
+                        }
+                    }
+                } finally {
+                    // perform local add and clear adding state
+                    set((state) => {
+                        const itemKey = resolveProductKey(product);
+                        const existingItemIndex = state.items.findIndex((item) => item.key === itemKey);
+
+                        const nextItems =
+                            existingItemIndex >= 0
+                                ? state.items.map((item, index) =>
+                                      index === existingItemIndex
+                                          ? {
+                                                ...item,
+                                                quantity: item.quantity + 1,
+                                            }
+                                          : item
+                                  )
+                                : [
+                                      ...state.items,
+                                      {
+                                          key: itemKey,
+                                          product,
+                                          quantity: 1,
+                                      },
+                                  ];
+
+                        return {
+                            items: nextItems,
+                            isCartModalOpen: true,
+                            toastProductTitle: product.title,
+                            toastTrigger: state.toastTrigger + 1,
+                            isAdding: false,
+                            addingProductTitle: "",
+                        };
+                    });
+                }
+            },
+
             openModal: () =>
-                set((state) => ({
-                    isCartModalOpen: state.items.length > 0,
+                set(() => ({
+                    isCartModalOpen: true,
                 })),
 
             closeModal: () => set({ isCartModalOpen: false }),
