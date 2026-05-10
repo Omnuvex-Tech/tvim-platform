@@ -2,8 +2,11 @@
 
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { CircleX, Minus, PackageCheck, Plus, Sigma, Truck } from "lucide-react";
+import { CircleX, Minus, Plus } from "lucide-react";
 import { useCartStore } from "@/stores";
+import { CheckoutDetailsForm } from "./components/checkout-details-form";
+import { CheckoutOrderSummary } from "./components/checkout-order-summary";
+import { RequestForm } from "../components/RequestForm/request-form";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 const parsePrice = (value: string | number | undefined) => Number(String(value ?? "").replace(/[^0-9.-]+/g, "")) || 0;
@@ -35,8 +38,9 @@ export default function CheckoutClient() {
     }
 
     return (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
-            <section className="overflow-hidden rounded-[6px] bg-white">
+        <div className="space-y-12">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+                <section className="overflow-hidden rounded-[6px] bg-white">
                 <div>
                     {items.map((it) => {
                         const unit = parsePrice(it.product.price);
@@ -105,50 +109,20 @@ export default function CheckoutClient() {
                         );
                     })}
                 </div>
-            </section>
 
-            <aside className="h-fit rounded-[6px] border border-[#e9edf3] bg-white p-5 lg:sticky lg:top-24">
-                <h3 className="text-[30px] leading-none font-semibold text-[#111826]">Sifarişiniz</h3>
+                    <CheckoutDetailsForm />
+                </section>
 
-                <div className="mt-6 space-y-4">
-                    <div className="flex items-center justify-between gap-3 text-[16px]">
-                        <span className="inline-flex items-center gap-2 text-[#1b2330]">
-                            <PackageCheck className="size-4 text-[#1f4fff]" />
-                            Səbətdəki məhsullar:
-                        </span>
-                        <span className="font-semibold text-[#111826]">{totalItems}</span>
-                    </div>
+                <CheckoutOrderSummary
+                    totalItems={totalItems}
+                    shipping={shipping}
+                    subtotal={subtotal}
+                    total={total}
+                    onCheckout={() => router.push("/checkout/complete")}
+                />
+            </div>
 
-                    <div className="flex items-center justify-between gap-3 text-[16px]">
-                        <span className="inline-flex items-center gap-2 text-[#1b2330]">
-                            <Truck className="size-4 text-[#1f4fff]" />
-                            Ünvana çatdırılma
-                        </span>
-                        <span className="font-semibold text-[#111826]">{shipping === 0 ? "0.00₼" : formatPrice(shipping)}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 border-t border-[#eef2f7] pt-4 text-[16px]">
-                        <span className="inline-flex items-center gap-2 text-[#1b2330]">
-                            <Sigma className="size-4 text-[#1f4fff]" />
-                            Toplam qiymət
-                        </span>
-                        <span className="font-semibold text-[#111826]">{formatPrice(subtotal)}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 text-[28px] font-semibold text-[#111826]">
-                        <span>Ümumi məbləğ</span>
-                        <span>{formatPrice(total)}</span>
-                    </div>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={() => router.push("/checkout/complete")}
-                    className="mt-6 inline-flex h-[48px] w-full cursor-pointer items-center justify-center rounded-full bg-[#ffd500] px-5 text-[18px] font-semibold text-[#111826]"
-                >
-                    Sifarişi rəsmiləşdirin
-                </button>
-            </aside>
+            <RequestForm />
         </div>
     );
 }
