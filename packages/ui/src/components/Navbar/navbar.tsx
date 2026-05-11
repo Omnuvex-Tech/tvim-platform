@@ -129,10 +129,18 @@ function extractResponseItems(json: any): any[] {
 export type NavbarSearchProduct = {
     id: string | number;
     name: string;
-    model: string;
-    price: string;
-    imageUrl: string;
+    model?: string;
+    subtitle?: string;
+    price?: string;
+    imageUrl?: string;
     href: string;
+    type?: "brand" | "category" | "product";
+};
+
+export type NavbarSearchSection = {
+    key: "brands" | "categories" | "products" | string;
+    name: string;
+    items: NavbarSearchProduct[];
 };
 
 export type NavbarAuthUser = {
@@ -169,10 +177,10 @@ function formatProductPrice(value: unknown) {
     return "";
 }
 
-function normalizeSearchProducts(json: any, locale: string): NavbarSearchProduct[] {
+function normalizeSearchProducts(json: any, locale: string): NavbarSearchSection[] {
     const items = extractResponseItems(json);
 
-    return (items as any[])
+    const mappedItems = (items as any[])
         .filter((item) => !!item && typeof item === "object")
         .map((item) => ({
             id: item.id ?? item.product_id ?? item.uuid ?? `${item.slug ?? item.link ?? item.name ?? "item"}`,
@@ -187,7 +195,16 @@ function normalizeSearchProducts(json: any, locale: string): NavbarSearchProduct
                 ""
             ),
             href: toProductHref(item, locale),
+            type: "product" as const,
         }));
+
+    return [
+        {
+            key: "products",
+            name: "Məhsullar",
+            items: mappedItems,
+        },
+    ];
 }
 
 export interface NavbarMenuItem {
@@ -207,7 +224,7 @@ export interface NavbarProps {
     defLang?: string;
     onLocaleChange?: (locale: string) => void;
     initialCatalogItems?: any[];
-    onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchProduct[]>;
+    onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchSection[]>;
     isAuthenticated?: boolean;
     authUser?: NavbarAuthUser | null;
     cartCount?: number;
@@ -355,16 +372,17 @@ function NavbarSearch({
     searchPlaceholder: string;
     compact?: boolean;
     locale?: string;
-    onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchProduct[]>;
+    onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchSection[]>;
 }) {
     const [value, setValue] = useState("");
-    const [results, setResults] = useState<NavbarSearchProduct[]>([]);
+    const [results, setResults] = useState<NavbarSearchSection[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const searchRef = useRef<HTMLDivElement | null>(null);
     const activeQueryRef = useRef("");
     const localeCode = (locale || "az").toLowerCase();
+    const totalResults = results.reduce((sum, section) => sum + section.items.length, 0);
 
     const overlayVisible = value.length === 0;
 
@@ -398,7 +416,7 @@ function NavbarSearch({
                     );
 
                 if (activeQueryRef.current !== query) return;
-                setResults(mapped);
+                setResults((mapped || []).filter((section) => Array.isArray(section?.items) && section.items.length > 0));
                 setIsOpen(true);
             } catch (err: any) {
                 if (activeQueryRef.current !== query) return;
@@ -478,46 +496,57 @@ function NavbarSearch({
                             <div className="px-4 py-4 text-[13px] text-[#7b8494]">Axtarılır...</div>
                         ) : error ? (
                             <div className="px-4 py-4 text-[13px] text-[#d14343]">{error}</div>
-                        ) : results.length === 0 ? (
+                        ) : totalResults === 0 ? (
                             <div className="px-4 py-4 text-[13px] text-[#7b8494]">Nəticə tapılmadı</div>
                         ) : (
-                            results.map((product) => (
-                                <a
-                                    key={product.id}
-                                    href={product.href}
-                                    className="flex items-center gap-3 border-b border-[#edf1f7] px-4 py-3 transition-colors hover:bg-[#f6f8fc]"
-                                    onClick={() => setIsOpen(false)}
+                            results.map((section, sectionIndex) => (
+                                <div
+                                    key={section.key || section.name || sectionIndex}
+                                    className={cn(sectionIndex > 0 ? "border-t border-[#edf1f7]" : "")}
                                 >
-                                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f5f9]">
-                                        {product.imageUrl ? (
-                                            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
-                                        ) : (
-                                            <Package className="size-4 text-[#98a1b2]" strokeWidth={2} />
-                                        )}
-                                    </span>
+                                    <p className="px-4 pb-2 pt-3 text-[14px] leading-none font-bold text-[#000]">{section.name}</p>
+                                    {section.items.map((product, productIndex) => (
+                                        <a
+                                            key={`${section.key}-${product.id}`}
+                                            href={product.href}
+                                            className={cn(
+                                                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[#f6f8fc]",
+                                                productIndex < section.items.length - 1 ? "border-b border-[#edf1f7]" : ""
+                                            )}
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f5f9]">
+                                                {product.imageUrl ? (
+                                                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
+                                                ) : (
+                                                    <Package className="size-4 text-[#98a1b2]" strokeWidth={2} />
+                                                )}
+                                            </span>
 
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block truncate text-[13px] leading-[1.25] font-semibold text-[#1c2431]">{product.name}</span>
-                                        {product.model ? (
-                                            <span className="mt-0.5 block text-[12px] leading-[1.2] text-[#7c8596]">Model: {product.model}</span>
-                                        ) : null}
-                                    </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-[13px] leading-[1.25] font-semibold text-[#1c2431]">{product.name}</span>
+                                                {product.subtitle || product.model ? (
+                                                    <span className="mt-0.5 block text-[12px] leading-[1.2] text-[#7c8596]">{product.subtitle ?? `Model: ${product.model}`}</span>
+                                                ) : null}
+                                            </span>
 
-                                    {product.price ? (
-                                        <span className="shrink-0 text-[13px] leading-none font-semibold text-[#1f2430]">{product.price}</span>
-                                    ) : null}
-                                </a>
+                                            {product.price ? (
+                                                <span className="shrink-0 text-[13px] leading-none font-semibold text-[#1f2430]">{product.price}</span>
+                                            ) : null}
+                                        </a>
+                                    ))}
+                                </div>
                             ))
                         )}
                     </div>
 
-                    {!isLoading && results.length > 0 ? (
+                    {!isLoading && totalResults > 0 ? (
                         <a
                             href={`/${localeCode}/products?q=${encodeURIComponent(value.trim())}`}
                             className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
                             onClick={() => setIsOpen(false)}
                         >
-                            Bütün axtarış nəticələri ({results.length})
+                            Bütün axtarış nəticələri ({totalResults})
                         </a>
                     ) : null}
                 </div>
