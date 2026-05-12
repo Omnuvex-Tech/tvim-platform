@@ -41,13 +41,13 @@ export default function CheckoutClient() {
         <div className="space-y-12">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
                 <section className="overflow-hidden rounded-[6px] bg-white">
-                <div>
+                <div className="space-y-6">
                     {items.map((it) => {
                         const unit = parsePrice(it.product.price);
                         return (
                             <div
                                 key={it.key}
-                                className="grid items-center gap-4 py-3 lg:grid-cols-[minmax(0,1fr)_132px_220px_32px] lg:gap-6"
+                                className="w-full grid items-center gap-4 py-0 lg:grid-cols-[minmax(0,1fr)_132px_220px_32px] lg:gap-6 bg-white first:rounded-t-[6px] last:rounded-b-[6px]"
                             >
                                 <div className="flex min-w-0 items-center gap-4 self-center">
                                     <div className="h-[144px] w-[144px] flex-none overflow-hidden rounded-[6px] bg-white">
@@ -118,7 +118,7 @@ export default function CheckoutClient() {
                     shipping={shipping}
                     subtotal={subtotal}
                     total={total}
-                    onCheckout={() => router.push("/checkout/complete")}
+                    onCheckout={() => {}}
                 />
             </div>
 

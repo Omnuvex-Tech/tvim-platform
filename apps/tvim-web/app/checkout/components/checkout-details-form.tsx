@@ -3,7 +3,7 @@ import { CreditCard, Landmark, Mail, MapPin, Phone, User, Wallet } from "lucide-
 
 const CheckoutDetailsForm = () => {
     return (
-        <div className="mt-4 border-t border-[#edf1f6] px-2 pb-2 pt-8 sm:px-4 lg:px-2">
+        <div className="mt-4 border-t border-[#edf1f6] px-0 pb-2 pt-8 sm:px-0 lg:px-0">
             <div className="space-y-9">
                 <section>
                     <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">1. Əlaqə məlumatları</h3>
