@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Image, { type StaticImageData } from "next/image";
-import styles from "./company-carousel.module.css";
+import styles from "../../styles/components/company-carousel.module.css";
 import { cn } from "../../lib/utils";
 
 export type Company = {

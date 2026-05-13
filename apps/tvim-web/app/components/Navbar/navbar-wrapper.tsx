@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import type { Language } from "@repo/types/types";
-import type { NavbarSearchSection } from "@repo/ui";
+import type { HeaderCategoryItem, Language } from "@repo/types/types";
+import type { NavbarMenuItem, NavbarSearchSection } from "@repo/ui";
 import { Navbar } from "@repo/ui";
 import { useCartStore, useLanguageStore } from "@/stores";
 import { config } from "@/config";
@@ -16,8 +16,8 @@ interface NavbarWrapperProps {
     locale: string;
     languages: Language[];
     searchPlaceholder?: string;
-    menuItems?: any[];
-    initialCatalogItems?: any[];
+    menuItems?: NavbarMenuItem[];
+    initialCatalogItems?: HeaderCategoryItem[];
 }
 
 type SessionUser = {
@@ -47,6 +47,38 @@ type SessionResponse = {
         user?: SessionUser | null;
     };
 };
+
+type LiveSearchEntry = {
+    id?: number | string;
+    product_id?: number | string;
+    slug?: string;
+    link?: string;
+    name?: string;
+    model?: string;
+    sku?: string;
+    discount_price?: number | string;
+    price?: number | string;
+    old_price?: number | string;
+    image?: string;
+};
+
+type LiveSearchSectionPayload = {
+    name?: string;
+    items?: LiveSearchEntry[];
+};
+
+type LiveSearchPayload = {
+    brands?: LiveSearchSectionPayload;
+    categories?: LiveSearchSectionPayload;
+    products?: LiveSearchSectionPayload;
+};
+
+type LiveSearchResponseData = {
+    data?: LiveSearchPayload;
+} & LiveSearchPayload;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
 
 const NavbarWrapper = ({
     logo,
@@ -190,7 +222,7 @@ const NavbarWrapper = ({
     const localizedMenuItems = useMemo(() => {
         if (!Array.isArray(menuItems)) return menuItems;
 
-        return menuItems.map((item: any) => {
+        return menuItems.map((item) => {
             const href = typeof item?.href === "string" ? item.href : "";
             if (!href || href === "#") return item;
 
@@ -250,15 +282,15 @@ const NavbarWrapper = ({
         const trimmedQuery = query.trim();
         if (!trimmedQuery) return [];
 
-        const response = await api.get<any>("/product/live-search", {
+        const response = await api.get<LiveSearchResponseData>("/product/live-search", {
             params: { q: trimmedQuery },
             locale: localeCode,
         });
 
         if (!response.success || !response.data) return [];
 
-        const payload = response.data?.data ?? response.data;
-        if (!payload || typeof payload !== "object") return [];
+        const payload = isRecord(response.data.data) ? response.data.data : response.data;
+        if (!isRecord(payload)) return [];
 
         const formatSearchPrice = (value: unknown) => {
             if (typeof value === "number" && Number.isFinite(value)) {
@@ -288,8 +320,9 @@ const NavbarWrapper = ({
 
             return items
                 .filter((item) => !!item && typeof item === "object")
-                .map((item: any) => {
-                    const modelText = String(item.model ?? item.sku ?? "").trim();
+                .map((item) => {
+                    const typedItem = item as LiveSearchEntry;
+                    const modelText = String(typedItem.model ?? typedItem.sku ?? "").trim();
                     const subtitle =
                         type === "brand"
                             ? "Brend"
@@ -300,13 +333,15 @@ const NavbarWrapper = ({
                                     : "";
 
                     return {
-                        id: item.id ?? item.product_id ?? item.slug ?? item.link ?? item.name ?? `${type}-item`,
-                        name: String(item.name ?? ""),
+                        id: typedItem.id ?? typedItem.product_id ?? typedItem.slug ?? typedItem.link ?? typedItem.name ?? `${type}-item`,
+                        name: String(typedItem.name ?? ""),
                         subtitle,
                         model: modelText,
-                        price: type === "product" ? formatSearchPrice(item.discount_price ?? item.price ?? item.old_price) : "",
-                        imageUrl: String(item.image ?? ""),
-                        href: toLocalizedHref(item.link),
+                        price: type === "product"
+                            ? formatSearchPrice(typedItem.discount_price ?? typedItem.price ?? typedItem.old_price)
+                            : "",
+                        imageUrl: String(typedItem.image ?? ""),
+                        href: toLocalizedHref(typedItem.link),
                         type,
                     };
                 })
@@ -316,18 +351,18 @@ const NavbarWrapper = ({
         const sections: NavbarSearchSection[] = [
             {
                 key: "brands",
-                name: String(payload?.brands?.name ?? "Brendlər"),
-                items: mapSectionItems(payload?.brands?.items, "brand"),
+                name: String(payload.brands?.name ?? "Brendlər"),
+                items: mapSectionItems(payload.brands?.items, "brand"),
             },
             {
                 key: "categories",
-                name: String(payload?.categories?.name ?? "Kateqoriyalar"),
-                items: mapSectionItems(payload?.categories?.items, "category"),
+                name: String(payload.categories?.name ?? "Kateqoriyalar"),
+                items: mapSectionItems(payload.categories?.items, "category"),
             },
             {
                 key: "products",
-                name: String(payload?.products?.name ?? "Məhsullar"),
-                items: mapSectionItems(payload?.products?.items, "product"),
+                name: String(payload.products?.name ?? "Məhsullar"),
+                items: mapSectionItems(payload.products?.items, "product"),
             },
         ];
 

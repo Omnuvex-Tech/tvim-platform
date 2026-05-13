@@ -1,1 +1,6 @@
-export type { RequestFormData, RequestFormProps } from "./request-form";
+export type {
+    RequestFormData,
+    RequestFormPlaceholders,
+    RequestFormSubmitConfig,
+    RequestFormProps,
+} from "./request-form";

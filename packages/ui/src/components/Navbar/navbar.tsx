@@ -30,10 +30,10 @@ import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
 import Spinner from "../Spinner/Spinner";
-import "./navbar.css";
+import "../../styles/components/navbar.css";
 
 const navbarClasses = {
-    root: "w-full overflow-x-clip bg-white font-[family-name:var(--font-inter)] border-b border-gray-200",
+    root: "w-full bg-white font-[family-name:var(--font-inter)]",
     container: "mx-auto flex w-full max-w-[1280px] flex-col",
     topRow: "flex items-center gap-1.5 pt-5 pb-2 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-5",
     bottomRow: "hidden items-center gap-5 py-3 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
@@ -1689,6 +1689,11 @@ export function Navbar({
                     <NavbarSearch searchPlaceholder={searchPlaceholder} compact locale={locale} onSearchProducts={onSearchProducts} />
                 </div>
             </div>
+
+            <div
+                aria-hidden="true"
+                className="h-px w-full bg-[#e5e7eb] [box-shadow:0_0_0_100vmax_rgb(229_231_235)] [clip-path:inset(0_-100vmax)]"
+            />
 
             <div
                 className={cn(

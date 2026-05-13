@@ -23,9 +23,14 @@ type VerificationResponse = {
     errors?: {
         email?: string[];
         code?: string[];
+        message?: string[];
+        password?: string[];
+        password_confirmation?: string[];
     };
     email?: string;
     code?: string;
+    password?: string | string[];
+    password_confirmation?: string | string[];
 };
 
 const OTP_LENGTH = 4;
@@ -41,11 +46,13 @@ const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
 const extractVerifyMessage = (payload: VerificationResponse, fallback: string) => {
     const codeError = Array.isArray(payload.errors?.code) ? payload.errors?.code[0] : undefined;
     const emailError = Array.isArray(payload.errors?.email) ? payload.errors?.email[0] : undefined;
+    const messageError = Array.isArray(payload.errors?.message) ? payload.errors?.message[0] : undefined;
     return (
         payload.data?.message ||
         payload.message ||
         payload.code ||
         payload.email ||
+        messageError ||
         codeError ||
         emailError ||
         fallback
@@ -57,8 +64,11 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
     const router = useRouter();
     const { locale: storedLocale } = useLanguageStore();
     const verifyUrl = useMemo(
-        () => normalizeApiUrl(config.api.url, config.endpoints.auth.emailVerify),
-        []
+        () =>
+            flow === "forgot"
+                ? normalizeApiUrl(config.api.url, config.endpoints.auth.otpVerify)
+                : normalizeApiUrl(config.api.url, config.endpoints.auth.emailVerify),
+        [flow]
     );
     const resendUrl = useMemo(
         () =>
@@ -173,26 +183,104 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
         setIsSubmitting(true);
 
         try {
-            const response = await fetch(verifyUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                },
-                body: JSON.stringify({
-                    email: normalizedEmail,
-                    code,
-                }),
-            });
+            const postVerify = async (url: string, body: Record<string, unknown>) => {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    },
+                    body: JSON.stringify(body),
+                });
 
+                let payload: VerificationResponse = {};
+                try {
+                    payload = (await response.json()) as VerificationResponse;
+                } catch {
+                    payload = {};
+                }
+
+                return { response, payload };
+            };
+
+            const verifyBodies: Array<Record<string, unknown>> =
+                flow === "forgot"
+                    ? [
+                        {
+                            email: normalizedEmail,
+                            code,
+                            otp: code,
+                            type: "forgot_password",
+                            verification_type: "forgot_password",
+                        },
+                        {
+                            email: normalizedEmail,
+                            code,
+                            otp: code,
+                            type: "password_reset",
+                            verification_type: "password_reset",
+                        },
+                        {
+                            email: normalizedEmail,
+                            code,
+                            otp: code,
+                            type: "reset_password",
+                            verification_type: "reset_password",
+                        },
+                        {
+                            email: normalizedEmail,
+                            code,
+                            otp: code,
+                            type: "password-reset",
+                            verification_type: "password-reset",
+                        },
+                        {
+                            email: normalizedEmail,
+                            code,
+                            otp: code,
+                        },
+                    ]
+                    : [
+                        {
+                            email: normalizedEmail,
+                            code,
+                        },
+                    ];
+
+            let response: Response | null = null;
             let payload: VerificationResponse = {};
-            try {
-                payload = (await response.json()) as VerificationResponse;
-            } catch {
-                payload = {};
+
+            for (const body of verifyBodies) {
+                const result = await postVerify(verifyUrl, body);
+                response = result.response;
+                payload = result.payload;
+
+                const hasMessageErrors =
+                    Array.isArray(payload.errors?.message) && payload.errors.message.length > 0;
+                const isFailure = !response.ok || payload.success === false || hasMessageErrors;
+                if (!isFailure) {
+                    break;
+                }
+
+                const message = extractVerifyMessage(payload, "").toLowerCase();
+                const isVerificationTypeError =
+                    message.includes("verification type") ||
+                    message.includes("selected verification type is invalid");
+
+                if (!(flow === "forgot" && isVerificationTypeError)) {
+                    break;
+                }
             }
 
-            if (!response.ok) {
+            if (!response) {
+                notify.error("Kod təsdiqlənmədi. Yenidən cəhd edin.");
+                return;
+            }
+
+            const hasMessageErrors = Array.isArray(payload.errors?.message) && payload.errors.message.length > 0;
+            const isFailure = !response.ok || payload.success === false || hasMessageErrors;
+
+            if (isFailure) {
                 notify.error(extractVerifyMessage(payload, "Kod təsdiqlənmədi. Yenidən cəhd edin."));
                 return;
             }

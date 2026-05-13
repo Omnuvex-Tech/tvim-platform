@@ -1,5 +1,7 @@
 import type {
     FooterMenusData,
+    HeaderCategoriesResponseData,
+    HeaderMenuResponseData,
     Language,
     ProjectSettingsData,
     ProjectSettingsResponseData,
@@ -7,6 +9,15 @@ import type {
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
+import {
+    extractHeaderCategories,
+    extractHeaderItems,
+    isCategoriesMenuType,
+    isHeaderEnabledItem,
+    isTopLevelHeaderItem,
+    resolveHeaderMenuHref,
+    resolveHeaderMenuLabel,
+} from "@/lib/header-navigation";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
@@ -51,54 +62,35 @@ export default async function HomePage({
             ? footerMenuResponse.data.footer
             : [];
 
-    const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
+    const headerMenuResponse = await api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
         params: { in_header: "1" },
         locale: normalizedLocale,
     });
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-
-    let headerItems: any[] = [];
-    if (Array.isArray(rawHeaderData)) headerItems = rawHeaderData;
-    else if (rawHeaderData) {
-        if (Array.isArray(rawHeaderData.header)) headerItems = rawHeaderData.header;
-        else if (Array.isArray(rawHeaderData.menus)) headerItems = rawHeaderData.menus;
-        else if (Array.isArray(rawHeaderData.items)) headerItems = rawHeaderData.items;
-        else if (Array.isArray(rawHeaderData.data)) headerItems = rawHeaderData.data;
-        else if (Array.isArray(rawHeaderData.footer)) headerItems = rawHeaderData.footer;
-    }
-
-    const headerTopLevel = headerItems.filter((it: any) => !it || !it.parent_id || Number(it.parent_id) === 0).filter(Boolean);
+    const headerItems = extractHeaderItems(rawHeaderData);
+    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
 
     const headerMenuItems = headerTopLevel
-        .filter((it: any) => (((it.type ?? "") + "").toString().toLowerCase() !== "categories"))
-        .map((it: any) => {
-            const hrefPart = (it.multi_links && it.multi_links[normalizedLocale]) || it.link || "";
-            const path = hrefPart ? `/${normalizedLocale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
-            return { label: it.name ?? it.title ?? it.link ?? "", href: path };
-        });
+        .filter((item) => !isCategoriesMenuType(item))
+        .map((item) => ({
+            label: resolveHeaderMenuLabel(item),
+            href: resolveHeaderMenuHref(item, normalizedLocale),
+        }))
+        .filter((item) => item.label);
 
-    const categoriesResponse = await api.get<any>("/product/categories", {
+    const categoriesResponse = await api.get<HeaderCategoriesResponseData>("/product/categories", {
         params: { in_header: "1" },
         locale: normalizedLocale,
     });
 
-    let headerCategoryItems: any[] = [];
+    let headerCategoryItems = [];
     if (categoriesResponse.success && categoriesResponse.data) {
-        const raw = categoriesResponse.data;
-        let items: any[] = [];
-        if (Array.isArray(raw)) items = raw;
-        else if (Array.isArray(raw.data)) items = raw.data;
-        else if (Array.isArray(raw.items)) items = raw.items;
-        else if (raw && typeof raw === "object") {
-            const arr = Object.values(raw).find((v) => Array.isArray(v));
-            if (Array.isArray(arr)) items = arr as any[];
-        }
-
-        const filtered = items.filter((it) => !!it && (it.in_header === true || it.in_header === 1 || it.in_header === "1" || it.in_header === "true"));
+        const items = extractHeaderCategories(categoriesResponse.data);
+        const filtered = items.filter(isHeaderEnabledItem);
         headerCategoryItems = filtered.length > 0 ? filtered : items;
     } else {
-        headerCategoryItems = headerTopLevel.filter((it: any) => (((it.type ?? "") + "").toString().toLowerCase() === "categories"));
+        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
     }
 
     let projectSettings: ProjectSettingsData | undefined;

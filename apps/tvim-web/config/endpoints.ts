@@ -3,6 +3,7 @@ export const endpoints = {
         login: "/customer/auth/login",
         register: "/customer/auth/register",
         forgotPassword: "/customer/auth/forgot-password",
+        otpVerify: "/customer/auth/otp/verify",
         resetPassword: "/customer/auth/reset-password",
         emailVerify: "/customer/auth/email/verify",
         emailResend: "/customer/auth/email/resend",

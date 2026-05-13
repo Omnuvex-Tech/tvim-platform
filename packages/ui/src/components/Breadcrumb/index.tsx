@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "../../lib/utils";
-import "./breadcrumb.css";
+import "../../styles/components/breadcrumb.css";
 
 export type BreadcrumbItem = {
     label: string;

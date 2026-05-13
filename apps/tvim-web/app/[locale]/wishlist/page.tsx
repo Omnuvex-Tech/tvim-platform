@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type {
     FooterMenusData,
+    HeaderCategoriesResponseData,
+    HeaderMenuResponseData,
     Language,
     ProjectSettingsData,
     ProjectSettingsResponseData,
@@ -9,6 +11,15 @@ import type {
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import {
+    extractHeaderCategories,
+    extractHeaderItems,
+    isCategoriesMenuType,
+    isHeaderEnabledItem,
+    isTopLevelHeaderItem,
+    resolveHeaderMenuHref,
+    resolveHeaderMenuLabel,
+} from "@/lib/header-navigation";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
@@ -34,21 +45,8 @@ const toPositiveNumber = (value: unknown) => {
     return Math.trunc(parsed);
 };
 
-const isRecord = (value: unknown): value is Record<string, any> => !!value && typeof value === "object" && !Array.isArray(value);
-
-const extractHeaderItems = (rawHeaderData: unknown) => {
-    if (Array.isArray(rawHeaderData)) return rawHeaderData;
-    if (!rawHeaderData || typeof rawHeaderData !== "object") return [];
-
-    const source = rawHeaderData as Record<string, unknown>;
-    if (Array.isArray(source.header)) return source.header;
-    if (Array.isArray(source.menus)) return source.menus;
-    if (Array.isArray(source.items)) return source.items;
-    if (Array.isArray(source.data)) return source.data;
-    if (Array.isArray(source.footer)) return source.footer;
-
-    return [];
-};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === "object" && !Array.isArray(value);
 
 const extractFavoriteItems = (payload: unknown) => {
     if (!isRecord(payload)) return [];
@@ -61,7 +59,7 @@ const extractFavoriteItems = (payload: unknown) => {
     return [];
 };
 
-const readString = (sources: Record<string, any>[], keys: string[]) => {
+const readString = (sources: Record<string, unknown>[], keys: string[]) => {
     for (const source of sources) {
         for (const key of keys) {
             const value = source[key];
@@ -74,7 +72,7 @@ const readString = (sources: Record<string, any>[], keys: string[]) => {
     return "";
 };
 
-const readNumber = (sources: Record<string, any>[], keys: string[]) => {
+const readNumber = (sources: Record<string, unknown>[], keys: string[]) => {
     for (const source of sources) {
         for (const key of keys) {
             const value = source[key];
@@ -113,23 +111,34 @@ const toAbsoluteAssetUrl = (value: string) => {
     }
 };
 
-const readImage = (sources: Record<string, any>[]) => {
+const firstRecord = (value: unknown): Record<string, unknown> | null => {
+    if (!Array.isArray(value)) return null;
+    const firstItem = value[0];
+    return isRecord(firstItem) ? firstItem : null;
+};
+
+const readImage = (sources: Record<string, unknown>[]) => {
     for (const source of sources) {
+        const mainImage = isRecord(source.main_image) ? source.main_image : null;
+        const image = isRecord(source.image) ? source.image : null;
+        const galleryFirst = firstRecord(source.gallery);
+        const imagesFirst = firstRecord(source.images);
+
         const candidates = [
             source.main_image,
-            source.main_image?.image_url,
-            source.main_image?.url,
+            mainImage?.image_url,
+            mainImage?.url,
             source.main_image_url,
-            source.image?.image_url,
-            source.image?.url,
+            image?.image_url,
+            image?.url,
             source.image,
             source.thumb,
             source.thumbnail,
             source.main_photo,
-            source.gallery?.[0]?.url,
-            source.gallery?.[0]?.image_url,
-            source.images?.[0]?.image_url,
-            source.images?.[0]?.url,
+            galleryFirst?.url,
+            galleryFirst?.image_url,
+            imagesFirst?.image_url,
+            imagesFirst?.url,
         ];
 
         for (const candidate of candidates) {
@@ -279,50 +288,35 @@ export default async function WishlistPage({
         locale,
     });
 
-    const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
+    const headerMenuResponse = await api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
         params: { in_header: "1" },
         locale,
     });
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems
-        .filter((item: any) => !item || !item.parent_id || Number(item.parent_id) === 0)
-        .filter(Boolean);
+    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
 
     const headerMenuItems = headerTopLevel
-        .filter((item: any) => (((item.type ?? "") + "").toLowerCase() !== "categories"))
-        .map((item: any) => {
-            const hrefPart = (item.multi_links && item.multi_links[locale]) || item.link || "";
-            const path = hrefPart ? `/${locale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
-            return { label: item.name ?? item.title ?? item.link ?? "", href: path };
-        });
+        .filter((item) => !isCategoriesMenuType(item))
+        .map((item) => ({
+            label: resolveHeaderMenuLabel(item),
+            href: resolveHeaderMenuHref(item, locale),
+        }))
+        .filter((item) => item.label);
 
-    const categoriesResponse = await api.get<any>("/product/categories", {
+    const categoriesResponse = await api.get<HeaderCategoriesResponseData>("/product/categories", {
         params: { in_header: "1" },
         locale,
     });
 
-    let headerCategoryItems: any[] = [];
+    let headerCategoryItems = [];
     if (categoriesResponse.success && categoriesResponse.data) {
-        const raw = categoriesResponse.data;
-        let items: any[] = [];
-        if (Array.isArray(raw)) items = raw;
-        else if (Array.isArray(raw.data)) items = raw.data;
-        else if (Array.isArray(raw.items)) items = raw.items;
-        else if (raw && typeof raw === "object") {
-            const arr = Object.values(raw).find((value) => Array.isArray(value));
-            if (Array.isArray(arr)) items = arr as any[];
-        }
-
-        const filtered = items.filter(
-            (item) =>
-                !!item &&
-                (item.in_header === true || item.in_header === 1 || item.in_header === "1" || item.in_header === "true")
-        );
+        const items = extractHeaderCategories(categoriesResponse.data);
+        const filtered = items.filter(isHeaderEnabledItem);
         headerCategoryItems = filtered.length > 0 ? filtered : items;
     } else {
-        headerCategoryItems = headerTopLevel.filter((item: any) => (((item.type ?? "") + "").toLowerCase() === "categories"));
+        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
     }
 
     const footerMenus = footerMenuResponse.success && footerMenuResponse.data

@@ -28,6 +28,7 @@ const Footer = ({
     const lgColsClass = hasCategory
         ? "lg:grid-cols-[2.35fr_1.8fr_0.95fr_1.3fr_1.7fr]"
         : "lg:grid-cols-[2.35fr_0.95fr_1.3fr_1.7fr]";
+    const rightsColClass = hasCategory ? "lg:col-start-5" : "lg:col-start-4";
     return (
         <footer
             data-slot="footer"
@@ -107,7 +108,12 @@ const Footer = ({
                                         const content = (
                                             <>
                                                 {item.icon ? (
-                                                    <span className="mt-0.5 flex size-[38px] shrink-0 items-center justify-center rounded-full border border-[#d6d9de] text-[#2f5dff]">
+                                                    <span
+                                                        className={cn(
+                                                            "flex size-[38px] shrink-0 items-center justify-center rounded-full border border-[#d6d9de] text-[#2f5dff]",
+                                                            item.href ? "mt-0.5" : "-mt-0.5"
+                                                        )}
+                                                    >
                                                         {item.icon}
                                                     </span>
                                                 ) : null}
@@ -141,9 +147,9 @@ const Footer = ({
             </div>
 
             {socials.length > 0 ? (
-                <div className="w-full bg-black/5">
-                    <div className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-2.5 px-4 py-3 sm:flex-row sm:justify-between sm:items-center sm:px-6 lg:px-8">
-                        <div className="flex flex-wrap items-center justify-start gap-2.5">
+                <div className="w-full bg-black/5 [box-shadow:0_0_0_100vmax_rgba(0,0,0,0.05)] [clip-path:inset(0_-100vmax)]">
+                    <div className={cn("mx-auto w-full max-w-[1280px] px-4 py-3 sm:px-6 lg:px-0 lg:grid lg:items-center", lgColsClass)}>
+                        <div className="flex flex-wrap items-center justify-start gap-2.5 lg:col-start-1">
                             {socials.map((item, index) => (
                                 <a
                                     key={item.label}
@@ -159,7 +165,9 @@ const Footer = ({
                             ))}
                         </div>
 
-                        <p className="text-[14px] font-normal text-[#61656c] text-left">Bütün hüquqlar qorunur © 2016—2025</p>
+                        <p className={cn("mt-2 text-left text-[14px] font-normal text-[#61656c] sm:mt-0 sm:text-right lg:justify-self-end", rightsColClass)}>
+                            Bütün hüquqlar qorunur © 2016—2025
+                        </p>
                     </div>
                 </div>
             ) : null}

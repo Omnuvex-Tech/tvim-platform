@@ -19,6 +19,11 @@ type CartItem = {
     quantity: number;
 };
 
+type AddToCartPayload = {
+    product_variation_id: number;
+    quantity: number;
+};
+
 type CartState = {
     isCartModalOpen: boolean;
     items: CartItem[];
@@ -98,7 +103,7 @@ export const useCartStore = create<CartState & CartActions>()(
 
                 try {
                     // attempt to call remote API if available; ignore failures and fallback to local add
-                    const payload: any = {
+                    const payload: AddToCartPayload = {
                         product_variation_id: product.productVariationId ?? product.id,
                         quantity: 1,
                     };

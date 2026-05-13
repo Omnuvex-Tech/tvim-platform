@@ -140,7 +140,7 @@ const mapSettingsToContacts = (settings: ProjectSettingsData): FooterContactItem
     if (settings.general.address) {
         contacts.push({
             label: settings.general.address,
-            icon: <i className="fas fa-map-marker-alt text-[16px]" aria-hidden="true" />,
+            icon: <i className="fas fa-map-marker-alt -mt-[2px] text-[16px]" aria-hidden="true" />,
         });
     }
 

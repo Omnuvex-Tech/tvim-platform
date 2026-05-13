@@ -6,6 +6,7 @@ import { useNotify } from "@repo/ui";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 import { useCartStore } from "@/stores";
+import { QuickOrderPopup } from "./quick-order-popup";
 
 type ApiItem = any;
 
@@ -270,6 +271,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const [visibleCount, setVisibleCountState] = useState<number>(1);
     const [index, setIndex] = useState<number>(0);
     const [useNativeTouchScroll, setUseNativeTouchScroll] = useState(false);
+    const [quickOrderProduct, setQuickOrderProduct] = useState<Product | null>(null);
 
     // Drag state (pointer-based) for all screen sizes
     const isDraggingRef = useRef(false);
@@ -452,6 +454,10 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         }
     };
 
+    const closeQuickOrderPopup = () => {
+        setQuickOrderProduct(null);
+    };
+
     const handleCompareToggle = async (product: Product) => {
         const variationId = product.productVariationId;
 
@@ -545,7 +551,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
 
     const handleCartClick = async (product: Product) => {
         if (product.cartVariant !== "blue") {
-            notify.error("Məhsul stokda yoxdur");
+            setQuickOrderProduct(product);
             return;
         }
 
@@ -939,6 +945,13 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                 </div>
             </div>
         </section>
+
+        <QuickOrderPopup
+            isOpen={Boolean(quickOrderProduct)}
+            productTitle={quickOrderProduct?.title ?? ""}
+            productCode={quickOrderProduct ? String(quickOrderProduct.id) : ""}
+            onClose={closeQuickOrderPopup}
+        />
         
         </>
     );
