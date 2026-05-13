@@ -1278,16 +1278,16 @@ export function Navbar({
 
         return (
             <div key={child.id} className="min-w-0 p-0">
-                <div className="flex items-start gap-3 px-0 py-4 rounded-md h-full">
-                    <div className="hidden lg:flex h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
+                <div className="flex items-start gap-2.5 px-0 py-4 rounded-md h-full">
+                    <div className="hidden lg:flex h-8 w-10 flex-shrink-0 items-start justify-center pt-0.5">
                         {child.icon && child.icon.image_url ? (
-                            <img src={child.icon.image_url} alt={child.name ?? ""} className="h-full w-full object-cover" />
+                            <img src={child.icon.image_url} alt={child.name ?? ""} className="h-7 w-10 object-contain" />
                         ) : (
-                            <ParentCategoryIcon category={child} className="size-[14px] lg:size-[18px] lg:text-[#131722]" />
+                            <ParentCategoryIcon category={child} className="size-[16px] text-[#131722]" />
                         )}
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-2">
+                    <div className="flex-1 flex flex-col gap-1.5">
                         <a href={childHref} className="text-[13.3px] leading-[1.2] font-bold text-[#131722] whitespace-normal break-words transition-colors duration-100 hover:text-[#00a9c8]">
                             {child.name ?? child.title ?? child.link}
                         </a>
@@ -1381,31 +1381,31 @@ export function Navbar({
                     return (
                         <li key={item.id} className="border-b border-[#e5e7eb] last:border-b-0">
                             <div
-                                className="flex items-center justify-between gap-3 rounded-lg px-0 py-2 text-left lg:px-0 lg:py-3"
+                                className="flex items-center justify-between gap-2 rounded-none px-0 py-2 text-left lg:px-0 lg:py-3"
                                 style={{ paddingLeft: rowIndent }}
                             >
-                                <a href={href} className="flex items-center gap-3 flex-1" onClick={() => setIsCatalogOpen(false)}>
+                                <a href={href} className="flex items-center gap-2.5 flex-1" onClick={() => setIsCatalogOpen(false)}>
                                     {isRoot ? (
-                                        <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-md lg:h-10 lg:w-10">
+                                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
                                             {item.icon && item.icon.image_url ? (
-                                                <img src={item.icon.image_url} alt={item.name ?? ""} className="h-full w-full object-cover" />
+                                                <img src={item.icon.image_url} alt={item.name ?? ""} className="h-3.5 w-3.5 object-contain lg:h-7 lg:w-7" />
                                             ) : (
-                                                <ParentCategoryIcon category={item} className="size-[14px] lg:size-[18px]" />
+                                                <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px]" />
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-md lg:h-10 lg:w-10">
-                                            <div className="hidden lg:block h-full w-full">
+                                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
+                                            <div className="h-full w-full">
                                                 {item.icon && item.icon.image_url ? (
-                                                    <img src={item.icon.image_url} alt={item.name ?? ""} className="h-full w-full object-cover" />
+                                                    <img src={item.icon.image_url} alt={item.name ?? ""} className="h-3.5 w-3.5 object-contain lg:h-full lg:w-full lg:object-cover" />
                                                 ) : (
-                                                    <ParentCategoryIcon category={item} className="size-[14px] lg:size-[18px] lg:text-[#131722]" />
+                                                    <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px] lg:text-[#131722]" />
                                                 )}
                                             </div>
                                         </div>
                                     )}
 
-                                    <span className={cn("text-[14px] text-[#131722]", isRoot ? "font-bold" : "font-normal")}>{item.name ?? item.title ?? item.link}</span>
+                                    <span className={cn("text-[11px] leading-[1.2] text-[#131722]", isRoot ? "font-semibold" : "font-normal")}>{item.name ?? item.title ?? item.link}</span>
                                 </a>
 
                                 {hasChildren && (
@@ -1417,9 +1417,9 @@ export function Navbar({
                                             e.stopPropagation();
                                             toggleMobileExpanded(Number(item.id));
                                         }}
-                                        className="inline-flex cursor-pointer touch-manipulation items-center justify-center rounded-full p-2 text-[#1d2230] hover:bg-[#f3f4f6]"
+                                        className="inline-flex cursor-pointer touch-manipulation items-center justify-center rounded-full p-1.5 text-[#1d2230] hover:bg-[#f3f4f6]"
                                     >
-                                        <ChevronDown className={cn("mobile-catalog-chevron size-5 shrink-0", expanded && "is-expanded")} strokeWidth={2} />
+                                        <ChevronDown className={cn("mobile-catalog-chevron size-3.5 shrink-0", expanded && "is-expanded")} strokeWidth={2} />
                                     </button>
                                 )}
                             </div>
@@ -1828,21 +1828,21 @@ export function Navbar({
 
             <aside
                 className={cn(
-                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-full max-w-none overflow-y-auto bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] lg:hidden",
+                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-[84%] max-w-[320px] overflow-y-auto bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] lg:hidden",
                     isCatalogOpen && "is-active"
                 )}
                 ref={mobileCatalogRef}
                 aria-hidden={!isCatalogOpen}
             >
-                <div className="flex items-center justify-between px-6 lg:px-4 pt-4 pb-3 bg-[#003dff] text-white">
-                    <div className="flex items-center gap-2">
-                        <Grid2X2 className="size-[18px] text-white" />
-                        <span className="text-[16px] font-bold">Kataloq</span>
+                <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5 bg-[#003dff] text-white">
+                    <div className="flex items-center gap-1.5">
+                        <Grid2X2 className="size-[11px] text-white" />
+                        <span className="text-[10px] font-semibold">Kataloq</span>
                     </div>
                     <button
                         type="button"
                         aria-label="Kataloqu bağla"
-                        className="inline-flex size-9 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] text-white transition-colors hover:bg-white/10"
+                        className="inline-flex size-5 cursor-pointer touch-manipulation items-center justify-center rounded-[6px] text-white transition-colors hover:bg-white/10"
                         onPointerDown={(e) => {
                             if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
                                 e.preventDefault();
@@ -1853,11 +1853,11 @@ export function Navbar({
                             if (e.detail === 0) setIsCatalogOpen(false);
                         }}
                     >
-                        <X className="size-5 shrink-0 text-white" />
+                        <X className="size-3 shrink-0 text-white" />
                     </button>
                 </div>
 
-                <div className="pl-4 pr-6 lg:pl-1 lg:pr-3 lg:py-4">
+                <div className="px-2 pb-2 lg:pl-1 lg:pr-3 lg:py-4">
                     {renderMobileTree(rootCategories)}
                 </div>
             </aside>
