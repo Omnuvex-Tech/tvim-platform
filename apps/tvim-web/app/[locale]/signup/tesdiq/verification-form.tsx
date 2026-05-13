@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Mail } from "lucide-react";
+import { CheckCircle2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
@@ -80,6 +80,10 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
     const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(""));
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isResending, setIsResending] = useState(false);
+    const [password, setPassword] = useState("");
+    const [passwordConfirm, setPasswordConfirm] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     const effectiveLocale = useMemo(() => {
@@ -180,6 +184,23 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
             return;
         }
 
+        if (flow === "forgot") {
+            if (!password) {
+                notify.error("Zəhmət olmasa yeni şifrənizi daxil edin.");
+                return;
+            }
+
+            if (!passwordConfirm) {
+                notify.error("Zəhmət olmasa şifrə təsdiqini daxil edin.");
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                notify.error("Şifrələr uyğun deyil.");
+                return;
+            }
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -212,6 +233,8 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                             otp: code,
                             type: "forgot_password",
                             verification_type: "forgot_password",
+                            password,
+                            password_confirmation: passwordConfirm,
                         },
                         {
                             email: normalizedEmail,
@@ -219,6 +242,8 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                             otp: code,
                             type: "password_reset",
                             verification_type: "password_reset",
+                            password,
+                            password_confirmation: passwordConfirm,
                         },
                         {
                             email: normalizedEmail,
@@ -226,6 +251,8 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                             otp: code,
                             type: "reset_password",
                             verification_type: "reset_password",
+                            password,
+                            password_confirmation: passwordConfirm,
                         },
                         {
                             email: normalizedEmail,
@@ -233,11 +260,15 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                             otp: code,
                             type: "password-reset",
                             verification_type: "password-reset",
+                            password,
+                            password_confirmation: passwordConfirm,
                         },
                         {
                             email: normalizedEmail,
                             code,
                             otp: code,
+                            password,
+                            password_confirmation: passwordConfirm,
                         },
                     ]
                     : [
@@ -287,6 +318,14 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
 
             if (flow === "forgot") {
                 notify.success(extractVerifyMessage(payload, "Kod uğurla təsdiqləndi."));
+
+                // If user provided a new password in this step, assume the server reset it
+                // and redirect to signin. Otherwise, navigate to the reset-password page.
+                if (password) {
+                    router.push(`/${effectiveLocale}/signin`);
+                    return;
+                }
+
                 const nextEmail = encodeURIComponent(normalizedEmail);
                 const nextCode = encodeURIComponent(code);
                 router.push(`/${effectiveLocale}/forgot-password/reset-password?email=${nextEmail}&code=${nextCode}`);
@@ -380,6 +419,62 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                     />
                 ))}
             </div>
+
+            {flow === "forgot" && (
+                <div className="mt-4 space-y-3">
+                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                        <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder=""
+                            aria-label="Yeni şifrə"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="h-full w-full bg-transparent pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        />
+                        <span
+                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${password ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                        >
+                            Yeni şifrə
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className="absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer text-[#8ea1bf]"
+                            aria-label="Şifrəni göstər/gizlət"
+                        >
+                            {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                        </button>
+                    </label>
+
+                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                        <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
+                        <input
+                            type={showPasswordConfirmation ? "text" : "password"}
+                            placeholder=""
+                            aria-label="Şifrə təsdiqi"
+                            autoComplete="new-password"
+                            value={passwordConfirm}
+                            onChange={(e) => setPasswordConfirm(e.target.value)}
+                            className="h-full w-full bg-transparent pr-14 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                        />
+                        <span
+                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${passwordConfirm ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                        >
+                            Şifrə təsdiqi
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                            className="absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer text-[#8ea1bf]"
+                            aria-label="Şifrə təsdiqini göstər/gizlət"
+                        >
+                            {showPasswordConfirmation ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                        </button>
+                    </label>
+                </div>
+            )}
 
             <div className="mt-7 text-center">
                 <button

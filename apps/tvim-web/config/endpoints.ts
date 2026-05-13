@@ -5,6 +5,7 @@ export const endpoints = {
         forgotPassword: "/customer/auth/forgot-password",
         otpVerify: "/customer/auth/otp/verify",
         resetPassword: "/customer/auth/reset-password",
+        otpVerify: "/customer/auth/otp/verify",
         emailVerify: "/customer/auth/email/verify",
         emailResend: "/customer/auth/email/resend",
         logout: "/customer/auth/logout",
@@ -49,12 +50,12 @@ export const endpoints = {
     favorites: {
         list: "/favorites",
         toggle: "/favorites/toggle",
-        token: "/favorites/token",
+        token: "/guest-token",
     },
 
     compare: {
         list: "/compare",
         toggle: "/compare/toggle",
-        token: "/compare/token",
+        token: "/guest-token",
     },
 } as const;

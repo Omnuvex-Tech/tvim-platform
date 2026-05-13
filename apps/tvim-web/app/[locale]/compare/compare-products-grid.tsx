@@ -48,6 +48,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
     const [columnWidth, setColumnWidth] = useState<number>(initialSizes.columnWidth);
     const [isDesktop, setIsDesktop] = useState<boolean>(initialSizes.isDesktop);
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const maxVisibleColumns = 4;
 
     useEffect(() => {
         const update = () => {
@@ -55,8 +56,9 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
             const colW = w < 640 ? 220 : w < 1024 ? 260 : 280;
             setColumnWidth(colW);
 
+            const columns = Math.max(items.length, maxVisibleColumns);
             const containerWidth = containerRef.current?.clientWidth ?? w;
-            const canStretch = Number.isFinite(containerWidth) && containerWidth >= items.length * colW;
+            const canStretch = Number.isFinite(containerWidth) && containerWidth >= columns * colW;
             setIsDesktop(!!canStretch);
         };
 
@@ -176,6 +178,13 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
         );
     }
 
+    const useFlexibleColumns = items.length <= maxVisibleColumns;
+    const columnsForTemplate = useFlexibleColumns ? maxVisibleColumns : items.length;
+    const gridTemplate = useFlexibleColumns
+        ? `repeat(${columnsForTemplate}, minmax(${columnWidth}px, 1fr))`
+        : `repeat(${columnsForTemplate}, ${columnWidth}px)`;
+    const gridWidth = useFlexibleColumns ? "100%" : `${columnsForTemplate * columnWidth}px`;
+
     return (
         <>
             <label className="mb-[15px] inline-flex cursor-pointer select-none items-center gap-2 pl-2.5 font-[500] text-[#888]">
@@ -203,11 +212,10 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
             <div className="mt-0 overflow-x-auto">
                 <div
                     ref={containerRef}
-                    className="grid gap-0 mx-auto"
+                    className="grid gap-0 justify-start"
                     style={{
-                        gridTemplateColumns: `repeat(${items.length}, minmax(${columnWidth}px, 1fr))`,
-                        width: "100%",
-                        minWidth: `${items.length * columnWidth}px`,
+                        gridTemplateColumns: gridTemplate,
+                        width: gridWidth,
                     } as React.CSSProperties}
                 >
                     {items.map((item, index) => {
@@ -222,7 +230,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                         return (
                             <article
                                 key={itemKey}
-                                className={`group relative flex h-full flex-col rounded-none border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center ${index > 0 ? "-ml-px" : ""}`}
+                                className={`group relative flex h-full flex-col rounded-none border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-left ${index > 0 ? "-ml-px" : ""}`}
                             >
                                 {typeof item.discount_percent === "number" && item.discount_percent > 0 ? (
                                     <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
@@ -266,7 +274,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
 
                                     {href ? (
                                         <Link href={href} className="block w-full">
-                                            <span className="mx-auto mt-2 inline-flex h-[150px] w-full max-w-[165px] items-center justify-center overflow-hidden rounded-none">
+                                            <span className="mt-2 inline-flex h-[150px] w-full max-w-[165px] items-start justify-start overflow-hidden rounded-none">
                                                 {item.main_image ? (
                                                     <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
                                                 ) : null}
@@ -275,7 +283,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                         </Link>
                                     ) : (
                                         <div className="w-full">
-                                            <span className="mx-auto mt-2 inline-flex h-[150px] w-full max-w-[165px] items-center justify-center overflow-hidden rounded-none">
+                                            <span className="mt-2 inline-flex h-[150px] w-full max-w-[165px] items-start justify-start overflow-hidden rounded-none">
                                                 {item.main_image ? (
                                                     <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
                                                 ) : null}
@@ -284,7 +292,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                         </div>
                                     )}
 
-                                    <div className="mt-2 flex items-center justify-center gap-1">
+                                    <div className="mt-2 flex items-center justify-start gap-1">
                                         <i className="far fa-star text-[18px] text-[#d2d7e2]" aria-hidden="true" />
                                         <i className="far fa-star text-[18px] text-[#d2d7e2]" aria-hidden="true" />
                                         <i className="far fa-star text-[18px] text-[#d2d7e2]" aria-hidden="true" />

@@ -54,7 +54,7 @@ const ResetPasswordForm = ({ locale, email, code }: ResetPasswordFormProps) => {
     const { locale: storedLocale } = useLanguageStore();
 
     const resetPasswordUrl = useMemo(
-        () => normalizeApiUrl(config.api.url, config.endpoints.auth.resetPassword),
+        () => normalizeApiUrl(config.api.url, config.endpoints.auth.otpVerify),
         []
     );
 
@@ -119,6 +119,7 @@ const ResetPasswordForm = ({ locale, email, code }: ResetPasswordFormProps) => {
                     code,
                     password: formData.password,
                     password_confirmation: formData.password_confirmation,
+                    type: "password_reset",
                 }),
             });
 

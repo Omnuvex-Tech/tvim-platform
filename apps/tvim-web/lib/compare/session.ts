@@ -1,36 +1,17 @@
-export const COMPARE_GUEST_TOKEN_COOKIE = "tvim_compare_guest_token";
+import {
+    GUEST_TOKEN_COOKIE,
+    GUEST_TOKEN_MAX_AGE_SECONDS,
+    guestCookieOptions,
+    encodeGuestTokenForCookie,
+    decodeGuestTokenFromCookie,
+} from "@/lib/guest/session";
 
-export const COMPARE_GUEST_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
+export const COMPARE_GUEST_TOKEN_COOKIE = GUEST_TOKEN_COOKIE;
 
-const decodeCookieValue = (value: string) => {
-    let current = value;
+export const COMPARE_GUEST_TOKEN_MAX_AGE_SECONDS = GUEST_TOKEN_MAX_AGE_SECONDS;
 
-    for (let i = 0; i < 3; i += 1) {
-        try {
-            const next = decodeURIComponent(current);
-            if (next === current) break;
-            current = next;
-        } catch {
-            break;
-        }
-    }
+export const compareCookieOptions = guestCookieOptions;
 
-    return current;
-};
+export const encodeCompareTokenForCookie = encodeGuestTokenForCookie;
 
-export const compareCookieOptions = () => ({
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: COMPARE_GUEST_TOKEN_MAX_AGE_SECONDS,
-});
-
-export const encodeCompareTokenForCookie = (token: string) => encodeURIComponent(token);
-
-export const decodeCompareTokenFromCookie = (value?: string) => {
-    if (!value) return null;
-
-    const decoded = decodeCookieValue(value).trim();
-    return decoded || null;
-};
+export const decodeCompareTokenFromCookie = decodeGuestTokenFromCookie;
