@@ -26,6 +26,7 @@ export const endpoints = {
     
     menus: {
         list: "/menus",
+        detail: (link: string) => `/menus/detail?link=${link}`,
     },
 
     settings: {
