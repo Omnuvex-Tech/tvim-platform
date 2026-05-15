@@ -43,7 +43,9 @@ export const endpoints = {
 
     products: {
         list: "/products",
+        paginatedList: "/product/list",
         detail: (slug: string) => `/products/${slug}`,
+        detailBySlug: (slug: string) => `/product/detail/${slug}`,
         categories: "/categories",
     },
 

@@ -302,12 +302,29 @@ function getParentIcon(name: string) {
     return Grid2X2;
 }
 
+function isOfficeCategory(name: string) {
+    const normalized = name.toLocaleLowerCase("az");
+    return (
+        normalized.includes("ofis") ||
+        normalized.includes("office") ||
+        normalized.includes("ləvazimat") ||
+        normalized.includes("levazimat")
+    );
+}
+
 function ParentCategoryIcon({ category, className }: { category: any; className?: string }) {
-    if (category?.icon?.image_url) {
+    const categoryName = String(category?.name ?? category?.title ?? category?.link ?? "");
+    const forceOfficeFallback = isOfficeCategory(categoryName);
+
+    if (forceOfficeFallback) {
+        return <Briefcase className={cn("size-[15px] shrink-0 text-[#131722]", className)} strokeWidth={2.8} />;
+    }
+
+    if (category?.icon?.image_url && !forceOfficeFallback) {
         return <img src={category.icon.image_url} alt={category.name ?? ""} className={cn("h-4 w-4 shrink-0 object-cover", className)} />;
     }
 
-    const Icon = getParentIcon(category?.name ?? category?.title ?? category?.link ?? "");
+    const Icon = getParentIcon(categoryName);
     return <Icon className={cn("size-[16px] shrink-0", className)} strokeWidth={2.2} />;
 }
 
@@ -1278,13 +1295,9 @@ export function Navbar({
 
         return (
             <div key={child.id} className="min-w-0 p-0">
-                <div className="flex items-start gap-2.5 px-0 py-4 rounded-md h-full">
-                    <div className="hidden lg:flex h-8 w-10 flex-shrink-0 items-start justify-center pt-0.5">
-                        {child.icon && child.icon.image_url ? (
-                            <img src={child.icon.image_url} alt={child.name ?? ""} className="h-7 w-10 object-contain" />
-                        ) : (
-                            <ParentCategoryIcon category={child} className="size-[16px] text-[#131722]" />
-                        )}
+                <div className="flex items-start gap-1.5 px-0 py-4 rounded-md h-full">
+                    <div className="hidden lg:flex h-8 w-8 flex-shrink-0 items-start justify-center pt-1.5">
+                        <ParentCategoryIcon category={child} className="size-[16px] text-[#131722]" />
                     </div>
 
                     <div className="flex-1 flex flex-col gap-1.5">
@@ -1387,20 +1400,12 @@ export function Navbar({
                                 <a href={href} className="flex items-center gap-2.5 flex-1" onClick={() => setIsCatalogOpen(false)}>
                                     {isRoot ? (
                                         <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
-                                            {item.icon && item.icon.image_url ? (
-                                                <img src={item.icon.image_url} alt={item.name ?? ""} className="h-3.5 w-3.5 object-contain lg:h-7 lg:w-7" />
-                                            ) : (
-                                                <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px]" />
-                                            )}
+                                            <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px]" />
                                         </div>
                                     ) : (
                                         <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
                                             <div className="h-full w-full">
-                                                {item.icon && item.icon.image_url ? (
-                                                    <img src={item.icon.image_url} alt={item.name ?? ""} className="h-3.5 w-3.5 object-contain lg:h-full lg:w-full lg:object-cover" />
-                                                ) : (
-                                                    <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px] lg:text-[#131722]" />
-                                                )}
+                                                <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px] lg:text-[#131722]" />
                                             </div>
                                         </div>
                                     )}
@@ -1828,13 +1833,13 @@ export function Navbar({
 
             <aside
                 className={cn(
-                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-[84%] max-w-[320px] overflow-y-auto bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] lg:hidden",
+                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-full max-w-none overflow-y-auto bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] lg:hidden",
                     isCatalogOpen && "is-active"
                 )}
                 ref={mobileCatalogRef}
                 aria-hidden={!isCatalogOpen}
             >
-                <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5 bg-[#003dff] text-white">
+                <div className="flex items-center justify-between px-2.5 py-4 bg-[#003dff] text-white">
                     <div className="flex items-center gap-1.5">
                         <Grid2X2 className="size-[11px] text-white" />
                         <span className="text-[10px] font-semibold">Kataloq</span>

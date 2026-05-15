@@ -65,6 +65,7 @@ type MainPageBrandRawItem = {
     id?: string | number;
     name?: string;
     title?: string;
+    slug?: string;
     image?: string;
     image_url?: string;
     logo?: string;
@@ -165,12 +166,65 @@ function mapCategoryItems(block: MainPageBlock): CategoryStripItem[] {
 function mapPartnerCompanies(block: MainPageBlock) {
     const rawItems = (Array.isArray(block?.data?.items) ? block.data.items : []) as MainPageBrandRawItem[];
 
+    const toSlug = (value: string) => value
+        .toLowerCase()
+        .trim()
+        .replace(/\?.*$/, "")
+        .replace(/#.*$/, "")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    const resolveBrandHref = (item: MainPageBrandRawItem) => {
+        const rawSlug = String(item?.slug ?? "").trim();
+        if (rawSlug) {
+            return `/brands/${rawSlug.replace(/^\/+/, "")}`;
+        }
+
+        const rawLink = String(item?.link ?? item?.url ?? "").trim();
+        if (rawLink) {
+            if (/^https?:\/\//i.test(rawLink)) {
+                return rawLink;
+            }
+
+            const cleanedPath = rawLink
+                .replace(/^\/+/, "")
+                .replace(/^[a-z]{2}\//i, "")
+                .replace(/^brands?\//i, "")
+                .replace(/\?.*$/, "")
+                .replace(/#.*$/, "")
+                .trim();
+
+            if (cleanedPath) {
+                const candidateSlug = cleanedPath.split("/").filter(Boolean).pop() ?? "";
+                if (candidateSlug) {
+                    return `/brands/${candidateSlug}`;
+                }
+            }
+        }
+
+        const rawName = String(item?.name ?? item?.title ?? "").trim();
+        const normalizedNameSlug = toSlug(rawName);
+        if (normalizedNameSlug) {
+            return `/brands/${normalizedNameSlug}`;
+        }
+
+        const rawId = String(item?.value_id ?? item?.id ?? "").trim();
+        if (rawId) {
+            return `/brands/${rawId.replace(/\s+/g, "-")}`;
+        }
+
+        const website = String(item?.website ?? "").trim();
+        return website || undefined;
+    };
+
     const mapped = rawItems
         .map((it, idx: number): Company => ({
             id: String(it?.value_id ?? it?.id ?? `company-${idx}`),
             name: it?.name ?? it?.title ?? "",
             logo: it?.image ?? it?.image_url ?? it?.logo ?? mitreapelLogo,
-            url: (it?.url ?? it?.link ?? it?.website ?? "").toString().trim() || undefined,
+            url: resolveBrandHref(it),
         }))
         .filter((company) => Boolean(company.name))
         .slice(0, 20);

@@ -221,7 +221,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                 name: v?.name ?? v?.title ?? "",
                 logo: v?.image ?? v?.image_url ?? v?.logo ?? null,
                 url: v?.slug
-                    ? `/${normalizedLocale}/brand/${String(v.slug)}`
+                    ? `/brands/news/${String(v.slug)}`
                     : (v?.url ?? v?.link ?? v?.website ?? "").toString().trim() || undefined,
             }))
             .filter((c) => Boolean(c.name));
@@ -313,9 +313,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                         </div>
                     </div>
 
-                    <div className="mt-8 lg:mt-12">
-                        <RequestForm submitConfig={pageData.submit} />
-                    </div>
+            
                 </section>
 
                     {includedItems.length > 0 && (
@@ -351,13 +349,18 @@ export default async function DynamicMenuPage({ params }: Props) {
                 <LogoutToast />
 
                 {keywordsArr.length > 0 && (
-                    <div className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2">
-                        <div className="mt-6 flex flex-wrap gap-3 justify-start">
+                    <div className="mx-auto mt-40 w-full max-w-[1120px] !px-1 lg:!px-2">
+                        <div className="border-t border-[#e5e9ef] pt-4">
+                            <div className="flex flex-wrap justify-start gap-2">
                             {keywordsArr.map((kw, i) => (
-                                <span key={i} className="inline-flex items-center rounded-full border border-[#e6ebf3] bg-white px-4 py-1 text-[#6b7280] text-sm">
+                                <span
+                                    key={i}
+                                    className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
+                                >
                                     {kw}
                                 </span>
                             ))}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -443,13 +446,18 @@ export default async function DynamicMenuPage({ params }: Props) {
             <LogoutToast />
 
             {keywordsArr.length > 0 && (
-                <div className={`mx-auto w-full ${isContentView ? "max-w-[1280px] !px-1 lg:!px-2" : "max-w-[1280px]"}`}>
-                    <div className="mt-6 flex flex-wrap gap-3 justify-start">
-                        {keywordsArr.map((kw, i) => (
-                            <span key={i} className="inline-flex items-center rounded-full border border-[#e6ebf3] bg-white px-4 py-1 text-[#6b7280] text-sm">
-                                {kw}
-                            </span>
-                        ))}
+                <div className={`mx-auto mt-40 w-full ${isContentView ? "max-w-[1120px] !px-1 lg:!px-2" : "max-w-[1120px]"}`}>
+                    <div className="border-t border-[#e5e9ef] pt-4">
+                        <div className="flex flex-wrap justify-start gap-2">
+                            {keywordsArr.map((kw, i) => (
+                                <span
+                                    key={i}
+                                    className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
+                                >
+                                    {kw}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

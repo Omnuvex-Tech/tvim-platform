@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import Link from "next/link";
 import Image, { type StaticImageData } from "next/image";
 import styles from "../../styles/components/company-carousel.module.css";
 import { cn } from "../../lib/utils";
@@ -40,6 +41,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
 
   const pausedRef = useRef(false);
   const draggingRef = useRef(false);
+  const pointerDownRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragDxRef = useRef(0);
   const [, setDragTick] = useState(0);
@@ -110,27 +112,43 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (companies.length <= visibleCount) return;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (err) {
-      // ignore
-    }
     pausedRef.current = true;
-    draggingRef.current = true;
+    pointerDownRef.current = true;
+    draggingRef.current = false;
     dragStartXRef.current = e.clientX;
     dragDxRef.current = 0;
-    setIsAnimating(false);
     setDragTick((t) => t + 1);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
+    if (!pointerDownRef.current) return;
     dragDxRef.current = e.clientX - dragStartXRef.current;
+
+    if (!draggingRef.current && Math.abs(dragDxRef.current) > 6) {
+      draggingRef.current = true;
+      setIsAnimating(false);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    if (!draggingRef.current) return;
     setDragTick((t) => t + 1);
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
+    if (!pointerDownRef.current) return;
+    pointerDownRef.current = false;
+
+    if (!draggingRef.current) {
+      pausedRef.current = false;
+      dragDxRef.current = 0;
+      setDragTick((t) => t + 1);
+      return;
+    }
+
     draggingRef.current = false;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
@@ -214,6 +232,9 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
               ) : null;
 
               const key = `${i}-${c.id ?? i}`;
+              const href = typeof c.url === "string" ? c.url.trim() : "";
+              const isExternalHref = /^https?:\/\//i.test(href);
+              const hasLink = Boolean(href);
 
               return (
                 <div
@@ -230,12 +251,29 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                     }
                   }}
                 >
-                  {c.url ? (
-                    <a href={c.url} className={styles.companyLink} target="_blank" rel="noreferrer" aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}>
-                      {logoNode}
-                    </a>
+                  {hasLink ? (
+                    isExternalHref ? (
+                      <a
+                        href={href}
+                        className={styles.companyLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}
+                      >
+                        {logoNode}
+                      </a>
+                    ) : (
+                      <Link
+                        href={href}
+                        className={styles.companyLink}
+                        prefetch={false}
+                        aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}
+                      >
+                        {logoNode}
+                      </Link>
+                    )
                   ) : (
-                    <div className={styles.companyLink}>{logoNode}</div>
+                    <div className={styles.companyLink} style={{ cursor: "default" }}>{logoNode}</div>
                   )}
                 </div>
               );
