@@ -103,7 +103,7 @@ const Footer = ({
                     ) : null}
 
                     {contacts.length > 0 ? (
-                        <div className="max-w-[280px] space-y-3 text-[14px] leading-[1.2] font-medium text-[#1f2329] sm:text-[15px]">
+                        <div className="max-w-[280px] pl-6 space-y-3 text-[14px] leading-[1.2] font-medium text-[#1f2329] sm:pl-7 sm:text-[15px]">
                             {contacts.map((item) => {
                                         const content = (
                                             <>

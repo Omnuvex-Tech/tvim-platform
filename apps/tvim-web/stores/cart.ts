@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import { api } from "@/lib/api";
 
 type CartProduct = {
@@ -53,7 +52,6 @@ const resolveProductKey = (product: CartProduct) => {
 };
 
 export const useCartStore = create<CartState & CartActions>()(
-    persist(
         (set) => ({
             isCartModalOpen: false,
             items: [],
@@ -194,13 +192,5 @@ export const useCartStore = create<CartState & CartActions>()(
                         isCartModalOpen: nextItems.length > 0 ? state.isCartModalOpen : false,
                     };
                 }),
-        }),
-        {
-            name: "cart-store",
-            storage: createJSONStorage(() => localStorage),
-            partialize: (state) => ({
-                items: state.items,
-            }),
-        }
-    )
+        })
 );
