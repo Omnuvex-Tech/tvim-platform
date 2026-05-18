@@ -1389,28 +1389,20 @@ export function Navbar({
                     const expanded = mobileExpandedIds.includes(Number(item.id));
                     const href = `/${(locale || "az").toLowerCase()}/${(item.multi_links && item.multi_links[(locale || "az").toLowerCase()]) || item.link || ""}`;
                     const isRoot = level === 0 || !item.parent_id || Number(item.parent_id) === 0;
-                    const rowIndent = level <= 1 ? 0 : 36 * Math.pow(2, level - 2);
+                    const rowIndent = level === 0 ? 0 : level === 1 ? 14 : 14 + 22 * (level - 1);
 
                     return (
                         <li key={item.id} className="border-b border-[#e5e7eb] last:border-b-0">
                             <div
-                                className="flex items-center justify-between gap-2 rounded-none px-0 py-2 text-left lg:px-0 lg:py-3"
+                                className="flex items-center justify-between gap-2 rounded-none px-0 py-3 text-left lg:px-0 lg:py-3"
                                 style={{ paddingLeft: rowIndent }}
                             >
                                 <a href={href} className="flex items-center gap-2.5 flex-1" onClick={() => setIsCatalogOpen(false)}>
-                                    {isRoot ? (
-                                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
-                                            <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px]" />
-                                        </div>
-                                    ) : (
-                                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
-                                            <div className="h-full w-full">
-                                                <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px] lg:text-[#131722]" />
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
+                                        <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px]" />
+                                    </div>
 
-                                    <span className={cn("text-[11px] leading-[1.2] text-[#131722]", isRoot ? "font-semibold" : "font-normal")}>{item.name ?? item.title ?? item.link}</span>
+                                    <span className={cn("inline-flex min-h-[2.4em] items-center text-[0.95em] leading-[1.2] text-[#0f172a]", isRoot ? "font-medium" : "font-normal")}>{item.name ?? item.title ?? item.link}</span>
                                 </a>
 
                                 {hasChildren && (
@@ -1424,7 +1416,7 @@ export function Navbar({
                                         }}
                                         className="inline-flex cursor-pointer touch-manipulation items-center justify-center rounded-full p-1.5 text-[#1d2230] hover:bg-[#f3f4f6]"
                                     >
-                                        <ChevronDown className={cn("mobile-catalog-chevron size-3.5 shrink-0", expanded && "is-expanded")} strokeWidth={2} />
+                                        <ChevronDown className={cn("mobile-catalog-chevron size-4 shrink-0", expanded && "is-expanded")} strokeWidth={2.3} />
                                     </button>
                                 )}
                             </div>
@@ -1833,21 +1825,20 @@ export function Navbar({
 
             <aside
                 className={cn(
-                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-full max-w-none overflow-y-auto bg-white shadow-[8px_0_30px_rgba(0,0,0,0.12)] lg:hidden",
+                    "mobile-catalog-panel fixed top-0 left-0 z-50 h-full w-full max-w-none overflow-y-auto bg-white lg:hidden",
                     isCatalogOpen && "is-active"
                 )}
                 ref={mobileCatalogRef}
                 aria-hidden={!isCatalogOpen}
             >
-                <div className="flex items-center justify-between px-2.5 py-4 bg-[#003dff] text-white">
+                <div className="flex h-[54px] items-center justify-between pl-2.5 pr-0 bg-[#003dff] text-white">
                     <div className="flex items-center gap-1.5">
-                        <Grid2X2 className="size-[11px] text-white" />
-                        <span className="text-[10px] font-semibold">Kataloq</span>
+                        <span className="text-[1.05em] font-semibold flex-auto">Kataloq</span>
                     </div>
                     <button
                         type="button"
                         aria-label="Kataloqu bağla"
-                        className="inline-flex size-5 cursor-pointer touch-manipulation items-center justify-center rounded-[6px] text-white transition-colors hover:bg-white/10"
+                        className="inline-flex h-full w-[40px] cursor-pointer touch-manipulation items-center justify-center bg-black/5 text-white shadow-[1px_0_7px_rgba(0,0,0,0.18)]"
                         onPointerDown={(e) => {
                             if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
                                 e.preventDefault();
@@ -1858,7 +1849,7 @@ export function Navbar({
                             if (e.detail === 0) setIsCatalogOpen(false);
                         }}
                     >
-                        <X className="size-3 shrink-0 text-white" />
+                        <X className="size-[15px] shrink-0 text-white" strokeWidth={2.9} />
                     </button>
                 </div>
 
