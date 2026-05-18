@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import type {
     FooterMenusData,
     HeaderCategoriesResponseData,
@@ -23,6 +24,47 @@ import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 
+type NewsVariation = {
+    variation_id?: number;
+    name?: string;
+    slug?: string;
+    price?: string | number | null;
+    main_image_url?: string | null;
+};
+
+type NewsRelatedProduct = {
+    id?: number;
+    variation?: NewsVariation;
+};
+
+type NewsItem = {
+    id?: number;
+    slug?: string;
+    multi_slugs?: Record<string, string>;
+    name?: string;
+    content?: string;
+    banner?: string | null;
+    main_photo?: string | null;
+    files?: Array<{ url?: string; is_main?: boolean }>;
+    related_products?: NewsRelatedProduct[];
+};
+
+type MenuDetailData = {
+    menu?: {
+        name?: string;
+        title?: string | null;
+        description?: string | null;
+    };
+    data?: {
+        item?: NewsItem;
+        items?: NewsItem[];
+        content?: string;
+        banner?: string | null;
+        main_photo?: string | null;
+        related_products?: NewsRelatedProduct[];
+    };
+};
+
 const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
 
 const normalizeLocale = (locale: string) => {
@@ -30,63 +72,143 @@ const normalizeLocale = (locale: string) => {
     return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
 };
 
+const normalizeSlug = (value: string) => decodeURIComponent(String(value ?? "")).trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+
 const normalizeSlugText = (value: string) => decodeURIComponent(String(value ?? "")).trim().replace(/[-_]+/g, " ").trim();
 
-type StaticBrandNews = {
-    title: string;
-    sectionTitle: string;
-    description: string;
-    bannerImage?: string;
-    contentImage?: string;
-    blocks?: Array<{
-        title: string;
-        description: string;
-        image?: string;
-        imageOnLeft?: boolean;
-    }>;
+async function getMenuDetail(slug: string, locale: string) {
+    const normalizedSlug = normalizeSlug(slug);
+
+    const tryResolveFromPayload = (payload: any): MenuDetailData | null => {
+        if (!payload || typeof payload !== "object") return null;
+
+        if (Array.isArray(payload.header)) {
+            const headerMenus = payload.header as Array<any>;
+
+            for (const menuEntry of headerMenus) {
+                const items = Array.isArray(menuEntry?.data?.items) ? menuEntry.data.items : [];
+                const matchedItem = items.find((item: any) => {
+                    const localized = item?.multi_slugs?.[locale] || item?.slug || "";
+                    return normalizeSlug(localized) === normalizedSlug;
+                });
+
+                if (matchedItem) {
+                    return {
+                        menu: menuEntry,
+                        data: {
+                            ...menuEntry.data,
+                            item: matchedItem,
+                        },
+                    } as MenuDetailData;
+                }
+            }
+        }
+
+        if (payload && typeof payload === "object" && payload.menu) {
+            return payload as MenuDetailData;
+        }
+
+        if (payload && typeof payload === "object" && payload.data?.menu) {
+            return payload.data as MenuDetailData;
+        }
+
+        return null;
+    };
+
+    const tryDeepFindItem = (root: any): NewsItem | null => {
+        const queue: any[] = [root];
+        while (queue.length > 0) {
+            const current = queue.shift();
+            if (!current || typeof current !== "object") continue;
+
+            if (Array.isArray(current)) {
+                for (const v of current) queue.push(v);
+                continue;
+            }
+
+            const localized = current.multi_slugs?.[locale] || current.slug || "";
+            if (normalizeSlug(localized) === normalizedSlug && (current.content || current.banner || current.main_photo || current.related_products)) {
+                return current as NewsItem;
+            }
+
+            for (const value of Object.values(current)) {
+                if (value && typeof value === "object") queue.push(value);
+            }
+        }
+        return null;
+    };
+
+    try {
+        const responseList = await api.get<any>(config.endpoints.menus.list, {
+            params: { detail: slug },
+            locale,
+        });
+        if (responseList.success && responseList.data) {
+            const fromList = tryResolveFromPayload(responseList.data);
+            if (fromList) return fromList;
+
+            const deepItem = tryDeepFindItem(responseList.data);
+            if (deepItem) {
+                return {
+                    menu: { name: deepItem.name ?? normalizeSlugText(slug), title: deepItem.name ?? normalizeSlugText(slug) },
+                    data: { item: deepItem },
+                };
+            }
+        }
+
+        const responseDetail = await api.get<any>(config.endpoints.menus.detail(slug), { locale });
+        if (responseDetail.success && responseDetail.data) {
+            const fromDetail = tryResolveFromPayload(responseDetail.data);
+            if (fromDetail) return fromDetail;
+        }
+
+        const absoluteUrl = `https://admin.tvim.az/api/v1/menus?detail=${encodeURIComponent(slug)}`;
+        const absoluteResponse = await fetch(absoluteUrl, {
+            headers: {
+                Accept: "application/json",
+                "Content-Language": locale,
+            },
+            cache: "no-store",
+        });
+
+        if (absoluteResponse.ok) {
+            const absoluteJson = await absoluteResponse.json();
+            const absoluteData = absoluteJson?.data ?? absoluteJson;
+            const fromAbsolute = tryResolveFromPayload(absoluteData);
+            if (fromAbsolute) return fromAbsolute;
+
+            const deepItem = tryDeepFindItem(absoluteData);
+            if (deepItem) {
+                return {
+                    menu: { name: deepItem.name ?? normalizeSlugText(slug), title: deepItem.name ?? normalizeSlugText(slug) },
+                    data: { item: deepItem },
+                };
+            }
+        }
+
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+const extractFirstImageFromHtml = (html: string | null | undefined) => {
+    const source = String(html ?? "");
+    const match = source.match(/<img[^>]+src=["']([^"']+)["']/i);
+    return match?.[1]?.trim() ?? "";
 };
 
-const STATIC_BRAND_NEWS: Record<string, StaticBrandNews> = {
-    knauf: {
-        title: "Knauf",
-        sectionTitle: "Knauf",
-        description:
-            "Knauf tikinti materialları və tikinti sistemlərinin dünya üzrə aparıcı istehsalçısıdır. Bu səhifə korporativ təqdimat üçün statik hazırlanıb və brendin keyfiyyət, innovasiya və dayanıqlılıq yanaşmasını vurğulayır.",
-        bannerImage: "https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=1800&q=80",
-        contentImage: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80",
-    },
-    "mr-fix": {
-        title: "Mr. Fix",
-        sectionTitle: "Mr. Fix",
-        description:
-            "Mr. Fix məhsul xətti üzrə bu statik korporativ səhifə brend haqqında ümumi məlumatı təqdim edir. Burada mərkəzdə brendin etibarlılığı, məhsul keyfiyyəti və tərəfdaşlıq dəyərləri vurğulanır.",
-        bannerImage: "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1800&q=80",
-        contentImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80",
-    },
-    metak: {
-        title: "Metak",
-        sectionTitle: "Metak",
-        description:
-            "Metak tikinti materialları və interyer həlləri istiqamətində fəaliyyət göstərən brenddir. Şirkət keyfiyyət, dayanıqlılıq və praktik həllərə fokuslanaraq peşəkar layihələr üçün geniş məhsul seçimi təqdim edir.",
-        bannerImage: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=80",
-        contentImage: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1200&q=80",
-        blocks: [
-            {
-                title: "Fəaliyyət sahəsi",
-                description:
-                    "Metak əsasən interyer və tikinti yönümlü layihələrdə istifadə olunan materiallarla tanınır. Brend həm korporativ, həm də fərdi müştərilər üçün funksional və etibarlı məhsullar təqdim edir.",
-                image: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
-                imageOnLeft: true,
-            },
-            {
-                title: "Keyfiyyət yanaşması",
-                description:
-                    "Brendin məhsul xətti seçilərkən material keyfiyyəti, uzunömürlülük və montaj rahatlığı əsas meyar kimi götürülür. Bu yanaşma Metak-ın bazarda stabil və etibarlı mövqeyini gücləndirir.",
-                image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=80",
-                imageOnLeft: false,
-            },
-        ],
-    },
+const resolveMainItem = (detail: MenuDetailData, slug: string, locale: string): NewsItem | null => {
+    const direct = detail.data?.item;
+    if (direct) return direct;
+
+    const items = Array.isArray(detail.data?.items) ? detail.data.items : [];
+    const found = items.find((item) => {
+        const localized = item.multi_slugs?.[locale] || item.slug || "";
+        return normalizeSlug(localized) === slug;
+    });
+
+    return found ?? (items[0] ?? null);
 };
 
 export default async function BrandNewsSlugPage({
@@ -95,7 +217,7 @@ export default async function BrandNewsSlugPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    const normalizedSlug = decodeURIComponent(String(slug ?? "")).trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+    const normalizedSlug = normalizeSlug(slug);
 
     const cookieStore = await cookies();
     const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
@@ -111,7 +233,8 @@ export default async function BrandNewsSlugPage({
         );
     }
 
-    const [headerMenuResponse, footerMenuResponse, settingsResponse, categoriesResponse] = await Promise.all([
+    const [menuDetail, headerMenuResponse, footerMenuResponse, settingsResponse, categoriesResponse] = await Promise.all([
+        getMenuDetail(normalizedSlug, locale),
         api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
             params: { in_header: "1" },
             locale,
@@ -128,6 +251,12 @@ export default async function BrandNewsSlugPage({
             locale,
         }),
     ]);
+
+    if (!menuDetail?.menu) {
+        notFound();
+    }
+
+    const mainItem = resolveMainItem(menuDetail, normalizedSlug, locale);
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
@@ -176,21 +305,17 @@ export default async function BrandNewsSlugPage({
     )?.number;
 
     const fallbackTitle = normalizeSlugText(normalizedSlug) || "Brand";
-    const staticEntry = STATIC_BRAND_NEWS[normalizedSlug] ?? {
-        title: fallbackTitle,
-        sectionTitle: fallbackTitle,
-        description:
-            `${fallbackTitle} üçün korporativ məlumat səhifəsi statik formada hazırlanıb. Burada brendin ümumi təsviri, təqdimatı və əsas dəyərləri göstərilir.`,
-        blocks: [
-            {
-                title: "Fəaliyyət sahəsi",
-                description:
-                    `${fallbackTitle} üzrə fəaliyyət sahəsi haqqında məlumat bu bölmədə göstərilir. Brendin əsas istiqamətləri, məhsul yanaşması və bazar təqdimatı məhz bu hissədə toplanır.`,
-                image: "https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?auto=format&fit=crop&w=1200&q=80",
-                imageOnLeft: true,
-            },
-        ],
-    };
+    const pageTitle = String(mainItem?.name ?? menuDetail.menu.title ?? menuDetail.menu.name ?? fallbackTitle).trim() || fallbackTitle;
+    const pageDescriptionHtml = String(mainItem?.content ?? menuDetail.menu.description ?? menuDetail.data?.content ?? "");
+
+    const bannerImage =
+        String(mainItem?.banner ?? mainItem?.main_photo ?? menuDetail.data?.banner ?? menuDetail.data?.main_photo ?? "").trim() ||
+        String(mainItem?.files?.find((f) => f?.is_main)?.url ?? mainItem?.files?.[0]?.url ?? "").trim() ||
+        extractFirstImageFromHtml(pageDescriptionHtml);
+
+    const relatedProducts = Array.isArray(mainItem?.related_products)
+        ? mainItem.related_products
+        : (Array.isArray(menuDetail.data?.related_products) ? menuDetail.data.related_products : []);
 
     return (
         <div className="flex min-h-svh w-full flex-col items-stretch justify-start gap-0 pt-0 pb-8">
@@ -203,98 +328,62 @@ export default async function BrandNewsSlugPage({
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <section className="relative left-1/2 right-1/2 w-screen -ml-[50vw] -mr-[50vw] pt-2">
-                <div className="relative w-full overflow-hidden rounded-none bg-[#1f2937]">
-                    {staticEntry.bannerImage ? (
-                        <img src={staticEntry.bannerImage} alt={staticEntry.title} className="h-[220px] w-full object-cover lg:h-[320px]" />
+            <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
+                <div className="relative w-full overflow-hidden rounded-[16px] bg-[#1f2937]">
+                    {bannerImage ? (
+                        <img src={bannerImage} alt={pageTitle} className="w-full object-cover aspect-[16/7] md:aspect-[16/6] lg:aspect-[16/5]" />
                     ) : (
-                        <div className="h-[220px] w-full bg-gradient-to-r from-[#243447] via-[#31465d] to-[#4a5f74] lg:h-[320px]" />
+                        <div className="w-full bg-gradient-to-r from-[#243447] via-[#31465d] to-[#4a5f74] aspect-[16/7] md:aspect-[16/6] lg:aspect-[16/5]" />
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0f172abf] via-[#0f172a66] to-[#0f172a33]" />
-
-                    <div className="absolute inset-0 grid grid-cols-1 lg:grid-cols-2">
-                        <div className="flex items-center px-6 lg:px-10">
-                            <div className="text-white">
-                                <p className="text-[24px] leading-none font-bold lg:text-[50px]">tvim.</p>
-                                <p className="mt-2 text-[34px] leading-none font-extrabold tracking-[-0.02em] uppercase lg:text-[78px]">{staticEntry.title}</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </section>
 
             <Breadcrumb
                 items={[
-                    { label: locale === "en" ? "Home" : "Ana səhifə", href: `/${locale}` },
+                    { label: locale === "en" ? "Home" : "Ana sehife", href: `/${locale}` },
                     { label: "Korporativ" },
-                    { label: staticEntry.title, isCurrent: true as const },
+                    { label: pageTitle, isCurrent: true as const },
                 ]}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2 [&_ul.breadcrumb]:!mb-0 [&_ul.breadcrumb]:!pb-0"
                 showTitle
-                pageTitle={staticEntry.title}
+                pageTitle={pageTitle}
                 titleClassName="mb-0 !text-left !w-full !text-[39px] !font-[700] !leading-[39px] !text-[rgba(15,15,15,1)]"
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-7 pb-12 lg:px-2">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_420px]">
-                    <div>
-                        <h2 className="text-[34px] leading-[1.2] font-semibold text-[#0f172a]">{staticEntry.sectionTitle}</h2>
-                        <p className="mt-5 text-[22px] leading-[1.5] text-[#111827]">{staticEntry.description}</p>
-                    </div>
-
-                    <div className="overflow-hidden rounded-[6px] bg-[#eef2f7]">
-                        {staticEntry.contentImage ? (
-                            <img src={staticEntry.contentImage} alt={staticEntry.title} className="h-full min-h-[260px] w-full object-cover" />
-                        ) : (
-                            <div className="flex min-h-[260px] items-center justify-center text-[18px] font-medium text-[#64748b]">
-                                {staticEntry.title}
-                            </div>
-                        )}
-                    </div>
+                <div className="prose max-w-none">
+                    {pageDescriptionHtml ? (
+                        <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
+                    ) : (
+                        <p>{pageTitle}</p>
+                    )}
                 </div>
 
-                {(staticEntry.blocks ?? []).map((block, index) => {
-                    const imageFirst = block.imageOnLeft !== false;
-
-                    return (
-                        <div key={`${block.title}-${index}`} className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            {imageFirst ? (
-                                <>
-                                    <div className="overflow-hidden rounded-[6px] bg-[#eef2f7]">
-                                        {block.image ? (
-                                            <img src={block.image} alt={block.title} className="h-full min-h-[260px] w-full object-cover" />
-                                        ) : (
-                                            <div className="flex min-h-[260px] items-center justify-center text-[18px] font-medium text-[#64748b]">
-                                                {block.title}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <h3 className="text-[42px] leading-[1.15] font-semibold text-[#0f172a]">{block.title}</h3>
-                                        <p className="mt-5 text-[20px] leading-[1.55] text-[#111827]">{block.description}</p>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div>
-                                        <h3 className="text-[42px] leading-[1.15] font-semibold text-[#0f172a]">{block.title}</h3>
-                                        <p className="mt-5 text-[20px] leading-[1.55] text-[#111827]">{block.description}</p>
-                                    </div>
-                                    <div className="overflow-hidden rounded-[6px] bg-[#eef2f7]">
-                                        {block.image ? (
-                                            <img src={block.image} alt={block.title} className="h-full min-h-[260px] w-full object-cover" />
-                                        ) : (
-                                            <div className="flex min-h-[260px] items-center justify-center text-[18px] font-medium text-[#64748b]">
-                                                {block.title}
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
+                {relatedProducts.length > 0 ? (
+                    <div className="mt-10">
+                        <h3 className="text-[28px] font-semibold leading-tight text-[#0f172a]">Elaqeli mehsullar</h3>
+                        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {relatedProducts.map((item, index) => {
+                                const variation = item?.variation;
+                                const name = variation?.name || `Mehsul ${index + 1}`;
+                                const image = variation?.main_image_url || null;
+                                const price = variation?.price;
+                                return (
+                                    <article key={item?.id ?? index} className="overflow-hidden rounded-[12px] border border-[#e6ebf2] bg-white p-4">
+                                        {image ? (
+                                            <img src={image} alt={name} className="h-[180px] w-full rounded-[8px] object-cover" />
+                                        ) : null}
+                                        <h4 className="mt-3 text-[16px] font-semibold text-[#0f172a]">{name}</h4>
+                                        {price !== undefined && price !== null ? (
+                                            <p className="mt-1 text-[15px] text-[#334155]">{String(price)} AZN</p>
+                                        ) : null}
+                                    </article>
+                                );
+                            })}
                         </div>
-                    );
-                })}
+                    </div>
+                ) : null}
             </section>
 
             <LogoutToast />
@@ -305,3 +394,5 @@ export default async function BrandNewsSlugPage({
         </div>
     );
 }
+
+

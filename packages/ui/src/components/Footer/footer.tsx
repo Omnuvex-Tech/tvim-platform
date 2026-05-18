@@ -103,7 +103,7 @@ const Footer = ({
                     ) : null}
 
                     {contacts.length > 0 ? (
-                        <div className="max-w-[280px] pl-6 space-y-3 text-[14px] leading-[1.2] font-medium text-[#1f2329] sm:pl-7 sm:text-[15px]">
+                        <div className="mx-0 max-w-full min-w-0 pl-0 pr-0 space-y-3 text-[14px] leading-[1.3] font-medium text-[#1f2329] sm:max-w-[320px] sm:text-[15px] lg:max-w-[360px]">
                             {contacts.map((item) => {
                                         const content = (
                                             <>
@@ -117,7 +117,7 @@ const Footer = ({
                                                         {item.icon}
                                                     </span>
                                                 ) : null}
-                                                <span className="group-hover:underline">{item.label}</span>
+                                                <span className="min-w-0 break-words leading-[1.35] group-hover:underline">{item.label}</span>
                                             </>
                                         );
 
@@ -126,7 +126,7 @@ const Footer = ({
                                                 <a
                                                     key={item.label}
                                                     href={item.href}
-                                                    className="flex items-center gap-3 transition-colors hover:text-black group"
+                                                    className="group flex min-w-0 items-center justify-start gap-3 text-left transition-colors hover:text-black"
                                                 >
                                                     {content}
                                                 </a>
@@ -134,7 +134,7 @@ const Footer = ({
                                         }
 
                                         return (
-                                            <div key={item.label} className="flex items-start gap-3 group">
+                                            <div key={item.label} className="group flex min-w-0 items-center justify-start gap-3 text-left">
                                                 {content}
                                             </div>
                                         );
@@ -165,7 +165,7 @@ const Footer = ({
                             ))}
                         </div>
 
-                        <p className={cn("mt-2 text-left text-[14px] font-normal text-[#61656c] sm:mt-0 sm:text-right lg:justify-self-end", rightsColClass)}>
+                        <p className={cn("mt-2 text-left text-[14px] font-normal text-[#61656c] lg:mt-0 lg:text-right lg:justify-self-end", rightsColClass)}>
                             Bütün hüquqlar qorunur © 2016—2025
                         </p>
                     </div>
