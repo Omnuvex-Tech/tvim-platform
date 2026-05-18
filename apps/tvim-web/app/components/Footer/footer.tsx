@@ -9,8 +9,8 @@ import {
 } from "@repo/ui";
 import { utils } from "@/utils";
 
-const Footer = ({ footerMenus, footerSettings }: FooterComponentProps) => {
-    const dynamicSections = utils.footer.getFooterSections(footerMenus);
+const Footer = ({ footerMenus, footerSettings, locale }: FooterComponentProps) => {
+    const dynamicSections = utils.footer.getFooterSections(footerMenus, locale);
     let logo: ReactNode | undefined;
     let description: string | undefined;
     let rightsText: string | undefined;

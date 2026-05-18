@@ -47,4 +47,5 @@ export type ProjectSettingsSocialConfigItem = {
 export type FooterComponentProps = {
     footerMenus: MenuItem[];
     footerSettings?: ProjectSettingsData;
+    locale?: string;
 };

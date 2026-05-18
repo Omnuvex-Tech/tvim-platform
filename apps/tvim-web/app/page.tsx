@@ -127,7 +127,7 @@ export default async function Home() {
 
             <MainPageBlocks blocks={mainPageBlocks} />
 
-            <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+            <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={siteDefaultLocale.toLowerCase()} />
         </div>
     );
 }

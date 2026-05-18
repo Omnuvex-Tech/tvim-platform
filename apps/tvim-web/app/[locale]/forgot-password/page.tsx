@@ -192,7 +192,7 @@ export default async function ForgotPasswordPage({
         </div>
       </section>
 
-      <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+      <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
     </div>
   );
 }

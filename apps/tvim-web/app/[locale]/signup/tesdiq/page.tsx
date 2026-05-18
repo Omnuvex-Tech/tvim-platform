@@ -160,7 +160,7 @@ export default async function RegisterVerificationPage({
                 </div>
             </section>
 
-            <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+            <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
         </div>
     );
 }

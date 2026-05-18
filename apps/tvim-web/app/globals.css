@@ -122,3 +122,151 @@
 .compare-breadcrumb-sm .breadcrumb li + li::before {
 	font-size: 10px !important;
 }
+
+.blog_h {
+	position: relative;
+}
+
+.blog_h__img {
+	display: block;
+	width: 100%;
+	height: 300px;
+	object-fit: cover;
+}
+
+.blog_h::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.48) 0%, rgba(0, 0, 0, 0.56) 100%);
+	z-index: 1;
+}
+
+.blog_h__content {
+	position: absolute;
+	left: 76px;
+	right: 76px;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+}
+
+@media (max-width: 767px) {
+	.blog_h__img {
+		height: 185px;
+	}
+
+	.blog_h__content {
+		left: 26px;
+		right: 18px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	.news_page .breadcrumb-h1 h1 {
+		font-size: 24px;
+		line-height: 1.2;
+		max-width: 100%;
+	}
+
+	.news_page .news-page__posted {
+		font-size: 12px;
+		gap: 4px;
+		margin-top: 10px !important;
+	}
+
+	.news_page .news-page__posted i {
+		font-size: 12px;
+	}
+}
+
+.news_page .breadcrumb-h1 h1 {
+	font-size: 52px;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	color: rgb(255, 255, 255);
+	line-height: 1.3;
+	z-index: 22;
+	margin: 0 !important;
+	text-align: left;
+}
+
+.news_page .news-page__posted {
+	font-size: 14px;
+	color: rgb(255, 255, 255);
+	font-weight: 400;
+	gap: 5px;
+	z-index: 22;
+	justify-content: flex-start;
+}
+
+@media (max-width: 991px) {
+	.blog_h__img {
+		height: 250px;
+	}
+
+	.news_page .breadcrumb-h1 h1 {
+		font-size: 32px;
+		line-height: 1.22;
+	}
+}
+
+@media (max-width: 479px) {
+	.blog_h__img {
+		height: 165px;
+	}
+
+	.blog_h__content {
+		left: 22px;
+		right: 14px;
+	}
+
+	.news_page .breadcrumb-h1 h1 {
+		font-size: 20px;
+		line-height: 1.18;
+	}
+
+	.news_page .news-page__posted {
+		font-size: 11px;
+	}
+}
+
+/* News banner typography overrides */
+.news_page .breadcrumb-h1 h1 {
+	font-size: 52px;
+	font-weight: 700;
+	color: #fff;
+	margin: 0 !important;
+	display: flex;
+	align-items: center;
+	line-height: 1.3;
+	z-index: 22;
+}
+
+.news_page .news-page__posted {
+	font-size: 14px;
+	color: #fff;
+	font-weight: 400;
+	gap: 5px;
+	z-index: 22;
+}
+
+@media (max-width: 767px) {
+	.news_page .breadcrumb-h1 h1 {
+		font-size: 24px;
+		line-height: 24px;
+	}
+
+	.news_page .news-page__posted {
+		margin: 0;
+	}
+}

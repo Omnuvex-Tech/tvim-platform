@@ -129,7 +129,7 @@ export default async function HomePage({
             <MainPageBlocks blocks={mainPageBlocks} />
             <LogoutToast />
 
-            <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+            <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
         </div>
     );
 }

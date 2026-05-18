@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import type {
     FooterMenusData,
@@ -43,14 +44,32 @@ type MenuDetailResponse = {
             seo: any;
         };
         data: {
-            mode: string;
-            submit: {
+            mode?: string;
+            submit?: {
                 method: string;
                 path: string;
                 route: string;
             };
-            fields: any[];
+            fields?: any[];
+            items?: Array<{
+                id?: number | string;
+                slug?: string;
+                multi_slugs?: Record<string, string>;
+                name?: string;
+                content?: string;
+                banner?: string | null;
+                main_photo?: string | null;
+                datetime1?: string | null;
+            }>;
+            meta?: {
+                page?: number;
+                per_page?: number;
+                total?: number;
+                last_page?: number;
+            };
+            seo?: any;
         };
+        included_items?: any[];
     };
 };
 
@@ -211,7 +230,9 @@ export default async function DynamicMenuPage({ params }: Props) {
 
     const isContentView = menu.view_type === "content" || menu.type === "content";
 
-    const includedItems: any[] = (menuDetail as any).included_items || [];
+    const includedItems: any[] = menuDetail.included_items || [];
+    const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
+    const isGridView = menu.type === "grids" || (pageData?.mode === "list" && gridItems.length > 0);
 
     function mapIncludedValuesToCompanies(values: any[]) {
         const arr = Array.isArray(values) ? values : [];
@@ -221,10 +242,190 @@ export default async function DynamicMenuPage({ params }: Props) {
                 name: v?.name ?? v?.title ?? "",
                 logo: v?.image ?? v?.image_url ?? v?.logo ?? null,
                 url: v?.slug
-                    ? `/brands/news/${String(v.slug)}`
+                    ? (isGridView
+                        ? `/${normalizedLocale}/${slug}/${String(v.slug)}`
+                        : `/brands/news/${String(v.slug)}`)
                     : (v?.url ?? v?.link ?? v?.website ?? "").toString().trim() || undefined,
             }))
             .filter((c) => Boolean(c.name));
+    }
+
+    function stripHtml(input?: string | null) {
+        if (!input) return "";
+        return input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function resolveGridItemHref(item: {
+        slug?: string;
+        multi_slugs?: Record<string, string>;
+    }) {
+        const localizedSlug = item.multi_slugs?.[normalizedLocale] || item.slug || "";
+        const cleanSlug = String(localizedSlug).trim().replace(/^\/+|\/+$/g, "");
+        if (!cleanSlug) return "#";
+        return `/${normalizedLocale}/${slug}/${cleanSlug}`;
+    }
+
+    function resolveIncludedMenuLink(menuItem: any) {
+        const localizedLink = menuItem?.multi_links?.[normalizedLocale] || menuItem?.link || "";
+        return String(localizedLink).trim().replace(/^\/+|\/+$/g, "");
+    }
+
+    const includedItemsSection = includedItems.length > 0 ? (
+        <div className="mt-4 w-full">
+            <div className={`mx-auto w-full ${isContentView ? "max-w-[1280px] !px-1 lg:!px-2" : "max-w-[1280px]"}`}>
+                {includedItems.map((inc: any, idx: number) => {
+                    if (inc.included_type === "menu" && inc.type === "form") {
+                        return (
+                            <div key={idx} className="mt-4 lg:mt-6">
+                                <RequestForm submitConfig={inc.data.submit} />
+                            </div>
+                        );
+                    }
+
+                    if (inc.included_type === "brand" && inc.data?.values) {
+                        const companies = mapIncludedValuesToCompanies(inc.data.values);
+                        if (companies.length === 0) return null;
+                        return (
+                            <div key={idx} className="mt-4 lg:mt-6">
+                                <BrandListSlider companies={companies} />
+                            </div>
+                        );
+                    }
+
+                    if (
+                        inc.included_type === "menu" &&
+                        inc.type === "grids" &&
+                        inc.menu?.view_type === "brand-news" &&
+                        Array.isArray(inc.data?.items)
+                    ) {
+                        const items = inc.data.items as Array<{
+                            id?: number | string;
+                            slug?: string;
+                            multi_slugs?: Record<string, string>;
+                            name?: string;
+                            content?: string;
+                            banner?: string | null;
+                            main_photo?: string | null;
+                            datetime1?: string | null;
+                        }>;
+
+                        const includedMenuLink = resolveIncludedMenuLink(inc.menu);
+
+                        const companies: Company[] = items
+                            .map((item, itemIndex) => {
+                                const localizedSlug = item.multi_slugs?.[normalizedLocale] || item.slug || "";
+                                const cleanSlug = String(localizedSlug).trim().replace(/^\/+|\/+$/g, "");
+                                const href = cleanSlug && includedMenuLink
+                                    ? `/${normalizedLocale}/${includedMenuLink}/${cleanSlug}`
+                                    : "#";
+                                const logo = item.main_photo || item.banner || null;
+                                return {
+                                    id: String(item.id ?? `brand-news-item-${itemIndex}`),
+                                    name: item.name || "Brand News",
+                                    logo,
+                                    url: href,
+                                };
+                            })
+                            .filter((company) => Boolean(company.logo));
+
+                        if (companies.length === 0) return null;
+
+                        return (
+                            <section key={idx} className="mt-6 lg:mt-8">
+                                <h2 className="mb-4 text-[24px] font-semibold text-[#111827] lg:mb-5 lg:text-[30px]">
+                                    {inc.menu?.title || inc.menu?.name || "Brand News"}
+                                </h2>
+                                <BrandListSlider companies={companies} />
+                            </section>
+                        );
+                    }
+
+                    return null;
+                })}
+            </div>
+        </div>
+    ) : null;
+
+    if (isGridView) {
+        return (
+            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
+                <NavbarWrapper
+                    logo={navbarLogo}
+                    phone={navbarPhone}
+                    locale={normalizedLocale}
+                    languages={langResponse.data}
+                    menuItems={headerMenuItems}
+                    initialCatalogItems={headerCategoryItems}
+                />
+
+                <Breadcrumb
+                    items={[
+                        { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        { label: menu.name, isCurrent: true },
+                    ]}
+                    className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
+                    showTitle
+                    pageTitle={menu.title || menu.name}
+                    titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
+                />
+
+                <section className="mx-auto w-full max-w-[1280px] !px-1 pt-6 pb-10 lg:!px-2 lg:pt-7 lg:pb-12">
+                    {gridItems.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {gridItems.map((item, index) => {
+                                const href = resolveGridItemHref(item);
+                                const image = item.banner || item.main_photo || null;
+                                const summary = stripHtml(item.content).slice(0, 170);
+                                return (
+                                    <Link
+                                        key={item.id ?? `${item.slug ?? "grid-item"}-${index}`}
+                                        href={href}
+                                        className="group flex h-full flex-col overflow-hidden rounded-[14px] border border-[#edf1f6] bg-white shadow-[0_8px_24px_-18px_rgba(15,23,42,0.5)] transition hover:-translate-y-[2px] hover:shadow-[0_14px_30px_-18px_rgba(15,23,42,0.55)]"
+                                    >
+                                        <div className="h-[210px] w-full overflow-hidden bg-[#f5f7fb]">
+                                            {image ? (
+                                                <img
+                                                    src={image}
+                                                    alt={item.name || menu.name}
+                                                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-[14px] text-[#8a96a8]">
+                                                    TVIM
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-1 flex-col p-4">
+                                            <h3 className="line-clamp-2 text-[18px] leading-[1.3] font-semibold text-[#111827]">
+                                                {item.name || menu.name}
+                                            </h3>
+                                            {item.datetime1 ? (
+                                                <p className="mt-2 text-[13px] text-[#8a96a8]">{item.datetime1}</p>
+                                            ) : null}
+                                            {summary ? (
+                                                <p className="mt-3 line-clamp-3 text-[14px] leading-[1.45] text-[#4b5563]">{summary}</p>
+                                            ) : null}
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="rounded-[12px] border border-dashed border-[#d9e0ea] bg-[#fafcff] px-4 py-10 text-center text-[15px] text-[#6b7280]">
+                            Bu bölmədə hələ kontent yoxdur.
+                        </div>
+                    )}
+                </section>
+
+                {includedItemsSection}
+
+                <LogoutToast />
+
+                <div className="mt-auto w-full pt-12 lg:pt-20">
+                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
+                </div>
+            </div>
+        );
     }
 
     if (menu.view_type === "contact") {
@@ -365,8 +566,8 @@ export default async function DynamicMenuPage({ params }: Props) {
                     </div>
                 )}
 
-                <div className="mt-12 w-full lg:mt-20">
-                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+                <div className="mt-auto w-full pt-12 lg:pt-20">
+                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
                 </div>
             </div>
         );
@@ -413,33 +614,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                 )}
             </section>
 
-            {includedItems.length > 0 && (
-                <div className="mt-4 w-full">
-                    <div className={`mx-auto w-full ${isContentView ? "max-w-[1280px] !px-1 lg:!px-2" : "max-w-[1280px]"}`}>
-                        {includedItems.map((inc: any, idx: number) => {
-                            if (inc.included_type === "menu" && inc.type === "form") {
-                                return (
-                                    <div key={idx} className="mt-4 lg:mt-6">
-                                        <RequestForm submitConfig={inc.data.submit} />
-                                    </div>
-                                );
-                            }
-
-                            if (inc.included_type === "brand" && inc.data?.values) {
-                                const companies = mapIncludedValuesToCompanies(inc.data.values);
-                                if (companies.length === 0) return null;
-                                return (
-                                    <div key={idx} className="mt-4 lg:mt-6">
-                                        <BrandListSlider companies={companies} />
-                                    </div>
-                                );
-                            }
-
-                            return null;
-                        })}
-                    </div>
-                </div>
-            )}
+            {includedItemsSection}
 
             
 
@@ -462,8 +637,8 @@ export default async function DynamicMenuPage({ params }: Props) {
                 </div>
             )}
 
-            <div className="mt-12 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+            <div className="mt-auto w-full pt-12 lg:pt-20">
+                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
             </div>
         </div>
     );

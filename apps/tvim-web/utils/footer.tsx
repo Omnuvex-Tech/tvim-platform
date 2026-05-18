@@ -9,14 +9,33 @@ import {
     type FooterSocialItem,
 } from "@repo/types/types";
 
-const mapChildrenToLinks = (items: MenuItem[]): FooterLinkItem[] => {
+const resolveFooterHref = (link: string | null | undefined, locale?: string): string => {
+    if (!link) return "#";
+    const raw = String(link);
+    if (raw.startsWith("#")) return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    const hrefPart = raw.trim();
+    if (!locale) return toHref(hrefPart);
+
+    const normalizedLocale = locale.trim().toLowerCase();
+    let cleaned = hrefPart.replace(/^\/+/, "");
+    const localePrefix = `${normalizedLocale}/`;
+    if (cleaned.toLowerCase().startsWith(localePrefix)) {
+        cleaned = cleaned.slice(localePrefix.length);
+    }
+
+    return `/${normalizedLocale}/${cleaned}`;
+};
+
+const mapChildrenToLinks = (items: MenuItem[], locale?: string): FooterLinkItem[] => {
     const links: FooterLinkItem[] = [];
 
     items.forEach((item) => {
         if (item.link) {
             links.push({
                 label: item.name,
-                href: toHref(item.link),
+                href: resolveFooterHref(item.link, locale),
             });
         }
     });
@@ -24,7 +43,7 @@ const mapChildrenToLinks = (items: MenuItem[]): FooterLinkItem[] => {
     return links;
 };
 
-const mapCategoriesToLinks = (menus: MenuItem[]): FooterLinkItem[] => {
+const mapCategoriesToLinks = (menus: MenuItem[], locale?: string): FooterLinkItem[] => {
     const links: FooterLinkItem[] = [];
 
     menus.forEach((menu) => {
@@ -32,7 +51,7 @@ const mapCategoriesToLinks = (menus: MenuItem[]): FooterLinkItem[] => {
             if (menu.link) {
                 links.push({
                     label: menu.name,
-                    href: toHref(menu.link),
+                    href: resolveFooterHref(menu.link, locale),
                 });
             }
         }
@@ -41,7 +60,7 @@ const mapCategoriesToLinks = (menus: MenuItem[]): FooterLinkItem[] => {
     return links;
 };
 
-const getFooterSections = (menus: MenuItem[]) => {
+const getFooterSections = (menus: MenuItem[], locale?: string) => {
     const sectionMenus = menus.filter((menu) => menu.children.length > 0);
     let companySection: MenuItem | undefined;
     let customerSection: MenuItem | undefined;
@@ -95,17 +114,17 @@ const getFooterSections = (menus: MenuItem[]) => {
 
     if (companySection) {
         companyTitle = companySection.name;
-        companyLinks = mapChildrenToLinks(companySection.children);
+        companyLinks = mapChildrenToLinks(companySection.children, locale);
     }
 
     if (customerSection) {
         customerTitle = customerSection.name;
-        customerLinks = mapChildrenToLinks(customerSection.children);
+        customerLinks = mapChildrenToLinks(customerSection.children, locale);
     }
 
     // Static category section: only top-level categories (parent_id === null)
     categoryTitle = "Kateqoriya";
-    categoryLinks = mapCategoriesToLinks(menus);
+    categoryLinks = mapCategoriesToLinks(menus, locale);
 
     return {
         companyTitle,

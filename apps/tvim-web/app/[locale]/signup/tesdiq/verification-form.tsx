@@ -63,13 +63,7 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
     const notify = useNotify();
     const router = useRouter();
     const { locale: storedLocale } = useLanguageStore();
-    const verifyUrl = useMemo(
-        () =>
-            flow === "forgot"
-                ? normalizeApiUrl(config.api.url, config.endpoints.auth.otpVerify)
-                : normalizeApiUrl(config.api.url, config.endpoints.auth.emailVerify),
-        [flow]
-    );
+    const verifyUrl = useMemo(() => normalizeApiUrl(config.api.url, config.endpoints.auth.otpVerify), [flow]);
     const resendUrl = useMemo(
         () =>
             flow === "forgot"
@@ -275,6 +269,7 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                         {
                             email: normalizedEmail,
                             code,
+                            type: "email_verification",
                         },
                     ];
 

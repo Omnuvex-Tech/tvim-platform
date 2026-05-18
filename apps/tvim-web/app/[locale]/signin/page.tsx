@@ -152,7 +152,7 @@ export default async function LoginPage({
         </div>
       </section>
 
-      <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+      <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
     </div>
   );
 }

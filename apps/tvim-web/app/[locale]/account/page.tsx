@@ -299,7 +299,7 @@ export default async function AccountPage({
             </div>
 
             <div className="mt-24 w-full lg:mt-28">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
             </div>
         </div>
     );

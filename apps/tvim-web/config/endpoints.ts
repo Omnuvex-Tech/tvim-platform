@@ -5,7 +5,7 @@ export const endpoints = {
         forgotPassword: "/customer/auth/forgot-password",
         otpVerify: "/customer/auth/otp/verify",
         resetPassword: "/customer/auth/reset-password",
-        emailVerify: "/customer/auth/email/verify",
+        emailVerify: "/customer/auth/otp/verify",
         emailResend: "/customer/auth/email/resend",
         logout: "/customer/auth/logout",
         me: "/customer/auth/user",

@@ -99,7 +99,7 @@ export default async function CheckoutPage() {
             </div>
 
             <div className="mt-16 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
+                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
             </div>
         </div>
     );
