@@ -425,8 +425,9 @@ export default async function ServiceSlugPage({
             <LogoutToast />
 
             {keywords.length > 0 ? (
-                <div className="mx-auto mt-40 w-full max-w-[1120px] !px-1 lg:!px-2">
-                    <div className="border-t border-[#e5e9ef] pt-4">
+                <div className="mx-auto mt-40 w-full max-w-[1280px]">
+                    <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
+                    <div className="pt-4">
                         <div className="flex flex-wrap justify-start gap-2">
                             {keywords.map((kw, i) => (
                                 <span

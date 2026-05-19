@@ -550,8 +550,9 @@ export default async function DynamicMenuPage({ params }: Props) {
                 <LogoutToast />
 
                 {keywordsArr.length > 0 && (
-                    <div className="mx-auto mt-40 w-full max-w-[1120px] !px-1 lg:!px-2">
-                        <div className="border-t border-[#e5e9ef] pt-4">
+                    <div className="mx-auto mt-40 w-full max-w-[1280px]">
+                        <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
+                        <div className="pt-4">
                             <div className="flex flex-wrap justify-start gap-2">
                             {keywordsArr.map((kw, i) => (
                                 <span
@@ -621,8 +622,9 @@ export default async function DynamicMenuPage({ params }: Props) {
             <LogoutToast />
 
             {keywordsArr.length > 0 && (
-                <div className={`mx-auto mt-40 w-full ${isContentView ? "max-w-[1120px] !px-1 lg:!px-2" : "max-w-[1120px]"}`}>
-                    <div className="border-t border-[#e5e9ef] pt-4">
+                <div className="mx-auto mt-40 w-full max-w-[1280px]">
+                    <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
+                    <div className="pt-4">
                         <div className="flex flex-wrap justify-start gap-2">
                             {keywordsArr.map((kw, i) => (
                                 <span
