@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import type {
     FooterMenusData,
@@ -90,6 +90,9 @@ export async function generateMetadata({
     params: Promise<{ locale: string; slug: string; itemSlug: string }>;
 }): Promise<Metadata> {
     const { locale, slug, itemSlug } = await params;
+    if (slug.trim().toLowerCase() === "brand-news") {
+        return {};
+    }
     const normalizedLocale = locale.toLowerCase();
 
     const menuDetail = await getMenuDetail(slug, normalizedLocale);
@@ -113,6 +116,9 @@ export default async function GridDetailPage({
     params: Promise<{ locale: string; slug: string; itemSlug: string }>;
 }) {
     const { locale, slug, itemSlug } = await params;
+    if (slug.trim().toLowerCase() === "brand-news") {
+        redirect(`/brands/news/${itemSlug}`);
+    }
     const normalizedLocale = locale.toLowerCase();
 
     const [
