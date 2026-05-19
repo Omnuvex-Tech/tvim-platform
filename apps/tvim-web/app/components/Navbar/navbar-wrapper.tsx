@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import type { HeaderCategoryItem, Language } from "@repo/types/types";
 import type { NavbarMenuItem, NavbarSearchSection } from "@repo/ui";
 import { Navbar } from "@repo/ui";
-import { useCartStore, useLanguageStore } from "@/stores";
+import { useLanguageStore } from "@/stores";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import { useCart } from "@/lib/cart/client";
 import { CartPreviewModal } from "../ProductStrip/cart-preview-modal";
 
 interface NavbarWrapperProps {
@@ -46,6 +47,44 @@ type SessionResponse = {
         isAuthenticated?: boolean;
         user?: SessionUser | null;
     };
+};
+
+let authSessionPromise: Promise<SessionResponse | null> | null = null;
+let authSessionCache: SessionResponse | null = null;
+
+const getAuthSession = async (): Promise<SessionResponse | null> => {
+    if (authSessionCache) return authSessionCache;
+    if (authSessionPromise) return await authSessionPromise;
+
+    const promise = (async () => {
+        try {
+            const response = await fetch("/api/auth/session", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                authSessionCache = null;
+                return null;
+            }
+
+            const payload = (await response.json()) as SessionResponse;
+            authSessionCache = payload;
+            return payload;
+        } catch {
+            authSessionCache = null;
+            return null;
+        } finally {
+            authSessionPromise = null;
+        }
+    })();
+
+    authSessionPromise = promise;
+    return await promise;
 };
 
 type LiveSearchEntry = {
@@ -92,13 +131,16 @@ const NavbarWrapper = ({
     const router = useRouter();
     const pathname = usePathname();
     const { locale: storedLocale, setLocale } = useLanguageStore();
-    const isCartModalOpen = useCartStore((state) => state.isCartModalOpen);
-    const cartItems = useCartStore((state) => state.items);
-    const openCartModal = useCartStore((state) => state.openModal);
-    const closeCartModal = useCartStore((state) => state.closeModal);
-    const increaseCartItem = useCartStore((state) => state.increaseQuantity);
-    const decreaseCartItem = useCartStore((state) => state.decreaseQuantity);
-    const removeCartItem = useCartStore((state) => state.removeItem);
+    const {
+        isCartModalOpen,
+        items: cartItems,
+        openCartModal,
+        closeCartModal,
+        increaseQuantity: increaseCartItem,
+        decreaseQuantity: decreaseCartItem,
+        removeItem: removeCartItem,
+        hydrateCart: hydrateCartAsync,
+    } = useCart();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [authUser, setAuthUser] = useState<SessionUser | null>(null);
     const cartCount = useMemo(
@@ -188,23 +230,12 @@ const NavbarWrapper = ({
 
         const loadAuthSession = async () => {
             try {
-                const response = await fetch("/api/auth/session", {
-                    method: "GET",
-                    credentials: "include",
-                    cache: "no-store",
-                    headers: {
-                        Accept: "application/json",
-                    },
-                });
-
-                if (!response.ok) return;
-
-                const payload = (await response.json()) as SessionResponse;
+                const payload = await getAuthSession();
                 if (!isMounted) return;
 
-                const nextIsAuthenticated = payload.data?.isAuthenticated === true;
+                const nextIsAuthenticated = payload?.data?.isAuthenticated === true;
                 setIsAuthenticated(nextIsAuthenticated);
-                setAuthUser(payload.data?.user ?? null);
+                setAuthUser(payload?.data?.user ?? null);
             } catch {
                 if (!isMounted) return;
                 setIsAuthenticated(false);
@@ -218,6 +249,10 @@ const NavbarWrapper = ({
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        void hydrateCartAsync();
+    }, [hydrateCartAsync]);
 
     const localizedMenuItems = useMemo(() => {
         if (!Array.isArray(menuItems)) return menuItems;

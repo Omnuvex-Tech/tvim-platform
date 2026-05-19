@@ -103,8 +103,8 @@ const CheckoutDetailsForm = () => {
 
                 <section>
                     <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">4. Şərh</h3>
-                    <label className="flex min-h-[160px] items-start rounded-[20px] border border-[#d8dde6] bg-white px-4 py-4 text-[#6e7f99]">
-                        <svg className="mt-1 ml-1 mr-3 h-5 w-5 text-[#2050f5]" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <label className="flex min-h-[160px] items-start gap-3 rounded-[20px] border border-[#d8dde6] bg-white px-5 py-4 text-[#6e7f99]">
+                        <svg className="mt-[2px] h-5 w-5 shrink-0 text-[#2050f5]" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                             <path d="M6.5 13.5L5.75 16.5L8.75 15.75L15.25 9.25C15.6642 8.83579 15.6642 8.16421 15.25 7.75L12.25 4.75C11.8358 4.33579 11.1642 4.33579 10.75 4.75L4.25 11.25L3.5 14.5L6.5 13.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         <textarea

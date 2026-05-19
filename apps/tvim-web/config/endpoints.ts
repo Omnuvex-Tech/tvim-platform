@@ -60,4 +60,10 @@ export const endpoints = {
         toggle: "/compare/toggle",
         token: "/guest-token",
     },
+
+    cart: {
+        active: "/cart",
+        items: "/cart/items",
+        updateItem: (variationId: number | string) => `/cart/items/${variationId}`,
+    },
 } as const;

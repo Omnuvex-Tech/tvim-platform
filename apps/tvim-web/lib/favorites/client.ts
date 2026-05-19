@@ -2,6 +2,19 @@ export type FavoriteAction = "created" | "deleted";
 
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 
+let guestTokenEnsured = false;
+let guestTokenEnsuringPromise: Promise<{ message?: string; token: string | null }> | null = null;
+let guestTokenEnsuringResult: { message?: string; token: string | null } | null = null;
+
+let listFavoritesCache: {
+    message?: string;
+    data: FavoritesListData;
+} | null = null;
+let listFavoritesPromise: Promise<{
+    message?: string;
+    data: FavoritesListData;
+}> | null = null;
+
 export type FavoriteItem = {
     id: number;
     product_variation_id: number;
@@ -64,32 +77,67 @@ const parseResponse = async <T>(response: Response): Promise<ApiPayload<T>> => {
 };
 
 export const listFavorites = async (page = 1, perPage = 20) => {
-    await safeEnsureGuestFavoriteToken();
+    if (page === 1 && perPage === 20) {
+        if (listFavoritesCache) return listFavoritesCache;
+        if (listFavoritesPromise) return listFavoritesPromise;
+    }
 
-    const params = new URLSearchParams({
-        page: String(page),
-        per_page: String(perPage),
-    });
+    const run = async () => {
+        await safeEnsureGuestFavoriteToken();
 
-    const response = await fetch(`/api/favorites?${params.toString()}`, {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-        headers: {
-            Accept: "application/json",
-        },
-    });
+        const params = new URLSearchParams({
+            page: String(page),
+            per_page: String(perPage),
+        });
 
-    const payload = await parseResponse<FavoritesListData>(response);
+        const response = await fetch(`/api/favorites?${params.toString()}`, {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+            },
+        });
 
-    return {
-        message: payload.message,
-        data: {
-            token: payload.data?.token ?? null,
-            items: Array.isArray(payload.data?.items) ? payload.data.items : [],
-            pagination: payload.data?.pagination,
-        } as FavoritesListData,
+        const payload = await parseResponse<FavoritesListData>(response);
+
+        return {
+            message: payload.message,
+            data: {
+                token: payload.data?.token ?? null,
+                items: Array.isArray(payload.data?.items) ? payload.data.items : [],
+                pagination: payload.data?.pagination,
+            } as FavoritesListData,
+        };
     };
+
+    if (page === 1 && perPage === 20) {
+        const promise = (async () => {
+            try {
+                return await run();
+            } catch {
+                return {
+                    message: "Server Error",
+                    data: {
+                        token: null,
+                        items: [],
+                        pagination: undefined,
+                    } as FavoritesListData,
+                };
+            }
+        })();
+
+        listFavoritesPromise = promise;
+        try {
+            const result = await promise;
+            listFavoritesCache = result;
+            return result;
+        } finally {
+            listFavoritesPromise = null;
+        }
+    }
+
+    return run();
 };
 
 export const toggleFavorite = async (productVariationId: number) => {
@@ -123,6 +171,7 @@ export const toggleFavorite = async (productVariationId: number) => {
         );
     }
 
+    listFavoritesCache = null;
     return {
         message: payload.message,
         data: {
@@ -134,18 +183,46 @@ export const toggleFavorite = async (productVariationId: number) => {
 };
 
 export const ensureGuestFavoriteToken = async () => {
-    const response = await fetch("/api/favorites/token", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            Accept: "application/json",
-        },
-    });
+    if (guestTokenEnsured) {
+        return guestTokenEnsuringResult ?? { message: "", token: null };
+    }
 
-    const payload = await parseResponse<{ token?: string | null }>(response);
+    if (guestTokenEnsuringPromise) {
+        return await guestTokenEnsuringPromise;
+    }
 
-    return {
-        message: payload.message,
-        token: payload.data?.token ?? null,
-    };
+    const promise = (async () => {
+        try {
+            const response = await fetch("/api/favorites/token", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            const payload = await parseResponse<{ token?: string | null }>(response);
+
+            const result = {
+                message: payload.message,
+                token: payload.data?.token ?? null,
+            };
+
+            guestTokenEnsuringResult = result;
+            guestTokenEnsured = true;
+            return result;
+        } catch {
+            const result = { message: "", token: null };
+            guestTokenEnsuringResult = result;
+            guestTokenEnsured = true;
+            return result;
+        }
+    })();
+
+    guestTokenEnsuringPromise = promise;
+    try {
+        return await promise;
+    } finally {
+        guestTokenEnsuringPromise = null;
+    }
 };

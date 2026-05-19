@@ -272,7 +272,7 @@ export default async function DynamicMenuPage({ params }: Props) {
 
     const includedItemsSection = includedItems.length > 0 ? (
         <div className="mt-4 w-full">
-            <div className={`mx-auto w-full ${isContentView ? "max-w-[1280px] !px-1 lg:!px-2" : "max-w-[1280px]"}`}>
+            <div className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2">
                 {includedItems.map((inc: any, idx: number) => {
                     if (inc.included_type === "menu" && inc.type === "form") {
                         return (
@@ -519,7 +519,7 @@ export default async function DynamicMenuPage({ params }: Props) {
 
                     {includedItems.length > 0 && (
                         <div className="mt-4 w-full">
-                            <div className={`mx-auto w-full ${"max-w-[1280px] !px-1 lg:!px-2"}`}>
+                            <div className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2">
                                         {includedItems.map((inc: any, idx: number) => {
                                     if (inc.included_type === "menu" && inc.type === "form") {
                                         return (
@@ -591,7 +591,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                     { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
                     { label: menu.name, isCurrent: true },
                 ]}
-                className={`mx-auto w-full ${isContentView ? "max-w-[1280px] lg:max-w-[1000px]" : "max-w-[1280px]"} !px-1 lg:!px-2`}
+                className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
                 showTitle
                 pageTitle={menu.title || menu.name}
                 titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
@@ -601,7 +601,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                 null
             )}
 
-            <section className={`mx-auto w-full pt-2 pb-10 lg:pt-3 lg:pb-12 ${isContentView ? "max-w-[1280px] lg:max-w-[1000px] !px-1 lg:!px-2" : "max-w-[1280px]"}`}>
+            <section className="mx-auto w-full max-w-[1280px] !px-1 pt-2 pb-10 lg:!px-2 lg:pt-3 lg:pb-12">
                 <div className="prose max-w-none">
                     {menu.description && (
                         <div dangerouslySetInnerHTML={{ __html: menu.description }} />
@@ -645,3 +645,4 @@ export default async function DynamicMenuPage({ params }: Props) {
         </div>
     );
 }
+

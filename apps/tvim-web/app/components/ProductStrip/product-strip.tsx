@@ -3,9 +3,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useNotify } from "@repo/ui";
+import { addProductToCart } from "@/lib/cart/client";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
-import { useCartStore } from "@/stores";
 import { QuickOrderPopup } from "./quick-order-popup";
 
 type ApiItem = any;
@@ -283,8 +283,6 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
     const navUnlockTimerRef = useRef<number | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isNavLocked, setIsNavLocked] = useState(false);
-    const addCartProductAsync = useCartStore((state) => state.addProductAsync);
-
     // Navigation is handled only on the image/link now.
 
     useEffect(() => {
@@ -556,7 +554,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         }
 
         try {
-            await addCartProductAsync({
+            await addProductToCart({
                 id: product.id,
                 title: product.title,
                 price: product.price,

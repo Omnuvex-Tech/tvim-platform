@@ -2,6 +2,19 @@ export type CompareAction = "created" | "deleted";
 
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
 
+let guestTokenEnsured = false;
+let guestTokenEnsuringPromise: Promise<{ message?: string; token: string | null }> | null = null;
+let guestTokenEnsuringResult: { message?: string; token: string | null } | null = null;
+
+let listCompareCache: {
+    message?: string;
+    data: CompareListData;
+} | null = null;
+let listComparePromise: Promise<{
+    message?: string;
+    data: CompareListData;
+}> | null = null;
+
 type ApiPayload<T> = {
     success?: boolean;
     message?: string;
@@ -56,26 +69,54 @@ const parseResponse = async <T>(response: Response): Promise<ApiPayload<T>> => {
 };
 
 export const listCompare = async () => {
-    await safeEnsureGuestCompareToken();
+    if (listCompareCache) return listCompareCache;
+    if (listComparePromise) return listComparePromise;
 
-    const response = await fetch("/api/compare", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-        headers: {
-            Accept: "application/json",
-        },
-    });
+    const run = async () => {
+        await safeEnsureGuestCompareToken();
 
-    const payload = await parseResponse<CompareListData>(response);
+        const response = await fetch("/api/compare", {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+            },
+        });
 
-    return {
-        message: payload.message,
-        data: {
-            token: payload.data?.token ?? null,
-            items: Array.isArray(payload.data?.items) ? payload.data.items : [],
-        } as CompareListData,
+        const payload = await parseResponse<CompareListData>(response);
+
+        return {
+            message: payload.message,
+            data: {
+                token: payload.data?.token ?? null,
+                items: Array.isArray(payload.data?.items) ? payload.data.items : [],
+            } as CompareListData,
+        };
     };
+
+    const promise = (async () => {
+        try {
+            return await run();
+        } catch {
+            return {
+                message: "Server Error",
+                data: {
+                    token: null,
+                    items: [],
+                } as CompareListData,
+            };
+        }
+    })();
+
+    listComparePromise = promise;
+    try {
+        const result = await promise;
+        listCompareCache = result;
+        return result;
+    } finally {
+        listComparePromise = null;
+    }
 };
 
 export const toggleCompare = async (productVariationId: number) => {
@@ -109,6 +150,7 @@ export const toggleCompare = async (productVariationId: number) => {
         );
     }
 
+    listCompareCache = null;
     return {
         message: payload.message,
         data: {
@@ -120,18 +162,46 @@ export const toggleCompare = async (productVariationId: number) => {
 };
 
 export const ensureGuestCompareToken = async () => {
-    const response = await fetch("/api/compare/token", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            Accept: "application/json",
-        },
-    });
+    if (guestTokenEnsured) {
+        return guestTokenEnsuringResult ?? { message: "", token: null };
+    }
 
-    const payload = await parseResponse<{ token?: string | null }>(response);
+    if (guestTokenEnsuringPromise) {
+        return await guestTokenEnsuringPromise;
+    }
 
-    return {
-        message: payload.message,
-        token: payload.data?.token ?? null,
-    };
+    const promise = (async () => {
+        try {
+            const response = await fetch("/api/compare/token", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            const payload = await parseResponse<{ token?: string | null }>(response);
+
+            const result = {
+                message: payload.message,
+                token: payload.data?.token ?? null,
+            };
+
+            guestTokenEnsuringResult = result;
+            guestTokenEnsured = true;
+            return result;
+        } catch {
+            const result = { message: "", token: null };
+            guestTokenEnsuringResult = result;
+            guestTokenEnsured = true;
+            return result;
+        }
+    })();
+
+    guestTokenEnsuringPromise = promise;
+    try {
+        return await promise;
+    } finally {
+        guestTokenEnsuringPromise = null;
+    }
 };

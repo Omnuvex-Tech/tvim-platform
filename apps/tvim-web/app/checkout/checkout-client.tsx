@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { CircleX, Minus, Plus } from "lucide-react";
-import { useCartStore } from "@/stores";
+import { useCart } from "@/lib/cart/client";
 import { CheckoutDetailsForm } from "./components/checkout-details-form";
 import { CheckoutOrderSummary } from "./components/checkout-order-summary";
 import { RequestForm } from "../components/RequestForm/request-form";
@@ -12,10 +12,7 @@ const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 const parsePrice = (value: string | number | undefined) => Number(String(value ?? "").replace(/[^0-9.-]+/g, "")) || 0;
 
 export default function CheckoutClient() {
-    const items = useCartStore((s) => s.items);
-    const increase = useCartStore((s) => s.increaseQuantity);
-    const decrease = useCartStore((s) => s.decreaseQuantity);
-    const removeItem = useCartStore((s) => s.removeItem);
+    const { items, increaseQuantity: increase, decreaseQuantity: decrease, removeItem } = useCart();
     const router = useRouter();
 
     const subtotal = useMemo(() => {
@@ -47,10 +44,10 @@ export default function CheckoutClient() {
                         return (
                             <div
                                 key={it.key}
-                                className="w-full grid items-center gap-4 py-0 lg:grid-cols-[minmax(0,1fr)_132px_220px_32px] lg:gap-6 bg-white first:rounded-t-[6px] last:rounded-b-[6px]"
+                                className="relative w-full rounded-[10px] border border-[#eef2f7] bg-white p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_132px_220px_32px] lg:items-center lg:gap-6 lg:rounded-none lg:border-0 lg:p-0 first:rounded-t-[6px] last:rounded-b-[6px]"
                             >
                                 <div className="flex min-w-0 items-center gap-4 self-center">
-                                    <div className="h-[144px] w-[144px] flex-none overflow-hidden rounded-[6px] bg-white">
+                                    <div className="h-[96px] w-[96px] flex-none overflow-hidden rounded-[6px] bg-white sm:h-[120px] sm:w-[120px] lg:h-[144px] lg:w-[144px]">
                                         {it.product.imageUrl ? (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img src={it.product.imageUrl} alt={it.product.title} className="h-full w-full object-contain" />
@@ -64,7 +61,8 @@ export default function CheckoutClient() {
                                     </div>
                                 </div>
 
-                                <div className="inline-flex h-[54px] w-[132px] translate-y-[4px] items-center justify-center self-center rounded-[18px] border border-[#d6deea] px-4">
+                                <div className="mt-3 flex justify-end lg:mt-0 lg:justify-center">
+                                    <div className="inline-flex h-[54px] w-[132px] items-center justify-center self-center rounded-[18px] border border-[#d6deea] px-4 lg:translate-y-[4px]">
                                     <button
                                         type="button"
                                         onClick={() => decrease(it.key)}
@@ -84,14 +82,15 @@ export default function CheckoutClient() {
                                     >
                                         <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" />
                                     </button>
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-5 self-center">
-                                    <div className="flex h-[54px] flex-col justify-center">
+                                <div className="mt-4 flex items-end justify-between gap-6 self-center lg:mt-0 lg:grid lg:grid-cols-2 lg:gap-5">
+                                    <div className="flex flex-col justify-center">
                                         <p className="mb-1 text-[11px] font-medium text-[#8e97a6]">Qiyməti</p>
                                         <p className="text-[20px] leading-none font-semibold text-[#111826]">{formatPrice(unit)}</p>
                                     </div>
-                                    <div className="flex h-[54px] flex-col justify-center">
+                                    <div className="flex flex-col justify-center text-right lg:text-left">
                                         <p className="mb-1 text-[11px] font-medium text-[#8e97a6]">Cəmi</p>
                                         <p className="text-[20px] leading-none font-semibold text-[#111826]">{formatPrice(unit * it.quantity)}</p>
                                     </div>
@@ -100,7 +99,7 @@ export default function CheckoutClient() {
                                 <button
                                     type="button"
                                     onClick={() => removeItem(it.key)}
-                                    className="inline-flex h-8 w-8 cursor-pointer items-center justify-center self-center justify-self-end text-[#9cadc4] transition-colors hover:text-[#5f6f86]"
+                                    className="absolute top-3 right-3 inline-flex h-8 w-8 cursor-pointer items-center justify-center text-[#9cadc4] transition-colors hover:text-[#5f6f86] lg:static lg:self-center lg:justify-self-end"
                                     aria-label="Səbətdən sil"
                                 >
                                     <CircleX className="size-5" />

@@ -94,7 +94,7 @@ export default async function CheckoutPage() {
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 
-            <div className="mx-auto mt-3 w-full max-w-[1280px] px-3 lg:mt-4 lg:px-0">
+            <div className="mx-auto mt-3 w-full max-w-[1280px] px-0 sm:px-3 lg:mt-4 lg:px-0">
                 <CheckoutClient />
             </div>
 

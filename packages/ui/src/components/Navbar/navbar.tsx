@@ -45,6 +45,81 @@ const CONTENT_LOCALE = "az";
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
 
+let favoritesCountCache: number | null = null;
+let favoritesCountPromise: Promise<number> | null = null;
+let compareCountCache: number | null = null;
+let compareCountPromise: Promise<number> | null = null;
+
+async function getFavoritesCount(force = false) {
+    if (force) {
+        favoritesCountCache = null;
+    }
+
+    if (favoritesCountCache !== null) return favoritesCountCache;
+    if (favoritesCountPromise) return await favoritesCountPromise;
+
+    const promise = (async () => {
+        try {
+            const response = await fetch("/api/favorites?page=1&per_page=1", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            if (!response.ok) return 0;
+            const payload = await response.json();
+            return extractFavoritesCount(payload);
+        } catch {
+            return 0;
+        } finally {
+            favoritesCountPromise = null;
+        }
+    })();
+
+    favoritesCountPromise = promise;
+    const value = await promise;
+    favoritesCountCache = value;
+    return value;
+}
+
+async function getCompareCount(force = false) {
+    if (force) {
+        compareCountCache = null;
+    }
+
+    if (compareCountCache !== null) return compareCountCache;
+    if (compareCountPromise) return await compareCountPromise;
+
+    const promise = (async () => {
+        try {
+            const response = await fetch("/api/compare?page=1&per_page=1", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            if (!response.ok) return 0;
+            const payload = await response.json();
+            return extractCompareCount(payload);
+        } catch {
+            return 0;
+        } finally {
+            compareCountPromise = null;
+        }
+    })();
+
+    compareCountPromise = promise;
+    const value = await promise;
+    compareCountCache = value;
+    return value;
+}
+
 function extractFavoritesCount(payload: any) {
     const total = Number(payload?.data?.pagination?.total);
     if (Number.isFinite(total) && total >= 0) {
@@ -800,6 +875,7 @@ function NavbarActions({
                 ) : null}
             </Link>
             <button
+                suppressHydrationWarning
                 type="button"
                 aria-label="Səbət"
                 onClick={onCartClick}
@@ -876,50 +952,14 @@ export function Navbar({
     const [compareCount, setCompareCount] = useState(0);
     const whatsappHref = toWhatsappHref(phone);
 
-    const fetchFavoritesCount = useCallback(async () => {
-        try {
-            const response = await fetch("/api/favorites?page=1&per_page=1", {
-                method: "GET",
-                credentials: "include",
-                cache: "no-store",
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                setFavoritesCount(0);
-                return;
-            }
-
-            const payload = await response.json();
-            setFavoritesCount(extractFavoritesCount(payload));
-        } catch {
-            // Ignore transient network errors for badge sync.
-        }
+    const fetchFavoritesCount = useCallback(async (force = false) => {
+        const count = await getFavoritesCount(force);
+        setFavoritesCount(count);
     }, []);
 
-    const fetchCompareCount = useCallback(async () => {
-        try {
-            const response = await fetch("/api/compare?page=1&per_page=1", {
-                method: "GET",
-                credentials: "include",
-                cache: "no-store",
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                setCompareCount(0);
-                return;
-            }
-
-            const payload = await response.json();
-            setCompareCount(extractCompareCount(payload));
-        } catch {
-            // Ignore transient network errors for badge sync.
-        }
+    const fetchCompareCount = useCallback(async (force = false) => {
+        const count = await getCompareCount(force);
+        setCompareCount(count);
     }, []);
 
     useEffect(() => {
@@ -949,7 +989,7 @@ export function Navbar({
                 return;
             }
 
-            void fetchFavoritesCount();
+            void fetchFavoritesCount(true);
         };
 
         window.addEventListener(FAVORITES_UPDATED_EVENT, onFavoritesUpdated as EventListener);
@@ -973,7 +1013,7 @@ export function Navbar({
                 return;
             }
 
-            void fetchCompareCount();
+            void fetchCompareCount(true);
         };
 
         window.addEventListener(COMPARE_UPDATED_EVENT, onCompareUpdated as EventListener);
@@ -1689,7 +1729,7 @@ export function Navbar({
 
             <div
                 aria-hidden="true"
-                className="h-px w-full bg-[#e5e7eb] [box-shadow:0_0_0_100vmax_rgb(229_231_235)] [clip-path:inset(0_-100vmax)]"
+                className="hidden h-px w-full bg-[#e5e7eb] [box-shadow:0_0_0_100vmax_rgb(229_231_235)] [clip-path:inset(0_-100vmax)] lg:block"
             />
 
             <div
@@ -1801,6 +1841,7 @@ export function Navbar({
                             ) : null}
                         </Link>
                         <button
+                            suppressHydrationWarning
                             type="button"
                             aria-label="Səbət"
                             onClick={onCartClick}

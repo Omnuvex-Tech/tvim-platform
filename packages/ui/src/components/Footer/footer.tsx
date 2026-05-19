@@ -148,7 +148,7 @@ const Footer = ({
 
             {socials.length > 0 ? (
                 <div className="w-full bg-black/5 [box-shadow:0_0_0_100vmax_rgba(0,0,0,0.05)] [clip-path:inset(0_-100vmax)]">
-                    <div className={cn("mx-auto w-full max-w-[1280px] px-4 py-3 sm:px-6 lg:px-0 lg:grid lg:items-center", lgColsClass)}>
+                    <div className={cn("mx-auto w-full max-w-[1280px] px-0 py-3 lg:px-0 lg:grid lg:items-center", lgColsClass)}>
                         <div className="flex flex-wrap items-center justify-start gap-2.5 lg:col-start-1">
                             {socials.map((item, index) => (
                                 <a

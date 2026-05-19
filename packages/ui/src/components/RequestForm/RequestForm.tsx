@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import type { RequestFormData, RequestFormProps } from "@repo/types/types";
 import { cn } from "../../lib/utils";
+import { useNotify } from "../Notify/notify-provider";
 
 const UserIcon = () => (
   <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none">
@@ -59,10 +60,10 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ file, onChange, icon, placeholder }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex h-[62px] cursor-pointer select-none items-center gap-[18px] rounded-[20px] bg-white p-[10px_18px]" onClick={() => inputRef.current?.click()} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}>
+    <div suppressHydrationWarning className="flex h-[62px] cursor-pointer select-none items-center gap-[18px] rounded-[20px] bg-white p-[10px_18px]" onClick={() => inputRef.current?.click()} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}>
       <span className="flex shrink-0 text-[#0d47ff]">{icon}</span>
       <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[17px] font-semibold text-[#202329]">{file ? file.name : placeholder}</span>
-      <input ref={inputRef} type="file" className="hidden" onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
+      <input suppressHydrationWarning ref={inputRef} type="file" className="hidden" onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
     </div>
   );
 };
@@ -75,12 +76,13 @@ interface SendButtonProps {
 }
 
 const SendButton: React.FC<SendButtonProps> = ({ loading, disabled, onClick, label }) => (
-  <button type="button" className={cn("flex h-[52px] min-w-[172px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[20px] border-none bg-[#ffdc09] px-9 text-center text-[16px] font-medium text-[#1a1a1a] transition-all hover:opacity-90")} disabled={disabled || loading} onClick={onClick} aria-busy={loading}>
+  <button suppressHydrationWarning type="button" className={cn("flex h-[52px] min-w-[172px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[20px] border-none bg-[#ffdc09] px-9 text-center text-[16px] font-medium text-[#1a1a1a] transition-all hover:opacity-90")} disabled={disabled || loading} onClick={onClick} aria-busy={loading}>
     {loading ? <Spinner /> : <span className="-mt-0.5">{label}</span>}
   </button>
 );
 
 export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və tikinti üçün lazım olan məhsulları seçməkdə sizə peşəkar dəstək veririk!", subheading = "Bir sorğu göndərin və ən qısa zamanda sizinlə əlaqə saxlayaq.", placeholders, submitLabel = "Göndər", consentText = "“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.", onSubmit, className = "" }) => {
+  const notify = useNotify();
   const [form, setForm] = useState<RequestFormData>({ name: "", phone: "", file: null, description: "" });
   const [loading, setLoading] = useState(false);
 
@@ -96,6 +98,11 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
     setLoading(true);
     try {
       await onSubmit?.(form);
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "Server Error";
+      const match = rawMessage.match(/:\s(.+)$/);
+      const message = (match?.[1] ?? rawMessage).trim();
+      notify.error(message);
     } finally {
       setLoading(false);
     }
@@ -112,17 +119,17 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
         <div className="flex w-full flex-1 flex-col justify-center gap-[12px] px-6 pt-4 pb-10 sm:px-8 sm:pt-4 sm:pb-10 md:px-10 md:pt-4 md:pb-10 lg:w-1/2 lg:py-[78px] lg:pr-[48px] lg:pl-0 xl:py-[86px] xl:pr-[40px] xl:pl-0">
           <div className="mx-auto flex w-full max-w-full flex-col gap-3 sm:gap-4 md:gap-4 md:max-w-[480px] lg:max-w-full">
             <FormField icon={<UserIcon />}>
-              <input className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="text" placeholder={namePlaceholder} value={form.name} onChange={set("name")} autoComplete="name" />
+              <input suppressHydrationWarning className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="text" placeholder={namePlaceholder} value={form.name} onChange={set("name")} autoComplete="name" />
             </FormField>
 
             <FormField icon={<PhoneIcon />}>
-              <input className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={set("phone")} autoComplete="tel" />
+              <input suppressHydrationWarning className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={set("phone")} autoComplete="tel" />
             </FormField>
 
             <FileUpload file={form.file} onChange={(file) => setForm((prev) => ({ ...prev, file }))} icon={<PaperclipIcon />} placeholder={filePlaceholder} />
 
             <FormField icon={<EditIcon />} isTextarea>
-              <textarea className="min-h-[66px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder={descriptionPlaceholder} value={form.description} onChange={set("description")} rows={3} />
+              <textarea suppressHydrationWarning className="min-h-[66px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder={descriptionPlaceholder} value={form.description} onChange={set("description")} rows={3} />
             </FormField>
           </div>
 

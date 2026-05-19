@@ -432,7 +432,7 @@ export default async function ServiceSlugPage({
                             {keywords.map((kw, i) => (
                                 <span
                                     key={i}
-                                    className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333]"
+                                    className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
                                 >
                                     {kw}
                                 </span>
