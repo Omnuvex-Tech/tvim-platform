@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import type { RequestFormData, RequestFormProps } from "@repo/types/types";
+import type { RequestFormData, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
 import { cn } from "../../lib/utils";
 import { useNotify } from "../Notify/notify-provider";
 
@@ -28,6 +28,22 @@ const PaperclipIcon = () => (
 const EditIcon = () => (
   <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none">
     <path d="M13.5 3.5a2 2 0 012.8 2.8L6 16.5H3v-3L13.5 3.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+  </svg>
+);
+
+const AnimatedCheckIcon = () => (
+  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none">
+    <path
+      d="M4 10.5l3.2 3.2L16 5.9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeDasharray="24"
+      strokeDashoffset="24"
+    >
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="260ms" fill="freeze" />
+    </path>
   </svg>
 );
 
@@ -70,14 +86,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ file, onChange, icon, placehold
 
 interface SendButtonProps {
   loading: boolean;
+  success: boolean;
   disabled: boolean;
   onClick: () => void;
   label: string;
 }
 
-const SendButton: React.FC<SendButtonProps> = ({ loading, disabled, onClick, label }) => (
-  <button suppressHydrationWarning type="button" className={cn("flex h-[52px] min-w-[172px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[20px] border-none bg-[#ffdc09] px-9 text-center text-[16px] font-medium text-[#1a1a1a] transition-all hover:opacity-90")} disabled={disabled || loading} onClick={onClick} aria-busy={loading}>
-    {loading ? <Spinner /> : <span className="-mt-0.5">{label}</span>}
+const SendButton: React.FC<SendButtonProps> = ({ loading, success, disabled, onClick, label }) => (
+  <button suppressHydrationWarning type="button" className={cn("flex h-[52px] min-w-[172px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[20px] border-none bg-[#ffdc09] px-9 text-center text-[16px] font-medium text-[#1a1a1a] transition-all hover:opacity-90")} disabled={disabled || loading || success} onClick={onClick} aria-busy={loading}>
+    {loading ? <Spinner /> : success ? <AnimatedCheckIcon /> : <span className="-mt-0.5">{label}</span>}
   </button>
 );
 
@@ -85,19 +102,27 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
   const notify = useNotify();
   const [form, setForm] = useState<RequestFormData>({ name: "", phone: "", file: null, description: "" });
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const namePlaceholder = placeholders?.name?.trim() || "Adınız *";
   const phonePlaceholder = placeholders?.phone?.trim() || "Telefon *";
   const filePlaceholder = placeholders?.file?.trim() || "Fayl seç";
   const descriptionPlaceholder = placeholders?.description?.trim() || "Layihəni təsvir edin... *";
 
-  const set = (field: keyof Omit<RequestFormData, "file">) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const set = (field: keyof Omit<RequestFormData, "file">) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setSuccess(false);
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
 
   const handleSubmit = async () => {
-    if (loading) return;
+    if (loading || success) return;
     setLoading(true);
     try {
-      await onSubmit?.(form);
+      const result = (await onSubmit?.(form)) as void | RequestFormSubmitResult;
+      const ok = Boolean(result?.ok);
+      if (ok) {
+        setSuccess(true);
+      }
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : "Server Error";
       const match = rawMessage.match(/:\s(.+)$/);
@@ -126,7 +151,10 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
               <input suppressHydrationWarning className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={set("phone")} autoComplete="tel" />
             </FormField>
 
-            <FileUpload file={form.file} onChange={(file) => setForm((prev) => ({ ...prev, file }))} icon={<PaperclipIcon />} placeholder={filePlaceholder} />
+            <FileUpload file={form.file} onChange={(file) => {
+              setSuccess(false);
+              setForm((prev) => ({ ...prev, file }));
+            }} icon={<PaperclipIcon />} placeholder={filePlaceholder} />
 
             <FormField icon={<EditIcon />} isTextarea>
               <textarea suppressHydrationWarning className="min-h-[66px] flex-1 resize-none border-none bg-transparent font-sans text-[17px] font-medium leading-[1.35] text-[#202329] outline-none placeholder:text-[#999]" placeholder={descriptionPlaceholder} value={form.description} onChange={set("description")} rows={3} />
@@ -135,7 +163,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
 
           <div className="mt-2 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-full text-[14px] leading-[1.3] text-white/85 sm:ml-8 sm:max-w-[280px] lg:ml-[112px] lg:max-w-[300px]">{consentText}</p>
-            <SendButton loading={loading} disabled={false} onClick={handleSubmit} label={submitLabel} />
+            <SendButton loading={loading} success={success} disabled={false} onClick={handleSubmit} label={submitLabel} />
           </div>
         </div>
       </div>

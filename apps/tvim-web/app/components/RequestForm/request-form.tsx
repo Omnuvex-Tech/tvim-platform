@@ -1,7 +1,7 @@
 "use client";
 
 import { RequestForm as RequestFormUI } from "@repo/ui";
-import type { RequestFormData, RequestFormField, RequestFormProps } from "@repo/types/types";
+import type { RequestFormData, RequestFormField, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 
@@ -19,20 +19,23 @@ function resolveSubmitUrl(path: string) {
 const extractFirstErrorMessage = (payload: unknown) => {
     if (!payload || typeof payload !== "object") return "";
 
+    const errors = (payload as { errors?: unknown }).errors;
+    if (errors && typeof errors === "object" && !Array.isArray(errors)) {
+        const entries = Object.entries(errors as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+        for (const [, value] of entries) {
+            if (Array.isArray(value) && value.length > 0) {
+                const first = value.find((item) => typeof item === "string" && item.trim());
+                if (typeof first === "string") return first.trim();
+            }
+            if (typeof value === "string" && value.trim()) {
+                return value.trim();
+            }
+        }
+    }
+
     const message = (payload as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) {
         return message.trim();
-    }
-
-    const errors = (payload as { errors?: unknown }).errors;
-    if (!errors || typeof errors !== "object") return "";
-
-    const values = Object.values(errors as Record<string, unknown>);
-    for (const value of values) {
-        if (Array.isArray(value) && value.length > 0) {
-            const first = value.find((item) => typeof item === "string" && item.trim());
-            if (typeof first === "string") return first.trim();
-        }
     }
 
     return "";
@@ -69,16 +72,42 @@ function resolveValueForFieldType(type: string, data: RequestFormData) {
     return null;
 }
 
+function extractSuccessMessage(payload: unknown) {
+    if (!payload || typeof payload !== "object") return "";
+
+    const message = (payload as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message.trim();
+
+    const nested = (payload as { data?: { message?: unknown } }).data?.message;
+    if (typeof nested === "string" && nested.trim()) return nested.trim();
+
+    return "";
+}
+
+function extractOkFlag(payload: unknown) {
+    if (!payload || typeof payload !== "object") return false;
+    const ok = (payload as { ok?: unknown }).ok;
+    if (typeof ok === "boolean") return ok;
+    const nestedOk = (payload as { data?: { ok?: unknown } }).data?.ok;
+    return typeof nestedOk === "boolean" ? nestedOk : false;
+}
+
 const RequestForm = (props: RequestFormProps) => {
     const handleSubmit = async (data: RequestFormData) => {
+        let successMessage = "";
+        let ok = false;
+
         if (props.submitConfig?.path) {
             const method = String(props.submitConfig.method ?? "POST").toUpperCase();
             const submitUrl = resolveSubmitUrl(props.submitConfig.path);
 
-            const formData = new FormData();
             const normalizedFields = normalizeRequestFormFields(props.fields);
 
             if (normalizedFields.length > 0) {
+                const answers: Record<string, string> = {};
+                const formData = new FormData();
+                let hasFile = false;
+
                 for (const field of normalizedFields) {
                     const key = String(field.id).trim();
                     if (!key) continue;
@@ -87,12 +116,48 @@ const RequestForm = (props: RequestFormProps) => {
                     if (value === null) continue;
 
                     if (value instanceof File) {
-                        formData.append(key, value);
+                        hasFile = true;
+                        formData.append(`answers[${key}]`, value);
                     } else {
-                        formData.append(key, String(value ?? ""));
+                        const text = String(value ?? "");
+                        answers[key] = text;
+                        formData.append(`answers[${key}]`, text);
                     }
                 }
+
+                const response = await fetch(submitUrl, {
+                    method,
+                    body: hasFile ? formData : JSON.stringify({ answers }),
+                    headers: {
+                        ...(hasFile ? {} : { "Content-Type": "application/json" }),
+                        Accept: "application/json",
+                    },
+                });
+
+                if (!response.ok) {
+                    let details = "";
+
+                    try {
+                        const payload = await response.json();
+                        const extracted = extractFirstErrorMessage(payload);
+                        details = extracted ? `: ${extracted}` : "";
+                    } catch {
+                        details = "";
+                    }
+
+                    throw new Error(`Request form submit failed (${response.status})${details}`);
+                }
+
+                try {
+                    const payload = await response.json();
+                    successMessage = extractSuccessMessage(payload);
+                    ok = extractOkFlag(payload);
+                } catch {
+                    successMessage = "";
+                    ok = false;
+                }
             } else {
+                const formData = new FormData();
                 formData.append("name", data.name);
                 formData.append("phone", data.phone);
                 formData.append("description", data.description);
@@ -100,32 +165,46 @@ const RequestForm = (props: RequestFormProps) => {
                 if (data.file) {
                     formData.append("file", data.file);
                 }
-            }
 
-            const response = await fetch(submitUrl, {
-                method,
-                body: formData,
-                headers: {
-                    Accept: "application/json",
-                },
-            });
+                const response = await fetch(submitUrl, {
+                    method,
+                    body: formData,
+                    headers: {
+                        Accept: "application/json",
+                    },
+                });
 
-            if (!response.ok) {
-                let details = "";
+                if (!response.ok) {
+                    let details = "";
+
+                    try {
+                        const payload = await response.json();
+                        const extracted = extractFirstErrorMessage(payload);
+                        details = extracted ? `: ${extracted}` : "";
+                    } catch {
+                        details = "";
+                    }
+
+                    throw new Error(`Request form submit failed (${response.status})${details}`);
+                }
 
                 try {
                     const payload = await response.json();
-                    const extracted = extractFirstErrorMessage(payload);
-                    details = extracted ? `: ${extracted}` : "";
+                    successMessage = extractSuccessMessage(payload);
+                    ok = extractOkFlag(payload);
                 } catch {
-                    details = "";
+                    successMessage = "";
+                    ok = false;
                 }
-
-                throw new Error(`Request form submit failed (${response.status})${details}`);
             }
         }
 
-        await props.onSubmit?.(data);
+        const extra = (await props.onSubmit?.(data)) as void | RequestFormSubmitResult;
+        const message = typeof extra?.message === "string" && extra.message.trim() ? extra.message.trim() : successMessage;
+        const mergedOk = typeof extra?.ok === "boolean" ? extra.ok : ok;
+        if (message || mergedOk) {
+            return { message, ok: mergedOk } satisfies RequestFormSubmitResult;
+        }
     };
 
     return <RequestFormUI {...props} onSubmit={handleSubmit} />;

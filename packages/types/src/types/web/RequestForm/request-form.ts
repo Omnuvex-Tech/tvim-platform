@@ -5,6 +5,11 @@ export interface RequestFormData {
   description: string;
 }
 
+export interface RequestFormSubmitResult {
+  message?: string;
+  ok?: boolean;
+}
+
 export interface RequestFormPlaceholders {
   name?: string;
   phone?: string;
@@ -36,6 +41,6 @@ export interface RequestFormProps {
   submitConfig?: RequestFormSubmitConfig;
   submitLabel?: string;
   consentText?: string;
-  onSubmit?: (data: RequestFormData) => void | Promise<void>;
+  onSubmit?: (data: RequestFormData) => void | RequestFormSubmitResult | Promise<void | RequestFormSubmitResult>;
   className?: string;
 }
