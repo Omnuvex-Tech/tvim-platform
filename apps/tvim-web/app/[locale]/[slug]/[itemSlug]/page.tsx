@@ -39,24 +39,21 @@ type GridItem = {
     };
 };
 
-type MenuDetailResponse = {
-    success: boolean;
+type MenuDetailData = {
+    menu: {
+        name: string;
+        title: string | null;
+        type: string;
+        seo?: any;
+    };
     data: {
-        menu: {
-            name: string;
-            title: string | null;
-            type: string;
-            seo?: any;
-        };
-        data: {
-            items?: GridItem[];
-        };
+        items?: GridItem[];
     };
 };
 
 async function getMenuDetail(slug: string, locale: string) {
     try {
-        const response = await api.get<MenuDetailResponse>(config.endpoints.menus.detail(slug), {
+        const response = await api.get<MenuDetailData>(config.endpoints.menus.detail(slug), {
             locale,
         });
         if (response.success && response.data) return response.data;

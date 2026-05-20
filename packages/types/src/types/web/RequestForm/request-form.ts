@@ -12,6 +12,17 @@ export interface RequestFormPlaceholders {
   description?: string;
 }
 
+export interface RequestFormField {
+  id?: number | string;
+  type?: string;
+  sort_order?: number | string;
+  name?: string;
+  information?: string;
+  is_required?: boolean;
+  send_text_mail?: boolean;
+  options?: unknown[];
+}
+
 export interface RequestFormSubmitConfig {
   method?: string;
   path: string;
@@ -21,6 +32,7 @@ export interface RequestFormProps {
   heading?: string;
   subheading?: string;
   placeholders?: RequestFormPlaceholders;
+  fields?: RequestFormField[];
   submitConfig?: RequestFormSubmitConfig;
   submitLabel?: string;
   consentText?: string;
