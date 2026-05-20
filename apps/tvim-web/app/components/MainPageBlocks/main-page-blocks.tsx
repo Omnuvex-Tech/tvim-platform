@@ -75,9 +75,14 @@ type MainPageBrandRawItem = {
 };
 
 type MainPageFormFieldRaw = {
+    id?: number | string;
     type?: string;
     name?: string;
     is_required?: boolean;
+    sort_order?: number | string;
+    send_text_mail?: boolean;
+    information?: string;
+    options?: unknown[];
 };
 
 type MainPageFormSubmitRaw = {
@@ -375,6 +380,7 @@ export function MainPageBlocks({ blocks = [] }: MainPageBlocksProps) {
                                 heading={heading}
                                 subheading={subheading}
                                 placeholders={mapFormPlaceholders(block)}
+                                fields={Array.isArray(block?.data?.data?.fields) ? block.data.data.fields : undefined}
                                 submitConfig={mapFormSubmitConfig(block)}
                             />
                         </Fragment>

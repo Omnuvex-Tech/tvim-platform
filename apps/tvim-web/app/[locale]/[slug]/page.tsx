@@ -27,50 +27,50 @@ import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 
-type MenuDetailResponse = {
-    success: boolean;
-    data: {
+type MenuDetailData = {
+    type: string;
+    menu: {
+        id: number;
+        uuid: string;
         type: string;
-        menu: {
-            id: number;
-            uuid: string;
-            type: string;
-            view_type: string;
-            name: string;
-            title: string | null;
-            description: string | null;
-            link: string;
-            multi_links: Record<string, string>;
-            seo: any;
-        };
-        data: {
-            mode?: string;
-            submit?: {
-                method: string;
-                path: string;
-                route: string;
-            };
-            fields?: any[];
-            items?: Array<{
-                id?: number | string;
-                slug?: string;
-                multi_slugs?: Record<string, string>;
-                name?: string;
-                content?: string;
-                banner?: string | null;
-                main_photo?: string | null;
-                datetime1?: string | null;
-            }>;
-            meta?: {
-                page?: number;
-                per_page?: number;
-                total?: number;
-                last_page?: number;
-            };
-            seo?: any;
-        };
-        included_items?: any[];
+        view_type: string;
+        name: string;
+        title: string | null;
+        description: string | null;
+        link: string;
+        multi_links: Record<string, string>;
+        seo: any;
+        meta_keywords?: any;
     };
+    data: {
+        mode?: string;
+        submit?: {
+            method: string;
+            path: string;
+            route: string;
+        };
+        fields?: any[];
+        items?: Array<{
+            id?: number | string;
+            slug?: string;
+            multi_slugs?: Record<string, string>;
+            name?: string;
+            content?: string;
+            banner?: string | null;
+            main_photo?: string | null;
+            datetime1?: string | null;
+        }>;
+        meta_keywords?: any;
+        meta?: {
+            page?: number;
+            per_page?: number;
+            total?: number;
+            last_page?: number;
+            meta_keywords?: any;
+        };
+        seo?: any;
+    };
+    included_items?: any[];
 };
 
 type Props = {
@@ -79,7 +79,7 @@ type Props = {
 
 async function getMenuDetail(slug: string, locale: string) {
     try {
-        const response = await api.get<MenuDetailResponse>(config.endpoints.menus.detail(slug), {
+        const response = await api.get<MenuDetailData>(config.endpoints.menus.detail(slug), {
             locale,
         });
         if (response.success && response.data) {
@@ -211,6 +211,8 @@ export default async function DynamicMenuPage({ params }: Props) {
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
+    const languages = langResponse.success && langResponse.data ? langResponse.data.data : [];
+
     const { menu, data: pageData } = menuDetail;
 
     // Normalize keywords for UI and metadata usage
@@ -225,7 +227,7 @@ export default async function DynamicMenuPage({ params }: Props) {
         return [];
     }
 
-    const rawKeywordsSource = menu.seo?.meta_keywords ?? pageData?.meta_keywords ?? pageData?.meta?.meta_keywords ?? menu.meta_keywords ?? pageData?.meta?.keywords;
+    const rawKeywordsSource = menu.seo?.meta_keywords ?? pageData?.meta_keywords ?? pageData?.meta?.meta_keywords ?? menu.meta_keywords;
     const keywordsArr = normalizeKeywords(rawKeywordsSource);
 
     const isContentView = menu.view_type === "content" || menu.type === "content";
@@ -277,7 +279,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                     if (inc.included_type === "menu" && inc.type === "form") {
                         return (
                             <div key={idx} className="mt-4 lg:mt-6">
-                                <RequestForm submitConfig={inc.data.submit} />
+                                <RequestForm submitConfig={inc.data.submit} fields={inc.data?.fields ?? inc.data?.data?.fields} />
                             </div>
                         );
                     }
@@ -353,7 +355,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                     logo={navbarLogo}
                     phone={navbarPhone}
                     locale={normalizedLocale}
-                    languages={langResponse.data}
+                    languages={languages}
                     menuItems={headerMenuItems}
                     initialCatalogItems={headerCategoryItems}
                 />
@@ -439,7 +441,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                     logo={navbarLogo}
                     phone={navbarPhone}
                     locale={normalizedLocale}
-                    languages={langResponse.data}
+                    languages={languages}
                     menuItems={headerMenuItems}
                     initialCatalogItems={headerCategoryItems}
                 />
@@ -524,7 +526,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                                     if (inc.included_type === "menu" && inc.type === "form") {
                                         return (
                                             <div key={idx} className="mt-4 lg:mt-6">
-                                                <RequestForm submitConfig={inc.data.submit} />
+                                                <RequestForm submitConfig={inc.data.submit} fields={inc.data?.fields ?? inc.data?.data?.fields} />
                                             </div>
                                         );
                                     }
@@ -581,7 +583,7 @@ export default async function DynamicMenuPage({ params }: Props) {
                 logo={navbarLogo}
                 phone={navbarPhone}
                 locale={normalizedLocale}
-                languages={langResponse.data}
+                languages={languages}
                 menuItems={headerMenuItems}
                 initialCatalogItems={headerCategoryItems}
             />
@@ -645,4 +647,3 @@ export default async function DynamicMenuPage({ params }: Props) {
         </div>
     );
 }
-
