@@ -15,7 +15,7 @@ interface NavbarWrapperProps {
     logo?: ReactNode;
     phone?: string;
     locale: string;
-    languages: Language[];
+    languages?: Language[] | { data?: Language[] | null } | null;
     searchPlaceholder?: string;
     menuItems?: NavbarMenuItem[];
     initialCatalogItems?: HeaderCategoryItem[];
@@ -173,9 +173,28 @@ const NavbarWrapper = ({
         [cartItems]
     );
 
+    const effectiveLanguages = useMemo<Language[]>(() => {
+        if (Array.isArray(languages)) return languages;
+        if (isRecord(languages) && Array.isArray(languages.data)) return languages.data;
+        return [];
+    }, [languages]);
+
     const supportedLocales = useMemo(
-        () => new Set(languages.map((language) => language.code.toLowerCase())),
-        [languages]
+        () =>
+            new Set(
+                [
+                    ...effectiveLanguages.map((language) => language.code),
+                    locale,
+                    storedLocale,
+                    config.project.defLang,
+                    "az",
+                    "ru",
+                    "en",
+                ]
+                    .map((value) => String(value || "").trim().toLowerCase())
+                    .filter(Boolean)
+            ),
+        [effectiveLanguages, locale, storedLocale]
     );
 
     const localeFromPath = useMemo(() => {
@@ -411,7 +430,7 @@ const NavbarWrapper = ({
                 logoHref={`/${effectiveLocale}`}
                 phone={phone}
                 locale={effectiveLocale}
-                languages={languages}
+                languages={effectiveLanguages.length > 0 ? effectiveLanguages : undefined}
                 defLang={config.project.defLang}
                 onLocaleChange={handleLocaleChange}
                 searchPlaceholder={searchPlaceholder}

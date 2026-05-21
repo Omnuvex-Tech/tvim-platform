@@ -331,9 +331,9 @@ export default async function BrandNewsSlugPage({
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
                 <div className="relative w-full overflow-hidden rounded-[16px] bg-[#1f2937]">
                     {bannerImage ? (
-                        <img src={bannerImage} alt={pageTitle} className="w-full object-cover aspect-[16/7] md:aspect-[16/6] lg:aspect-[16/5]" />
+                        <img src={bannerImage} alt={pageTitle} className="h-[clamp(120px,25vw,300px)] w-full object-cover" />
                     ) : (
-                        <div className="w-full bg-gradient-to-r from-[#243447] via-[#31465d] to-[#4a5f74] aspect-[16/7] md:aspect-[16/6] lg:aspect-[16/5]" />
+                        <div className="h-[clamp(120px,25vw,300px)] w-full bg-gradient-to-r from-[#243447] via-[#31465d] to-[#4a5f74]" />
                     )}
 
                 </div>
