@@ -785,6 +785,7 @@ const ProductStrip: React.FC<Props> = ({
                     <button
                         type="button"
                         disabled={isFavoritePending || !product.productVariationId}
+                        suppressHydrationWarning
                         onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -802,6 +803,7 @@ const ProductStrip: React.FC<Props> = ({
                     <button
                         type="button"
                         disabled={isComparePending || !product.productVariationId}
+                        suppressHydrationWarning
                         onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -851,6 +853,7 @@ const ProductStrip: React.FC<Props> = ({
 
                     <button
                         type="button"
+                        suppressHydrationWarning
                         onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();

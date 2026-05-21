@@ -27,7 +27,7 @@ import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
-import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
+import { DrawerScrollLock, FiltersDebugLogger, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
@@ -757,6 +757,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     <PendingNavProvider>
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
+                        <FiltersDebugLogger filters={productList?.filters} />
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
                             <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
                                 {filtersBody}

@@ -121,3 +121,44 @@ const PendingOverlay = ({ className }: { className?: string }) => {
 };
 
 export { PendingNavProvider, PendingLink, PendingOverlay };
+
+type FiltersDebugLoggerProps = {
+    filters: unknown;
+};
+
+const FiltersDebugLogger = ({ filters }: FiltersDebugLoggerProps) => {
+    useEffect(() => {
+        if (!Array.isArray(filters)) {
+            console.log("[catalog filters]", { filters });
+            return;
+        }
+
+        const normalized = filters
+            .filter((f) => !!f && typeof f === "object")
+            .map((f: any) => {
+                const values = Array.isArray(f.values)
+                    ? f.values
+                          .filter((v: any) => !!v && typeof v === "object")
+                          .map((v: any) => ({
+                              value_id: v.value_id ?? v.id ?? null,
+                              name: v.name ?? "",
+                              count: v.count ?? null,
+                          }))
+                    : [];
+
+                return {
+                    filter_id: f.filter_id ?? f.id ?? null,
+                    name: f.name ?? "",
+                    slug: f.slug ?? "",
+                    input_type: f.input_type ?? "",
+                    values,
+                };
+            });
+
+        console.log("[catalog filters]", normalized);
+    }, [filters]);
+
+    return null;
+};
+
+export { FiltersDebugLogger };
