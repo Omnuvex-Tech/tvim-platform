@@ -685,7 +685,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                             >
                                                 {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
                                             </span>
-                                            <span className="min-w-0 truncate text-[14px] text-[#111318]">{v?.name ?? `#${valueId}`}</span>
+                                            <span className="min-w-0 truncate text-[14px] text-[#111318]">{String(v?.name ?? "").trim() || `#${valueId}`}</span>
                                         </span>
                                         {countText ? (
                                             <span className="ml-3 inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#f1f3f6] px-2 text-[12px] font-medium text-[#4b5565]">
@@ -702,7 +702,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                     className="rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
                                 >
                                     <div className="mb-3 border-b border-[#eee] pb-3 text-[13px] font-bold uppercase text-[#111318]">
-                                        {filter?.name ?? "Filter"}
+                                        {String(filter?.name ?? "").trim() || "Filter"}
                                     </div>
                                     <div className="space-y-1">
                                         {visible.map(renderRow)}
