@@ -2,6 +2,7 @@
 @import "@repo/ui/styles";
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
+@source "./**/*.{ts,tsx}";
 
 /* Product title style used in product cards */
 
