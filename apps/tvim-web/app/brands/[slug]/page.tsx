@@ -379,11 +379,11 @@ export default async function BrandSlugPage({
                         </div>
 
                         {lastPage > 1 ? (
-                            <div className="mt-6 flex flex-wrap items-center justify-center gap-3 md:gap-4">
+                            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                                 <Link
                                     href={{ pathname: `/brands/${slug}`, query: { page: String(Math.max(1, currentPage - 1)) } }}
                                     aria-disabled={currentPage <= 1}
-                                    className={`inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8dee7] text-[16px] transition-colors ${currentPage <= 1 ? "pointer-events-none text-[#c4cbd6]" : "text-[#4e5d71] hover:bg-[#f4f6fa]"}`}
+                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${currentPage <= 1 ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"}`}
                                 >
                                     <i className="fa-solid fa-chevron-left text-[12px]" />
                                 </Link>
@@ -391,7 +391,7 @@ export default async function BrandSlugPage({
                                 {paginationTokens.map((token, index) => {
                                     if (token === "ellipsis") {
                                         return (
-                                            <span key={`ellipsis-${index}`} className="inline-flex h-10 min-w-8 items-center justify-center px-1 text-[16px] text-[#8b97a9]">
+                                            <span key={`ellipsis-${index}`} className="inline-flex h-9 w-9 items-center justify-center text-[16px] text-[#8b97a9] sm:h-10 sm:w-10">
                                                 ...
                                             </span>
                                         );
@@ -402,7 +402,8 @@ export default async function BrandSlugPage({
                                         <Link
                                             key={`page-${token}`}
                                             href={{ pathname: `/brands/${slug}`, query: { page: String(token) } }}
-                                            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-[10px] border px-3 text-[20px] font-medium transition-colors ${isActive ? "border-[#6b4f8f] bg-[#6b4f8f] text-white" : "border-[#d8dee7] bg-white text-[#69788e] hover:bg-[#f4f6fa]"}`}
+                                            aria-current={isActive ? "page" : undefined}
+                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-[13px] font-semibold transition-colors sm:h-10 sm:w-10 sm:text-[14px] ${isActive ? "border-[#0f57d6] bg-[#0f57d6] text-white" : "border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb]"}`}
                                         >
                                             {token}
                                         </Link>
@@ -412,7 +413,7 @@ export default async function BrandSlugPage({
                                 <Link
                                     href={{ pathname: `/brands/${slug}`, query: { page: String(Math.min(lastPage, currentPage + 1)) } }}
                                     aria-disabled={currentPage >= lastPage}
-                                    className={`inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#d8dee7] text-[16px] transition-colors ${currentPage >= lastPage ? "pointer-events-none text-[#c4cbd6]" : "text-[#4e5d71] hover:bg-[#f4f6fa]"}`}
+                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${currentPage >= lastPage ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"}`}
                                 >
                                     <i className="fa-solid fa-chevron-right text-[12px]" />
                                 </Link>
