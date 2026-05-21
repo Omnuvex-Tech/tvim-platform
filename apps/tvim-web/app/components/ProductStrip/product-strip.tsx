@@ -968,6 +968,7 @@ const ProductStrip: React.FC<Props> = ({
             isOpen={Boolean(quickOrderProduct)}
             productTitle={quickOrderProduct?.title ?? ""}
             productCode={quickOrderProduct ? String(quickOrderProduct.id) : ""}
+            productVariationId={quickOrderProduct?.productVariationId ?? null}
             onClose={closeQuickOrderPopup}
         />
         
