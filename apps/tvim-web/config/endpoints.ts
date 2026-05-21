@@ -47,6 +47,7 @@ export const endpoints = {
         detail: (slug: string) => `/products/${slug}`,
         detailBySlug: (slug: string) => `/product/detail/${slug}`,
         categories: "/categories",
+        purchaseRequests: "/product/purchase-requests",
     },
 
     favorites: {
