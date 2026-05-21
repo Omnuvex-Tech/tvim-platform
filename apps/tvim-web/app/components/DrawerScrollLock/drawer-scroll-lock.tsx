@@ -80,10 +80,13 @@ type PendingLinkProps = Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "hre
 
 const PendingLink = ({ href, className, children, ...rest }: PendingLinkProps) => {
     const ctx = useContext(PendingNavContext);
+    const ariaDisabled = (rest as { "aria-disabled"?: unknown })["aria-disabled"];
+    const isDisabled = ariaDisabled === true || ariaDisabled === "true";
+    const mergedClassName = `${className ?? ""}${isDisabled ? "" : " cursor-pointer"}`.trim();
 
     if (!ctx) {
         return (
-            <Link href={href} className={className} {...rest}>
+            <Link href={href} className={mergedClassName} {...rest}>
                 {children}
             </Link>
         );
@@ -92,7 +95,7 @@ const PendingLink = ({ href, className, children, ...rest }: PendingLinkProps) =
     return (
         <a
             href={href}
-            className={className}
+            className={mergedClassName}
             {...rest}
             onMouseEnter={() => {
                 ctx.prefetch(href);

@@ -767,7 +767,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 {hasFilters ? (
                                     <label
                                         htmlFor={drawerId}
-                                        className="mb-4 flex w-full items-center justify-between rounded-full bg-[#ffd500] px-5 py-3 text-[15px] font-semibold text-[#111318] lg:hidden"
+                                    className="mb-4 flex w-full cursor-pointer items-center justify-between rounded-full bg-[#ffd500] px-5 py-3 text-[15px] font-semibold text-[#111318] lg:hidden"
                                     >
                                         <span>Filtr</span>
                                         <i className="fa-solid fa-sliders text-[16px]" aria-hidden="true" />
@@ -949,7 +949,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         <>
                             <label
                                 htmlFor={drawerId}
-                                className="fixed inset-0 z-40 bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
+                                className="fixed inset-0 z-40 cursor-pointer bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
                                 aria-label="close-filters-overlay"
                             />
                             <div className="fixed inset-y-0 left-0 z-50 w-full -translate-x-full bg-white transition-transform duration-300 ease-out transform-gpu will-change-transform peer-checked:translate-x-0 lg:hidden">
@@ -958,7 +958,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                         <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
                                         <label
                                             htmlFor={drawerId}
-                                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
+                                            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
                                             aria-label="close-filters"
                                         >
                                             <i className="fa-solid fa-xmark" aria-hidden="true" />
