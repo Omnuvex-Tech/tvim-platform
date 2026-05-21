@@ -23,6 +23,7 @@ import {
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 
 type NewsVariation = {
     variation_id?: number;
@@ -317,6 +318,30 @@ export default async function BrandNewsSlugPage({
         ? mainItem.related_products
         : (Array.isArray(menuDetail.data?.related_products) ? menuDetail.data.related_products : []);
 
+    const relatedStripItems = relatedProducts
+        .map((item) => {
+            const variation = item?.variation;
+            if (!variation) return null;
+
+            const variationId =
+                typeof variation.variation_id === "number"
+                    ? variation.variation_id
+                    : Number(variation.variation_id ?? NaN);
+
+            const mainImageUrl = typeof variation.main_image_url === "string" ? variation.main_image_url : null;
+
+            return {
+                ...item,
+                variation_id: Number.isFinite(variationId) ? variationId : undefined,
+                variation: {
+                    ...variation,
+                    id: Number.isFinite(variationId) ? variationId : undefined,
+                    main_image: mainImageUrl ?? undefined,
+                },
+            };
+        })
+        .filter(Boolean);
+
     return (
         <div className="flex min-h-svh w-full flex-col items-stretch justify-start gap-0 pt-0 pb-8">
             <NavbarWrapper
@@ -362,26 +387,7 @@ export default async function BrandNewsSlugPage({
 
                 {relatedProducts.length > 0 ? (
                     <div className="mt-10">
-                        <h3 className="text-[28px] font-semibold leading-tight text-[#0f172a]">Elaqeli mehsullar</h3>
-                        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {relatedProducts.map((item, index) => {
-                                const variation = item?.variation;
-                                const name = variation?.name || `Mehsul ${index + 1}`;
-                                const image = variation?.main_image_url || null;
-                                const price = variation?.price;
-                                return (
-                                    <article key={item?.id ?? index} className="overflow-hidden rounded-[12px] border border-[#e6ebf2] bg-white p-4">
-                                        {image ? (
-                                            <img src={image} alt={name} className="h-[180px] w-full rounded-[8px] object-cover" />
-                                        ) : null}
-                                        <h4 className="mt-3 text-[16px] font-semibold text-[#0f172a]">{name}</h4>
-                                        {price !== undefined && price !== null ? (
-                                            <p className="mt-1 text-[15px] text-[#334155]">{String(price)} AZN</p>
-                                        ) : null}
-                                    </article>
-                                );
-                            })}
-                        </div>
+                        <ProductStrip variant="latest" title="Əlaqəli məhsullar" items={relatedStripItems} />
                     </div>
                 ) : null}
             </section>

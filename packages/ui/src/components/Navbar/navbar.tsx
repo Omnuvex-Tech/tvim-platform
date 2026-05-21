@@ -39,6 +39,37 @@ const navbarClasses = {
     bottomRow: "hidden items-center gap-5 py-3 lg:grid lg:grid-cols-[auto_1fr_auto] lg:gap-6",
 };
 
+const isInternalHref = (href: string) => /^\/(?!\/)/.test(String(href ?? ""));
+
+function SmartLink({
+    href,
+    className,
+    style,
+    onClick,
+    children,
+}: {
+    href: string;
+    className?: string;
+    style?: React.CSSProperties;
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+    children: ReactNode;
+}) {
+    const safeHref = String(href ?? "");
+    if (isInternalHref(safeHref)) {
+        return (
+            <Link href={safeHref} className={className} style={style} onClick={onClick}>
+                {children}
+            </Link>
+        );
+    }
+
+    return (
+        <a href={safeHref} className={className} style={style} onClick={onClick}>
+            {children}
+        </a>
+    );
+}
+
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 const NAVBAR_REQUEST_TIMEOUT_MS = 10000;
 const CONTENT_LOCALE = "az";
@@ -444,14 +475,14 @@ function LocaleFlag({ country }: { country: string }) {
 
 function NavbarLogo({ logo, logoHref = "#" }: { logo?: ReactNode; logoHref?: string }) {
     return (
-        <a href={logoHref} className="flex min-w-0 flex-1 items-center gap-1 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-1">
+        <SmartLink href={logoHref} className="flex min-w-0 flex-1 items-center gap-1 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-1">
             <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                 {logo ?? null}
             </span>
             <span className="hidden text-[14px] leading-none font-normal whitespace-nowrap text-[#616672] sm:inline">
                 Tikinti və inşaat materialları
             </span>
-        </a>
+        </SmartLink>
     );
 }
 
@@ -598,7 +629,7 @@ function NavbarSearch({
                                 >
                                     <p className="px-4 pb-2 pt-3 text-[14px] leading-none font-bold text-[#000]">{section.name}</p>
                                     {section.items.map((product, productIndex) => (
-                                        <a
+                                        <SmartLink
                                             key={`${section.key}-${product.id}`}
                                             href={product.href}
                                             className={cn(
@@ -625,7 +656,7 @@ function NavbarSearch({
                                             {product.price ? (
                                                 <span className="shrink-0 text-[13px] leading-none font-semibold text-[#1f2430]">{product.price}</span>
                                             ) : null}
-                                        </a>
+                                        </SmartLink>
                                     ))}
                                 </div>
                             ))
@@ -633,13 +664,13 @@ function NavbarSearch({
                     </div>
 
                     {!isLoading && totalResults > 0 ? (
-                        <a
+                        <SmartLink
                             href={`/${localeCode}/products?q=${encodeURIComponent(value.trim())}`}
                             className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
                             onClick={() => setIsOpen(false)}
                         >
                             Bütün axtarış nəticələri ({totalResults})
-                        </a>
+                        </SmartLink>
                     ) : null}
                 </div>
             )}
@@ -799,9 +830,9 @@ function NavbarMenu({ menuItems }: { menuItems: NavbarMenuItem[] }) {
     return (
    <nav className="space-x-8 items-center px-2 text-[14px] font-bold text-[#151822] lg:ml-8 lg:-translate-y-0.5 lg:justify-start">
     {menuItems.map((item) => (
-        <a key={item.label} href={item.href} className="cursor-pointer transition-colors hover:text-[#1d4fff]">
+        <SmartLink key={item.label} href={item.href} className="cursor-pointer transition-colors hover:text-[#1d4fff]">
             {item.label}
-        </a>
+        </SmartLink>
     ))}
 </nav>
     );
@@ -1341,21 +1372,21 @@ export function Navbar({
                     </div>
 
                     <div className="flex-1 flex flex-col gap-1.5">
-                        <a href={childHref} className="text-[13.3px] leading-[1.2] font-bold text-[#131722] whitespace-normal break-words transition-colors duration-100 hover:text-[#00a9c8]">
+                        <SmartLink href={childHref} className="text-[13.3px] leading-[1.2] font-bold text-[#131722] whitespace-normal break-words transition-colors duration-100 hover:text-[#00a9c8]">
                             {child.name ?? child.title ?? child.link}
-                        </a>
+                        </SmartLink>
 
                         {Array.isArray(child.children) && child.children.length > 0 && (
                             <ul className="mt-2 space-y-1 pl-0 text-[14px] leading-[1.3] text-[#5a6475]">
                                 {child.children.map((subChild: any) => (
                                     <li key={subChild.id}>
-                                        <a
+                                        <SmartLink
                                             href={`/${(locale || "az").toLowerCase()}/${(subChild.multi_links && subChild.multi_links[(locale || "az").toLowerCase()]) || subChild.link || ""}`}
                                             className="block rounded px-0 py-0.5 whitespace-normal break-words text-[13.3px] hover:underline transition-colors duration-75"
                                             style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
                                         >
                                             {subChild.name ?? subChild.title ?? subChild.link}
-                                        </a>
+                                        </SmartLink>
                                     </li>
                                 ))}
                             </ul>
@@ -1437,13 +1468,13 @@ export function Navbar({
                                 className="flex items-center justify-between gap-2 rounded-none px-0 py-3 text-left lg:px-0 lg:py-3"
                                 style={{ paddingLeft: rowIndent }}
                             >
-                                <a href={href} className="flex items-center gap-2.5 flex-1" onClick={() => setIsCatalogOpen(false)}>
+                                <SmartLink href={href} className="flex items-center gap-2.5 flex-1" onClick={() => setIsCatalogOpen(false)}>
                                     <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center overflow-hidden lg:h-10 lg:w-10">
                                         <ParentCategoryIcon category={item} className="size-[11px] text-[#131722] lg:size-[18px]" />
                                     </div>
 
                                     <span className={cn("inline-flex min-h-[2.4em] items-center text-[0.95em] leading-[1.2] text-[#0f172a]", isRoot ? "font-medium" : "font-normal")}>{item.name ?? item.title ?? item.link}</span>
-                                </a>
+                                </SmartLink>
 
                                 {hasChildren && (
                                     <button
@@ -1748,7 +1779,7 @@ export function Navbar({
                 aria-hidden={!isMobileMenuOpen}
             >
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                    <a
+                    <SmartLink
                         href={logoHref}
                         className="flex min-w-0 items-center"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -1756,7 +1787,7 @@ export function Navbar({
                         <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                             {logo ?? null}
                         </span>
-                    </a>
+                    </SmartLink>
                     <button
                         type="button"
                         aria-label="Menyunu bağla"
@@ -1780,14 +1811,14 @@ export function Navbar({
                 <div className="overflow-y-auto px-4 flex-1">
                     <nav className="flex flex-col py-3">
                         {effectiveMenuItems.map((item) => (
-                            <a
+                            <SmartLink
                                 key={item.label}
                                 href={item.href}
                                 className="cursor-pointer rounded-lg px-2 py-2.5 text-[15px] font-medium text-[#151822] transition-colors hover:bg-[#f3f4f6]"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 {item.label}
-                            </a>
+                            </SmartLink>
                         ))}
                     </nav>
 
