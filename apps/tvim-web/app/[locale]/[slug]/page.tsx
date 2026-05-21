@@ -757,6 +757,14 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     <PendingNavProvider>
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
+                        {/* <script
+                            dangerouslySetInnerHTML={{
+                                __html: (() => {
+                                    const payload = JSON.stringify(productList?.filters ?? null).replace(/</g, "\\u003c");
+                                    return `window.__TVIM_CATALOG_FILTERS__ = ${payload};\nif(!window.__TVIM_CATALOG_FILTERS_LOGGED__){window.__TVIM_CATALOG_FILTERS_LOGGED__=true;console.log("[catalog filters]", window.__TVIM_CATALOG_FILTERS__);}`;
+                                })(),
+                            }}
+                        /> */}
                         <FiltersDebugLogger filters={productList?.filters} />
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
                             <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
