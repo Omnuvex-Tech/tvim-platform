@@ -757,6 +757,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     <PendingNavProvider>
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
+                        <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
                             <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
                                 {filtersBody}
@@ -868,8 +869,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                             })()}
 
                             <div className="relative min-h-[360px]">
-                                <PendingOverlay />
-
                                 {listItems.length > 0 ? (
                                     <ProductStrip items={listItems} variant="selected" layout="grid" showHeader={false} />
                                 ) : (
