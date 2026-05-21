@@ -46,26 +46,29 @@ export default async function HomePage({
         notFound();
     }
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale: normalizedLocale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale: normalizedLocale,
-    });
-
-    const mainPageBlocks = await getMainPageBlocks(normalizedLocale);
+    const [footerMenuResponse, settingsResponse, mainPageBlocks, headerMenuResponse, categoriesResponse] = await Promise.all([
+        api.get<FooterMenusData>(config.endpoints.menus.list, {
+            params: { in_footer: "1" },
+            locale: normalizedLocale,
+        }),
+        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
+            locale: normalizedLocale,
+        }),
+        getMainPageBlocks(normalizedLocale),
+        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
+            params: { in_header: "1" },
+            locale: normalizedLocale,
+        }),
+        api.get<HeaderCategoriesResponseData>("/product/categories", {
+            params: { in_header: "1" },
+            locale: normalizedLocale,
+        }),
+    ]);
 
     const footerMenus =
         footerMenuResponse.success && footerMenuResponse.data
             ? footerMenuResponse.data.footer
             : [];
-
-    const headerMenuResponse = await api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale: normalizedLocale,
-    });
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
@@ -78,11 +81,6 @@ export default async function HomePage({
             href: resolveHeaderMenuHref(item, normalizedLocale),
         }))
         .filter((item) => item.label);
-
-    const categoriesResponse = await api.get<HeaderCategoriesResponseData>("/product/categories", {
-        params: { in_header: "1" },
-        locale: normalizedLocale,
-    });
 
     let headerCategoryItems = [];
     if (categoriesResponse.success && categoriesResponse.data) {
@@ -126,7 +124,7 @@ export default async function HomePage({
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <MainPageBlocks blocks={mainPageBlocks} />
+            <MainPageBlocks blocks={mainPageBlocks} locale={normalizedLocale} />
             <LogoutToast />
 
             <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />

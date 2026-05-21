@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import type {
     FooterMenusData,
     HeaderCategoriesResponseData,
@@ -25,7 +26,10 @@ import {
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
+import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { DrawerScrollLock } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
 type MenuDetailData = {
     type: string;
@@ -75,6 +79,99 @@ type MenuDetailData = {
 
 type Props = {
     params: Promise<{ locale: string; slug: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type ProductListFilterValue = {
+    value_id?: number;
+    name?: string;
+    slug?: string;
+    count?: number;
+    color?: string | null;
+    background?: string | null;
+    background_image?: string | null;
+};
+
+type ProductListFilter = {
+    filter_id?: number;
+    name?: string;
+    slug?: string;
+    input_type?: string;
+    is_color_filter?: boolean;
+    values?: ProductListFilterValue[];
+};
+
+type ProductListItem = {
+    product_id?: number;
+    variation_id?: number;
+    name?: string;
+    slug?: string;
+    meta_title?: string;
+    meta_description?: string;
+    meta_keywords?: any;
+    price?: number;
+    old_price?: number;
+    discount_price?: number;
+    stock?: number;
+    is_new?: boolean;
+    is_popular?: boolean;
+    most_sale?: boolean;
+    main_image?: string;
+};
+
+type ProductListData = {
+    menu?: {
+        id?: number;
+        name?: string;
+        meta_title?: string | null;
+        meta_description?: string | null;
+        meta_keywords?: any;
+    };
+    breadcrumbs?: Array<{
+        id?: number;
+        name?: string;
+    }>;
+    subcategories?: Array<{
+        id?: number;
+        name?: string;
+        slug?: string;
+        link?: string;
+    }>;
+    applied?: {
+        main_category_id?: number | string | null;
+        q?: string | null;
+        sort?: string | null;
+        is_new?: boolean | null;
+        is_popular?: boolean | null;
+        most_sale?: boolean | null;
+        price_min?: number | null;
+        price_max?: number | null;
+        filters?: Record<string, number[]>;
+    };
+    price?: {
+        available_min?: number;
+        available_max?: number;
+        filtered_min?: number;
+        filtered_max?: number;
+    };
+    sort_options?: Array<{ key?: string; label?: string }>;
+    filters?: ProductListFilter[];
+    items?: ProductListItem[];
+    pagination?: {
+        current_page?: number;
+        per_page?: number;
+        total?: number;
+        last_page?: number;
+        from?: number;
+        to?: number;
+        has_more?: boolean;
+    };
+};
+
+type ProductListApiResponse = {
+    success?: boolean;
+    message?: string;
+    data?: ProductListData;
 };
 
 async function getMenuDetail(slug: string, locale: string) {
@@ -136,8 +233,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
 }
 
-export default async function DynamicMenuPage({ params }: Props) {
+export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const { locale, slug } = await params;
+    const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.toLowerCase();
 
     const [
@@ -347,6 +445,539 @@ export default async function DynamicMenuPage({ params }: Props) {
             </div>
         </div>
     ) : null;
+
+    const isCategoriesView = (() => {
+        const t = String(menu.type ?? "").trim().toLowerCase();
+        const vt = String(menu.view_type ?? "").trim().toLowerCase();
+        return t === "categories" || vt === "categories" || vt === "catalog" || vt === "product-list";
+    })();
+
+    if (isCategoriesView) {
+        const cookieStore = await cookies();
+        const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+
+        const apiBase = (config.api.url || "https://admin.tvim.az/api/v1").trim().replace(/\/+$/, "");
+        const listUrl = new URL(`${apiBase}${config.endpoints.products.paginatedList}`);
+        const outgoingParams = new URLSearchParams();
+
+        const findCategoryByLink = (items: any[], targetLink: string): any | null => {
+            const cleanTarget = String(targetLink || "").trim().replace(/^\/+|\/+$/g, "");
+            if (!cleanTarget) return null;
+            const stack = Array.isArray(items) ? [...items] : [];
+            while (stack.length > 0) {
+                const node = stack.shift();
+                if (!node || typeof node !== "object") continue;
+                const linkValue = String(node.multi_links?.[normalizedLocale] ?? node.link ?? "").trim().replace(/^\/+|\/+$/g, "");
+                if (linkValue && linkValue === cleanTarget) return node;
+                const children = Array.isArray(node.children) ? node.children : [];
+                for (const child of children) stack.push(child);
+            }
+            return null;
+        };
+
+        const findCategoryById = (items: any[], id: number): any | null => {
+            const stack = Array.isArray(items) ? [...items] : [];
+            while (stack.length > 0) {
+                const node = stack.shift();
+                if (!node || typeof node !== "object") continue;
+                if (Number(node.id) === id) return node;
+                const children = Array.isArray(node.children) ? node.children : [];
+                for (const child of children) stack.push(child);
+            }
+            return null;
+        };
+
+        const categoryNode =
+            findCategoryByLink(headerCategoryItems as any[], slug) ??
+            findCategoryById(headerCategoryItems as any[], Number(menu.id));
+
+        const mainCategoryId = (() => {
+            const idFromTree = Number(categoryNode?.id);
+            if (Number.isFinite(idFromTree) && idFromTree > 0) return String(idFromTree);
+            const uuid = String(menu.uuid ?? "").trim();
+            if (uuid) return uuid;
+            return String(menu.id);
+        })();
+
+        outgoingParams.set("main_category_id", mainCategoryId);
+
+        const allowKey = (key: string) => {
+            if (key === "page") return true;
+            if (key === "per_page") return true;
+            if (key === "q") return true;
+            if (key === "sort") return true;
+            if (key === "is_new") return true;
+            if (key === "is_popular") return true;
+            if (key === "most_sale") return true;
+            if (key === "price_min") return true;
+            if (key === "price_max") return true;
+            return /^filters\[\d+\](\[\])?$/.test(key);
+        };
+
+        for (const [key, value] of Object.entries(resolvedSearchParams)) {
+            if (!allowKey(key)) continue;
+            if (value == null) continue;
+            if (Array.isArray(value)) {
+                for (const v of value) {
+                    const trimmed = String(v ?? "").trim();
+                    if (trimmed) outgoingParams.append(key, trimmed);
+                }
+            } else {
+                const trimmed = String(value ?? "").trim();
+                if (trimmed) outgoingParams.set(key, trimmed);
+            }
+        }
+
+        listUrl.search = outgoingParams.toString();
+
+        const headers: Record<string, string> = {
+            Accept: "application/json",
+            "Content-Language": normalizedLocale,
+        };
+
+        if (authToken) {
+            headers.Authorization = `Bearer ${authToken}`;
+        }
+
+        let productListPayload: ProductListApiResponse | null = null;
+        try {
+            const response = await fetch(listUrl.toString(), {
+                method: "GET",
+                cache: "no-store",
+                headers,
+            });
+            const json = (await response.json()) as unknown;
+            if (json && typeof json === "object") {
+                productListPayload = json as ProductListApiResponse;
+            } else {
+                productListPayload = null;
+            }
+        } catch {
+            productListPayload = null;
+        }
+
+        const productList = productListPayload?.success ? productListPayload.data : undefined;
+        const listItems = Array.isArray(productList?.items) ? productList!.items! : [];
+
+        const parsePageNumber = (value: string | string[] | undefined) => {
+            const raw = Array.isArray(value) ? value[0] : value;
+            const numeric = Number(raw ?? 1);
+            if (!Number.isFinite(numeric) || numeric < 1) return 1;
+            return Math.floor(numeric);
+        };
+
+        const buildPaginationTokens = (currentPage: number, lastPage: number) => {
+            if (lastPage <= 1) return [1] as Array<number | "ellipsis">;
+            if (lastPage <= 7) return Array.from({ length: lastPage }, (_, index) => index + 1) as Array<number | "ellipsis">;
+            const tokens: Array<number | "ellipsis"> = [1];
+            let start = Math.max(2, currentPage - 1);
+            let end = Math.min(lastPage - 1, currentPage + 1);
+            if (currentPage <= 3) {
+                start = 2;
+                end = 4;
+            }
+            if (currentPage >= lastPage - 2) {
+                start = lastPage - 3;
+                end = lastPage - 1;
+            }
+            if (start > 2) tokens.push("ellipsis");
+            for (let page = start; page <= end; page += 1) tokens.push(page);
+            if (end < lastPage - 1) tokens.push("ellipsis");
+            tokens.push(lastPage);
+            return tokens;
+        };
+
+        const subcategoriesFromTree = Array.isArray(categoryNode?.children) ? categoryNode.children : [];
+        const subcategoriesFromApi = Array.isArray(productList?.subcategories) ? productList!.subcategories! : [];
+        const effectiveSubcategories = subcategoriesFromTree.length > 0 ? subcategoriesFromTree : subcategoriesFromApi;
+
+        const currentUiParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(resolvedSearchParams)) {
+            if (value == null) continue;
+            if (Array.isArray(value)) {
+                for (const v of value) {
+                    const trimmed = String(v ?? "").trim();
+                    if (trimmed) currentUiParams.append(key, trimmed);
+                }
+            } else {
+                const trimmed = String(value ?? "").trim();
+                if (trimmed) currentUiParams.set(key, trimmed);
+            }
+        }
+
+        const appliedFilters = productList?.applied?.filters ?? {};
+        const selectedPairs = new Set<string>();
+        for (const [filterId, values] of Object.entries(appliedFilters)) {
+            const arr = Array.isArray(values) ? values : [];
+            for (const valueId of arr) {
+                selectedPairs.add(`${filterId}:${String(valueId)}`);
+            }
+        }
+
+        const buildHrefWithParams = (nextParams: URLSearchParams) => {
+            const qs = nextParams.toString();
+            return qs ? `/${normalizedLocale}/${slug}?${qs}` : `/${normalizedLocale}/${slug}`;
+        };
+
+        const toggleFilterHref = (filterId: number, valueId: number) => {
+            const keyWithArr = `filters[${filterId}][]`;
+            const keyPlain = `filters[${filterId}]`;
+            const next = new URLSearchParams(currentUiParams.toString());
+            next.set("page", "1");
+            const current = [...next.getAll(keyWithArr), ...next.getAll(keyPlain)]
+                .map((v) => v.trim())
+                .filter(Boolean);
+            const valueText = String(valueId);
+            const isSelected = selectedPairs.has(`${String(filterId)}:${valueText}`) || current.includes(valueText);
+            const updated = isSelected ? current.filter((v) => v !== valueText) : [...current, valueText];
+            next.delete(keyWithArr);
+            next.delete(keyPlain);
+            const unique = Array.from(new Set(updated));
+            for (const v of unique) next.append(keyWithArr, v);
+            if (unique.length === 0) {
+                next.delete(keyWithArr);
+                next.delete(keyPlain);
+            }
+            return buildHrefWithParams(next);
+        };
+
+        const sortOptions = Array.isArray(productList?.sort_options) ? productList!.sort_options! : [];
+        const activeSort = String(productList?.applied?.sort ?? currentUiParams.get("sort") ?? "").trim() || "newest";
+
+        const currentPage = Math.max(1, Number(productList?.pagination?.current_page ?? parsePageNumber(resolvedSearchParams.page)));
+        const lastPage = Math.max(1, Number(productList?.pagination?.last_page ?? 1));
+        const paginationTokens = buildPaginationTokens(currentPage, lastPage);
+
+        const hasFilters = Array.isArray(productList?.filters) && productList.filters.length > 0;
+        const drawerId = `filters-drawer-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
+
+        const filtersBody = (
+            <>
+                {hasFilters ? (
+                    <>
+                        {productList!.filters!.map((filter) => {
+                            const filterId = Number(filter?.filter_id);
+                            if (!Number.isFinite(filterId) || filterId <= 0) return null;
+                            const values = Array.isArray(filter?.values) ? filter!.values! : [];
+                            if (values.length === 0) return null;
+
+                            const visible = values.slice(0, 5);
+                            const rest = values.slice(5);
+
+                            const renderRow = (v: any, idx: number) => {
+                                const valueId = Number(v?.value_id);
+                                if (!Number.isFinite(valueId) || valueId <= 0) return null;
+                                const selected = selectedPairs.has(`${String(filterId)}:${String(valueId)}`);
+                                const countText = typeof v?.count === "number" ? String(v.count) : "";
+
+                                return (
+                                    <Link
+                                        key={`${valueId}-${idx}`}
+                                        href={toggleFilterHref(filterId, valueId)}
+                                        className="flex items-center justify-between rounded-[12px] px-3 py-2 transition-colors hover:bg-[#f5f7fb]"
+                                    >
+                                        <span className="flex min-w-0 items-center gap-3">
+                                            <span
+                                                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${
+                                                    selected ? "border-[#0f57d6] bg-[#0f57d6]" : "border-[#cfd7e3] bg-white"
+                                                }`}
+                                                aria-hidden="true"
+                                            >
+                                                {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
+                                            </span>
+                                            <span className="min-w-0 truncate text-[14px] text-[#111318]">{v?.name ?? `#${valueId}`}</span>
+                                        </span>
+                                        {countText ? (
+                                            <span className="ml-3 inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#f1f3f6] px-2 text-[12px] font-medium text-[#4b5565]">
+                                                {countText}
+                                            </span>
+                                        ) : null}
+                                    </Link>
+                                );
+                            };
+
+                            return (
+                                <div
+                                    key={filterId}
+                                    className="rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
+                                >
+                                    <div className="mb-3 border-b border-[#eee] pb-3 text-[13px] font-bold uppercase text-[#111318]">
+                                        {filter?.name ?? "Filter"}
+                                    </div>
+                                    <div className="space-y-1">
+                                        {visible.map(renderRow)}
+                                    </div>
+                                    {rest.length > 0 ? (
+                                        <details className="mt-2">
+                                            <summary className="cursor-pointer select-none px-3 py-2 text-[14px] font-medium text-[#0f57d6] hover:underline">
+                                                Əlavə {rest.length} ədəd göstər
+                                            </summary>
+                                            <div className="mt-1 space-y-1">
+                                                {rest.map(renderRow)}
+                                            </div>
+                                        </details>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                    </>
+                ) : null}
+
+                {productListPayload && productListPayload.success === false ? (
+                    <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                        {productListPayload.message || "Məhsullar yüklənmədi."}
+                    </div>
+                ) : null}
+            </>
+        );
+
+        return (
+            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
+                <NavbarWrapper
+                    logo={navbarLogo}
+                    phone={navbarPhone}
+                    locale={normalizedLocale}
+                    languages={languages}
+                    menuItems={headerMenuItems}
+                    initialCatalogItems={headerCategoryItems}
+                />
+
+                <Breadcrumb
+                    items={[
+                        { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        { label: menu.name, isCurrent: true },
+                    ]}
+                    className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
+                    showTitle
+                    pageTitle={menu.title || menu.name}
+                    titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
+                />
+
+                <section className="mx-auto w-full max-w-[1280px] !px-1 pt-6 pb-10 lg:!px-2 lg:pb-12">
+                    <input id={drawerId} type="checkbox" className="peer hidden" />
+                    <DrawerScrollLock checkboxId={drawerId} />
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+                        <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
+                            {filtersBody}
+                        </aside>
+
+                        <div>
+                            {hasFilters ? (
+                                <label
+                                    htmlFor={drawerId}
+                                    className="mb-4 flex w-full items-center justify-between rounded-full bg-[#ffd500] px-5 py-3 text-[15px] font-semibold text-[#111318] lg:hidden"
+                                >
+                                    <span>Filtr</span>
+                                    <i className="fa-solid fa-sliders text-[16px]" aria-hidden="true" />
+                                </label>
+                            ) : null}
+                            {effectiveSubcategories.length > 0 ? (
+                                <div className="mb-6 rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                    <div className="grid grid-cols-2 gap-y-7 gap-x-10 sm:grid-cols-3 lg:grid-cols-4">
+                                        {effectiveSubcategories.map((sub: any) => {
+                                            const linkValue = String(
+                                                sub?.multi_links?.[normalizedLocale] ??
+                                                    sub?.link ??
+                                                    sub?.slug ??
+                                                    ""
+                                            )
+                                                .trim()
+                                                .replace(/^\/+|\/+$/g, "");
+                                            const href = linkValue ? `/${normalizedLocale}/${linkValue}` : "#";
+                                            return (
+                                                <Link
+                                                    key={String(sub?.id ?? linkValue ?? sub?.name)}
+                                                    href={href}
+                                                    className="text-[14px] font-semibold text-[#111318] hover:underline"
+                                                >
+                                                    {sub?.name ?? sub?.title ?? "Alt kateqoriya"}
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {(() => {
+                                const perPageRaw = Number(currentUiParams.get("per_page") ?? productList?.pagination?.per_page ?? 20);
+                                const perPage = Number.isFinite(perPageRaw) ? Math.min(60, Math.max(1, perPageRaw)) : 20;
+                                const perPageOptions = [20, 40, 60];
+
+                                const labelByKey: Record<string, string> = {
+                                    newest: "Yenilər: üstdə",
+                                    name_asc: "Ad (A-Z)",
+                                    name_desc: "Ad (Z-A)",
+                                    price_asc: "Qiymət (artan)",
+                                    price_desc: "Qiymət (azalan)",
+                                    popular: "Reytinq",
+                                    most_sale: "Model",
+                                };
+
+                                return (
+                                    <div className="mb-4 flex min-h-[64px] flex-wrap items-center gap-3 rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                        {sortOptions.map((opt) => {
+                                            const key = String(opt?.key ?? "").trim();
+                                            if (!key) return null;
+                                            const next = new URLSearchParams(currentUiParams.toString());
+                                            next.set("page", "1");
+                                            next.set("sort", key);
+                                            const isActive = key === activeSort;
+                                            return (
+                                                <Link
+                                                    key={key}
+                                                    href={buildHrefWithParams(next)}
+                                                    className={`rounded-[9px] px-4 py-2 text-[14px] transition-colors ${
+                                                        isActive
+                                                            ? "bg-[#0f57d6] font-semibold text-white"
+                                                            : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
+                                                    }`}
+                                                >
+                                                    {labelByKey[key] ?? opt?.label ?? key}
+                                                </Link>
+                                            );
+                                        })}
+
+                                        <details className="relative ml-auto">
+                                            <summary className="list-none cursor-pointer rounded-[10px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#111318]">
+                                                {perPage}
+                                                <span className="ml-2 inline-block text-[#6b7280]">▾</span>
+                                            </summary>
+                                            <div className="absolute right-0 mt-2 w-[120px] overflow-hidden rounded-[16px] border border-[#eee] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                                {perPageOptions.map((opt) => {
+                                                    const next = new URLSearchParams(currentUiParams.toString());
+                                                    next.set("page", "1");
+                                                    next.set("per_page", String(opt));
+                                                    const href = buildHrefWithParams(next);
+                                                    return (
+                                                        <Link
+                                                            key={opt}
+                                                            href={href}
+                                                            className={`block px-4 py-2 text-[14px] ${
+                                                                opt === perPage ? "bg-[#e7efff] text-[#0f57d6]" : "text-[#111318] hover:bg-[#f5f7fb]"
+                                                            }`}
+                                                        >
+                                                            {opt}
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        </details>
+                                    </div>
+                                );
+                            })()}
+
+                            {listItems.length > 0 ? (
+                                <ProductStrip items={listItems} variant="selected" layout="grid" showHeader={false} />
+                            ) : (
+                                <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                    Məhsul tapılmadı.
+                                </div>
+                            )}
+
+                            {lastPage > 1 ? (
+                                <div className="mt-6 flex flex-wrap items-center justify-center gap-3 md:gap-4">
+                                    {(() => {
+                                        const prevParams = new URLSearchParams(currentUiParams.toString());
+                                        prevParams.set("page", String(Math.max(1, currentPage - 1)));
+                                        const nextParams = new URLSearchParams(currentUiParams.toString());
+                                        nextParams.set("page", String(Math.min(lastPage, currentPage + 1)));
+
+                                        return (
+                                            <>
+                                                <Link
+                                                    href={buildHrefWithParams(prevParams)}
+                                                    aria-disabled={currentPage <= 1}
+                                                    className={`inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#cfd7e3] text-[16px] transition-colors ${
+                                                        currentPage <= 1 ? "pointer-events-none text-[#c4cbd6]" : "text-[#4e5d71] hover:bg-[#f4f6fa]"
+                                                    }`}
+                                                >
+                                                    <i className="fa-solid fa-chevron-left text-[12px]" />
+                                                </Link>
+
+                                                {paginationTokens.map((token, idx) => {
+                                                    if (token === "ellipsis") {
+                                                        return (
+                                                            <span key={`ellipsis-${idx}`} className="inline-flex h-10 min-w-8 items-center justify-center px-1 text-[16px] text-[#8b97a9]">
+                                                                ...
+                                                            </span>
+                                                        );
+                                                    }
+
+                                                    const next = new URLSearchParams(currentUiParams.toString());
+                                                    next.set("page", String(token));
+                                                    const href = buildHrefWithParams(next);
+                                                    const isActive = token === currentPage;
+
+                                                    return (
+                                                        <Link
+                                                            key={`page-${token}`}
+                                                            href={href}
+                                                            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-[10px] border px-3 text-[20px] font-medium transition-colors ${
+                                                                isActive
+                                                                    ? "border-[#6b4f8f] bg-[#6b4f8f] text-white"
+                                                                    : "border-[#cfd7e3] bg-white text-[#69788e] hover:bg-[#f4f6fa]"
+                                                            }`}
+                                                        >
+                                                            {token}
+                                                        </Link>
+                                                    );
+                                                })}
+
+                                                <Link
+                                                    href={buildHrefWithParams(nextParams)}
+                                                    aria-disabled={currentPage >= lastPage}
+                                                    className={`inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#cfd7e3] text-[16px] transition-colors ${
+                                                        currentPage >= lastPage ? "pointer-events-none text-[#c4cbd6]" : "text-[#4e5d71] hover:bg-[#f4f6fa]"
+                                                    }`}
+                                                >
+                                                    <i className="fa-solid fa-chevron-right text-[12px]" />
+                                                </Link>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    {hasFilters ? (
+                        <>
+                            <label
+                                htmlFor={drawerId}
+                                className="fixed inset-0 z-40 bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
+                                aria-label="close-filters-overlay"
+                            />
+                            <div className="fixed inset-y-0 left-0 z-50 w-full -translate-x-full bg-white transition-transform duration-300 ease-out transform-gpu will-change-transform peer-checked:translate-x-0 lg:hidden">
+                                <div className="flex h-full flex-col overflow-y-auto p-5">
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
+                                        <label
+                                            htmlFor={drawerId}
+                                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
+                                            aria-label="close-filters"
+                                        >
+                                            <i className="fa-solid fa-xmark" aria-hidden="true" />
+                                        </label>
+                                    </div>
+                                    <div className="space-y-5">
+                                        {filtersBody}
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    ) : null}
+                </section>
+
+                {includedItemsSection}
+
+                <LogoutToast />
+
+                <div className="mt-auto w-full pt-12 lg:pt-20">
+                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
+                </div>
+            </div>
+        );
+    }
 
     if (isGridView) {
         return (

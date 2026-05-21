@@ -125,10 +125,10 @@ function mergeLocalizedProductData(localized: MainPageBlock[], fallback: MainPag
 }
 
 export async function getMainPageBlocks(locale: string): Promise<MainPageBlock[]> {
-    const localizedResponse = await api.get<MainPageBlock[]>(config.endpoints.mainPage.list, {
-        locale,
-        cache: "no-store",
-    });
+    const [localizedResponse, fallbackResponse] = await Promise.all([
+        api.get<MainPageBlock[]>(config.endpoints.mainPage.list, { locale }),
+        api.get<MainPageBlock[]>(config.endpoints.mainPage.list),
+    ]);
 
     const localizedBlocks =
         localizedResponse.success && Array.isArray(localizedResponse.data)
@@ -138,10 +138,6 @@ export async function getMainPageBlocks(locale: string): Promise<MainPageBlock[]
     if (localizedBlocks.length === 0) {
         return [];
     }
-
-    const fallbackResponse = await api.get<MainPageBlock[]>(config.endpoints.mainPage.list, {
-        cache: "no-store",
-    });
 
     const fallbackBlocks =
         fallbackResponse.success && Array.isArray(fallbackResponse.data)

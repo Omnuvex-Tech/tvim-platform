@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
+import Link from "next/link";
 
 type CategoryItem = {
     label: string;
@@ -128,26 +129,38 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                     style={{ touchAction: "auto", WebkitOverflowScrolling: "touch" }}
                     className={`grid grid-flow-col auto-cols-[minmax(120px,auto)] gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex md:flex-wrap md:justify-center md:gap-4 md:overflow-visible lg:grid lg:grid-flow-row lg:grid-cols-9 py-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"} md:cursor-default`}
                 >
-                    {categoryItems.map(({ label, href, iconClass, iconImageUrl, iconEmoji }) => (
-                        <a
-                            key={`${label}-${href}`}
-                            href={href}
-                            draggable={false}
-                            style={{ touchAction: "auto" }}
-                            className={`select-none group flex h-[170px] max-[512px]:h-[160px] flex-col items-center justify-start gap-6 rounded-[14px] border border-[#e2e6ef] bg-white px-4 max-[512px]:px-6 pt-7 pb-7 text-center shadow-none transition-transform duration-200 ease-out hover:-translate-y-1 md:flex-shrink-0 md:w-[120px] md:min-w-[120px] md:max-w-[120px] ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'} md:cursor-pointer`}
-                        >
-                            <span className="inline-flex h-11 items-center justify-center select-none" aria-hidden="true">
-                                {iconImageUrl ? (
-                                    <img src={iconImageUrl} alt="" className="h-16 w-16 object-contain select-none" draggable={false} />
-                                ) : iconClass ? (
-                                    <i className={`${iconClass} text-[42px] leading-none text-[#475066] select-none`} />
-                                ) : (
-                                    <span className="text-[44px] leading-none select-none">{iconEmoji ?? "📦"}</span>
-                                )}
-                            </span>
-                            <span className="text-[12px] leading-[1.2] font-semibold text-[#131722] select-none">{label}</span>
-                        </a>
-                    ))}
+                    {categoryItems.map(({ label, href, iconClass, iconImageUrl, iconEmoji }) => {
+                        const key = `${label}-${href}`;
+                        const isInternal = /^\/(?!\/)/.test(String(href ?? ""));
+                        const classes = `select-none group flex h-[170px] max-[512px]:h-[160px] flex-col items-center justify-start gap-6 rounded-[14px] border border-[#e2e6ef] bg-white px-4 max-[512px]:px-6 pt-7 pb-7 text-center shadow-none transition-transform duration-200 ease-out hover:-translate-y-1 md:flex-shrink-0 md:w-[120px] md:min-w-[120px] md:max-w-[120px] ${
+                            isDragging ? "cursor-grabbing" : "cursor-pointer"
+                        } md:cursor-pointer`;
+
+                        const content = (
+                            <>
+                                <span className="inline-flex h-11 items-center justify-center select-none" aria-hidden="true">
+                                    {iconImageUrl ? (
+                                        <img src={iconImageUrl} alt="" className="h-16 w-16 object-contain select-none" draggable={false} />
+                                    ) : iconClass ? (
+                                        <i className={`${iconClass} text-[42px] leading-none text-[#475066] select-none`} />
+                                    ) : (
+                                        <span className="text-[44px] leading-none select-none">{iconEmoji ?? "📦"}</span>
+                                    )}
+                                </span>
+                                <span className="text-[12px] leading-[1.2] font-semibold text-[#131722] select-none">{label}</span>
+                            </>
+                        );
+
+                        return isInternal ? (
+                            <Link key={key} href={href} draggable={false} style={{ touchAction: "auto" }} className={classes}>
+                                {content}
+                            </Link>
+                        ) : (
+                            <a key={key} href={href} draggable={false} style={{ touchAction: "auto" }} className={classes}>
+                                {content}
+                            </a>
+                        );
+                    })}
                 </div>
             </div>
         </section>

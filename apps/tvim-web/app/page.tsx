@@ -21,27 +21,25 @@ export default async function Home() {
         langResponse.data.find((language) => language.is_default_site)?.code ??
         config.project.defLang;
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale: siteDefaultLocale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale: siteDefaultLocale,
-    });
-
-    const mainPageBlocks = await getMainPageBlocks(siteDefaultLocale);
+    const [footerMenuResponse, settingsResponse, mainPageBlocks, headerMenuResponse] = await Promise.all([
+        api.get<FooterMenusData>(config.endpoints.menus.list, {
+            params: { in_footer: "1" },
+            locale: siteDefaultLocale,
+        }),
+        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
+            locale: siteDefaultLocale,
+        }),
+        getMainPageBlocks(siteDefaultLocale),
+        api.get<any>(config.endpoints.menus.list, {
+            params: { in_header: "1" },
+            locale: siteDefaultLocale,
+        }),
+    ]);
 
     const footerMenus =
         footerMenuResponse.success && footerMenuResponse.data
             ? footerMenuResponse.data.footer
             : [];
-
-    // Fetch header menus (for top navigation + catalog seed)
-    const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale: siteDefaultLocale,
-    });
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
 
@@ -125,7 +123,7 @@ export default async function Home() {
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <MainPageBlocks blocks={mainPageBlocks} />
+            <MainPageBlocks blocks={mainPageBlocks} locale={siteDefaultLocale.toLowerCase()} />
 
             <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={siteDefaultLocale.toLowerCase()} />
         </div>

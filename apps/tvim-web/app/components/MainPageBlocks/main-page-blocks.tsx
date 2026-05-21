@@ -37,6 +37,7 @@ export type MainPageBlock = {
 
 type MainPageBlocksProps = {
     blocks?: MainPageBlock[];
+    locale?: string;
 };
 
 type RequestFormPlaceholders = {
@@ -145,7 +146,7 @@ function mapSliderItems(block: MainPageBlock): Slider[] {
     }));
 }
 
-function mapCategoryItems(block: MainPageBlock): CategoryStripItem[] {
+function mapCategoryItems(block: MainPageBlock, locale?: string): CategoryStripItem[] {
     const rawItems = (Array.isArray(block?.data?.items) ? block.data.items : []) as MainPageCategoryRawItem[];
 
     return rawItems
@@ -157,9 +158,23 @@ function mapCategoryItems(block: MainPageBlock): CategoryStripItem[] {
                 return null;
             }
 
+            const normalizedLocale = typeof locale === "string" ? locale.trim().toLowerCase() : "";
+            const toLocalizedHref = (href: string) => {
+                if (!normalizedLocale) return toHref(href);
+                const raw = String(href ?? "");
+                if (raw.startsWith("#")) return raw;
+                if (/^https?:\/\//i.test(raw)) return raw;
+                let cleaned = raw.trim().replace(/^\/+/, "");
+                const localePrefix = `${normalizedLocale}/`;
+                if (cleaned.toLowerCase().startsWith(localePrefix)) {
+                    cleaned = cleaned.slice(localePrefix.length);
+                }
+                return `/${normalizedLocale}/${cleaned}`;
+            };
+
             return {
                 label,
-                href: toHref(link),
+                href: toLocalizedHref(link),
                 iconClass: item?.menu?.icon?.text ?? undefined,
                 iconImageUrl: item?.menu?.icon?.image_url ?? undefined,
                 backgroundImageUrl: item?.menu?.main_image?.url ?? item?.menu?.icon?.image_url ?? undefined,
@@ -305,7 +320,7 @@ function isFormBlock(block: MainPageBlock) {
     return menuType === "form" || dataMode === "form";
 }
 
-export function MainPageBlocks({ blocks = [] }: MainPageBlocksProps) {
+export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
     const sortedBlocks = normalizeBlocks(blocks);
 
     if (sortedBlocks.length === 0) {
@@ -328,7 +343,7 @@ export function MainPageBlocks({ blocks = [] }: MainPageBlocksProps) {
                 if (block?.source_type === "show_on_main_page_categories") {
                     return (
                         <Fragment key={key}>
-                            <CategoryStrip items={mapCategoryItems(block)} />
+                            <CategoryStrip items={mapCategoryItems(block, locale)} />
                         </Fragment>
                     );
                 }

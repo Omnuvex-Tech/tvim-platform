@@ -33,6 +33,8 @@ type Props = {
     only_discount_products?: boolean;
     viewAllHref?: string;
     viewAllText?: string;
+    layout?: "carousel" | "grid";
+    showHeader?: boolean;
 };
 
 const formatPrice = (v: number | string | undefined) => {
@@ -78,7 +80,17 @@ const defaultProducts: Product[] = [
     { id: 5, title: "Yuyucu aparat K 5 Basic Karcher 1.180-580.0", oldPrice: "649.00₼", price: "499.00₼", discount: "-23%", imageUrl: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=420&q=80", href: "#", cartVariant: "blue", productVariationId: null, isFavorited: false },
 ];
 
-const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyDiscountProducts = false, only_discount_products = false, viewAllHref = "/discounts", viewAllText = "Bütün məhsullara bax" }) => {
+const ProductStrip: React.FC<Props> = ({
+    items,
+    variant = "latest",
+    title,
+    onlyDiscountProducts = false,
+    only_discount_products = false,
+    viewAllHref = "/discounts",
+    viewAllText = "Bütün məhsullara bax",
+    layout = "carousel",
+    showHeader = true,
+}) => {
     const notify = useNotify();
     const raw = Array.isArray(items) ? items : [];
 
@@ -126,7 +138,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   toNumber(it?.old_price) ??
                   undefined;
 
-              const image =
+              const imageRaw =
                   (typeof base?.main_image === "string" ? base.main_image : "") ||
                   (typeof base?.main_image?.url === "string" ? base.main_image.url : "") ||
                   (typeof base?.main_image?.image_url === "string" ? base.main_image.image_url : "") ||
@@ -137,6 +149,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                   (typeof base?.gallery?.[0]?.url === "string" ? base.gallery[0].url : "") ||
                   (typeof base?.gallery?.[0]?.image_url === "string" ? base.gallery[0].image_url : "") ||
                   "";
+              const image = typeof imageRaw === "string" ? imageRaw.trim().replace(/^`+|`+$/g, "").trim() : "";
 
               const normalizedSlug =
                   (typeof base?.slug === "string" ? base.slug.trim() : "") ||
@@ -758,44 +771,171 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
         };
     }, []);
 
+    const renderCard = (product: Product, opts: { dragging: boolean }) => {
+        const isFavorite = typeof product.productVariationId === "number" && favoriteIds.has(product.productVariationId);
+        const isFavoritePending = typeof product.productVariationId === "number" && favoritePendingIds.has(product.productVariationId);
+        const isCompared = typeof product.productVariationId === "number" && compareIds.has(product.productVariationId);
+        const isComparePending = typeof product.productVariationId === "number" && comparePendingIds.has(product.productVariationId);
+
+        return (
+            <article
+                className={`group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
+            >
+                <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
+                    <button
+                        type="button"
+                        disabled={isFavoritePending || !product.productVariationId}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void handleFavoriteToggle(product);
+                        }}
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                            isFavorite
+                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                        } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                        aria-label="Seçilmişlər"
+                    >
+                        <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
+                    </button>
+                    <button
+                        type="button"
+                        disabled={isComparePending || !product.productVariationId}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void handleCompareToggle(product);
+                        }}
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                            isCompared
+                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                        } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                        aria-label="Müqayisə"
+                    >
+                        <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
+                    </button>
+                </div>
+
+                {product.discount ? (
+                    <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+                        {product.discount}
+                    </span>
+                ) : null}
+
+                <div className="pt-3 text-center w-full flex flex-col items-center">
+                    <Link href={product.href} className="block w-full">
+                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
+                            {product.imageUrl ? (
+                                <img draggable={false} src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
+                            ) : null}
+                        </div>
+                        <h3 className="hoopz-thumb__name mt-3">{product.title}</h3>
+                    </Link>
+
+                    <div className="mt-2 flex items-center justify-center gap-1">
+                        <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                        <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                        <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                        <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                        <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                    </div>
+
+                    <div className="price mt-2 text-center">
+                        {product.oldPrice ? <span className="price-old block mb-1">{product.oldPrice}</span> : null}
+                        <span className="price-new block text-[24px] font-bold" style={{ color: product.oldPrice ? "#ff0000" : "#000000" }}>
+                            {product.price}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void handleCartClick(product);
+                        }}
+                        className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"}`}
+                        aria-label={product.cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}
+                    >
+                        {product.cartVariant === "blue" ? (
+                            <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                        ) : (
+                            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
+                                <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        )}
+                    </button>
+                </div>
+            </article>
+        );
+    };
+
+    if (layout === "grid") {
+        return (
+            <>
+                <div className="product-carousel">
+                    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                        {products.map((product) => (
+                            <li key={product.id}>{renderCard(product, { dragging: false })}</li>
+                        ))}
+                    </ul>
+                </div>
+
+                <QuickOrderPopup
+                    isOpen={Boolean(quickOrderProduct)}
+                    productTitle={quickOrderProduct?.title ?? ""}
+                    productCode={quickOrderProduct ? String(quickOrderProduct.id) : ""}
+                    onClose={closeQuickOrderPopup}
+                />
+            </>
+        );
+    }
+
     return (
         <>
         <section className="w-full product-carousel">
                 <div className="mx-auto w-full max-w-[1280px] px-0">
-                <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-0">
-                    <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "special" ? "Xüsusi endirimlər" : variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
+                {showHeader ? (
+                    <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-0">
+                        <h2 className={`${headingClass} leading-tight font-bold text-[#1f2328]`}>{title ?? (variant === "special" ? "Xüsusi endirimlər" : variant === "selected" ? "Sizin üçün seçdiklərimiz" : "Son məhsullar")}</h2>
 
-                    <div className="flex items-center gap-3">
-                        {showViewAll ? (
-                            <Link href={viewAllHref} className="text-base font-medium text-[#0f57d6] hover:underline mr-2">
-                                {viewAllText}
-                            </Link>
-                        ) : null}
-                        <button
-                            type="button"
-                            onClick={prev}
-                            disabled={index === 0 || isNavLocked}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            aria-label="Əvvəlki"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
-                                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </button>
-                        <span className="text-[16px] font-medium text-[#1f2328]">{index + 1} / {pageCount}</span>
-                        <button
-                            type="button"
-                            onClick={next}
-                            disabled={index >= maxIndex || isNavLocked}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            aria-label="Növbəti"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
-                                <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {showViewAll ? (
+                                <Link href={viewAllHref} className="text-base font-medium text-[#0f57d6] hover:underline mr-2">
+                                    {viewAllText}
+                                </Link>
+                            ) : null}
+                            <button
+                                type="button"
+                                onClick={prev}
+                                disabled={index === 0 || isNavLocked}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                                aria-label="Əvvəlki"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
+                                    <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                            <span className="text-[16px] font-medium text-[#1f2328]">{index + 1} / {pageCount}</span>
+                            <button
+                                type="button"
+                                onClick={next}
+                                disabled={index >= maxIndex || isNavLocked}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                                aria-label="Növbəti"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
+                                    <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                ) : null}
 
                 <div className="relative">
                     <div
@@ -815,127 +955,7 @@ const ProductStrip: React.FC<Props> = ({ items, variant = "latest", title, onlyD
                         >
                             {products.map((product) => (
                                 <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border px-2 sm:px-3">
-                                    {(() => {
-                                        const isFavorite = typeof product.productVariationId === "number" && favoriteIds.has(product.productVariationId);
-                                        const isFavoritePending = typeof product.productVariationId === "number" && favoritePendingIds.has(product.productVariationId);
-                                        const isCompared = typeof product.productVariationId === "number" && compareIds.has(product.productVariationId);
-                                        const isComparePending = typeof product.productVariationId === "number" && comparePendingIds.has(product.productVariationId);
-
-                                        return (
-                                    <article
-                                        className={`group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                                    >
-
-                                        <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
-                                            <button
-                                                type="button"
-                                                disabled={isFavoritePending || !product.productVariationId}
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    void handleFavoriteToggle(product);
-                                                }}
-                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
-                                                    isFavorite
-                                                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                                                        : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-                                                } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                                                aria-label="Seçilmişlər"
-                                            >
-                                                <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={isComparePending || !product.productVariationId}
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    void handleCompareToggle(product);
-                                                }}
-                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
-                                                    isCompared
-                                                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                                                        : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-                                                } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                                                aria-label="Müqayisə"
-                                            >
-                                                <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
-                                            </button>
-                                        </div>
-
-                                        {product.discount ? (
-                                            <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">{product.discount}</span>
-                                        ) : null}
-
-                                        <div className="pt-3 text-center w-full flex flex-col items-center">
-                                            <Link
-                                                href={product.href}
-                                                className="block w-full"
-                                                onClick={(e) => {
-                                                    if (suppressClickRef.current) {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                    }
-                                                }}
-                                            >
-                                                <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
-                                                    {product.imageUrl ? (
-                                                        <img draggable={false} src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
-                                                    ) : null}
-                                                </div>
-                                                <h3 className="hoopz-thumb__name mt-3">{product.title}</h3>
-                                            </Link>
-
-                                            <div className="mt-2 flex items-center justify-center gap-1">
-                                                <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
-                                                <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
-                                                <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
-                                                <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
-                                                <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
-                                            </div>
-
-                                            <div className="price mt-2 text-center">
-                                                {product.oldPrice ? <span className="price-old block mb-1">{product.oldPrice}</span> : null}
-                                                <span
-                                                    className="price-new block text-[24px] font-bold"
-                                                    style={{ color: product.oldPrice ? '#ff0000' : '#000000' }}
-                                                >
-                                                    {product.price}
-                                                </span>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={(event) => {
-                                                        event.preventDefault();
-                                                        event.stopPropagation();
-                                                        void handleCartClick(product);
-                                                    }}
-                                                className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full cursor-pointer ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"}`}
-                                                aria-label={product.cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}
-                                            >
-                                                {product.cartVariant === "blue" ? (
-                                                    <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
-                                                ) : (
-                                                    <svg
-                                                        width="17"
-                                                        height="17"
-                                                        viewBox="0 0 16 16"
-                                                        fill="none"
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        aria-hidden="true"
-                                                    >
-                                                        <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                                                        <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                                                        <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
-                                                        <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </article>
-                                        );
-                                    })()}
+                                    {renderCard(product, { dragging: isDragging })}
                                 </div>
                             ))}
                         </div>

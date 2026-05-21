@@ -134,19 +134,23 @@ export default async function AccountPage({
         notFound();
     }
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale,
-    });
-
-    const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale,
-    });
+    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse] = await Promise.all([
+        api.get<FooterMenusData>(config.endpoints.menus.list, {
+            params: { in_footer: "1" },
+            locale,
+        }),
+        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
+            locale,
+        }),
+        api.get<any>(config.endpoints.menus.list, {
+            params: { in_header: "1" },
+            locale,
+        }),
+        api.get<any>("/product/categories", {
+            params: { in_header: "1" },
+            locale,
+        }),
+    ]);
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
@@ -161,11 +165,6 @@ export default async function AccountPage({
             const path = hrefPart ? `/${locale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
             return { label: item.name ?? item.title ?? item.link ?? "", href: path };
         });
-
-    const categoriesResponse = await api.get<any>("/product/categories", {
-        params: { in_header: "1" },
-        locale,
-    });
 
     let headerCategoryItems: any[] = [];
     if (categoriesResponse.success && categoriesResponse.data) {
