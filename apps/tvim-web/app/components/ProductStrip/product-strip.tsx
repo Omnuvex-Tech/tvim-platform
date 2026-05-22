@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useNotify } from "@repo/ui";
 import { addProductToCart } from "@/lib/cart/client";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
@@ -35,6 +36,7 @@ type Props = {
     viewAllText?: string;
     layout?: "carousel" | "grid";
     showHeader?: boolean;
+    gridClassName?: string;
 };
 
 const formatPrice = (v: number | string | undefined) => {
@@ -90,9 +92,17 @@ const ProductStrip: React.FC<Props> = ({
     viewAllText = "Bütün məhsullara bax",
     layout = "carousel",
     showHeader = true,
+    gridClassName,
 }) => {
     const notify = useNotify();
     const raw = Array.isArray(items) ? items : [];
+    const pathname = usePathname();
+    const localePrefix = useMemo(() => {
+        const firstSegment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        const normalized = firstSegment.trim().toLowerCase();
+        const looksLikeLocale = normalized.length > 0 && normalized.length <= 5 && /^[a-z]{2}(-[a-z]{2})?$/.test(normalized);
+        return looksLikeLocale ? normalized : "az";
+    }, [pathname]);
 
     const products: Product[] = raw.length > 0
         ? raw.map((it: any, idx: number) => {
@@ -118,6 +128,9 @@ const ProductStrip: React.FC<Props> = ({
 
               const toText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
               const name =
+                  toText(base?.name) ||
+                  toText(base?.title) ||
+                  toText(it?.variation?.name) ||
                   toText(it?.name) ||
                   toText(it?.product?.variation?.name) ||
                   toText(it?.product?.name) ||
@@ -216,7 +229,7 @@ const ProductStrip: React.FC<Props> = ({
                       price: formatPrice(priceNum),
                       discount,
                       imageUrl: image,
-                      href: `/product/${slug}`,
+                      href: `/${localePrefix}/products/${slug}`,
                       cartVariant,
                       productVariationId,
                       isFavorited,
@@ -232,7 +245,7 @@ const ProductStrip: React.FC<Props> = ({
                       price: formatPrice(priceNum),
                       oldPrice: oldNum ? formatPrice(oldNum) : undefined,
                       imageUrl: image,
-                      href: `/product/${slug}`,
+                      href: `/${localePrefix}/products/${slug}`,
                       cartVariant,
                       productVariationId,
                       isFavorited,
@@ -247,7 +260,7 @@ const ProductStrip: React.FC<Props> = ({
                   title: name,
                   price: formatPrice(priceNum),
                   imageUrl: image,
-                  href: `/product/${slug}`,
+                  href: `/${localePrefix}/products/${slug}`,
                   cartVariant,
                   productVariationId,
                   isFavorited,
@@ -879,10 +892,11 @@ const ProductStrip: React.FC<Props> = ({
     };
 
     if (layout === "grid") {
+        const ulClassName = gridClassName ?? "grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4";
         return (
             <>
                 <div className="product-carousel">
-                    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                    <ul className={ulClassName}>
                         {products.map((product) => (
                             <li key={product.id}>{renderCard(product, { dragging: false })}</li>
                         ))}

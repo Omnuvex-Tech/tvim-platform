@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import type {
     FooterMenusData,
@@ -23,6 +22,8 @@ import {
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 
 type ProductListApiResponse = {
     menu?: {
@@ -33,6 +34,7 @@ type ProductListApiResponse = {
     items?: Array<{
         product_id?: number;
         variation_id?: number;
+        uuid?: string;
         variation?: {
             id?: number;
             uuid?: string;
@@ -49,6 +51,7 @@ type ProductListApiResponse = {
         old_price?: number | null;
         main_image?: string | null;
     }>;
+    sort_options?: Array<{ key?: string; label?: string }>;
     pagination?: {
         current_page?: number;
         per_page?: number;
@@ -60,13 +63,22 @@ type ProductListApiResponse = {
     };
 };
 
-type BrandProductCard = {
-    id: string;
-    name: string;
-    slug: string;
-    price: number;
-    oldPrice?: number;
-    imageUrl?: string;
+type LiveSearchBrandItem = {
+    id?: number | string;
+    filter_id?: number | string;
+    name?: string;
+    slug?: string;
+    link?: string;
+    image?: string;
+};
+
+type LiveSearchResponseData = {
+    brands?: {
+        name?: string;
+        items?: LiveSearchBrandItem[];
+    };
+    categories?: unknown;
+    products?: unknown;
 };
 
 const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
@@ -76,40 +88,20 @@ const normalizeLocale = (locale: string) => {
     return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
 };
 
-const toAbsoluteAssetUrl = (value: string | null | undefined) => {
-    const trimmed = String(value ?? "").trim();
-    if (!trimmed) return "";
-
-    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("data:")) {
-        return trimmed;
-    }
-
-    try {
-        const apiOrigin = new URL(config.api.url).origin;
-
-        if (trimmed.startsWith("//")) {
-            return `https:${trimmed}`;
-        }
-
-        if (trimmed.startsWith("/")) {
-            return `${apiOrigin}${trimmed}`;
-        }
-
-        return `${apiOrigin}/${trimmed.replace(/^\/+/, "")}`;
-    } catch {
-        return trimmed;
-    }
-};
-
-const formatPrice = (value: number | null | undefined) => {
-    const parsed = typeof value === "number" ? value : Number(value ?? 0);
-    return `${parsed.toFixed(2)}₼`;
-};
-
 const normalizeSlugText = (value: string) => {
     const decoded = decodeURIComponent(String(value ?? "")).trim();
     return decoded.replace(/[-_]+/g, " ").trim();
 };
+
+const slugify = (value: string) => String(value ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/\?.*$/, "")
+    .replace(/#.*$/, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const parsePageNumber = (value: string | string[] | undefined) => {
     const raw = Array.isArray(value) ? value[0] : value;
@@ -156,53 +148,23 @@ const buildPaginationTokens = (currentPage: number, lastPage: number) => {
     return tokens;
 };
 
-const mapBrandCards = (payload: ProductListApiResponse | null): BrandProductCard[] => {
-    if (!payload) return [];
-
-    const cards: BrandProductCard[] = [];
-
-    (payload.items ?? []).forEach((item, index) => {
-        const variation = item?.variation && typeof item.variation === "object" ? item.variation : null;
-        const slug = String(variation?.slug ?? item?.slug ?? "").trim();
-        if (!slug) return;
-
-        const regularPrice = Number(variation?.price ?? item?.price ?? 0);
-        const discountPriceRaw = variation?.discount_price;
-        const discountPrice = typeof discountPriceRaw === "number" ? discountPriceRaw : null;
-        const finalPrice = discountPrice ?? regularPrice;
-        const oldPriceRaw = variation?.old_price ?? item?.old_price;
-        const oldPrice = typeof oldPriceRaw === "number"
-            ? oldPriceRaw
-            : (discountPrice !== null && regularPrice > discountPrice ? regularPrice : undefined);
-
-        cards.push({
-            id: `item-${String(variation?.id ?? item.variation_id ?? item.product_id ?? slug ?? index)}`,
-            name: String(variation?.name ?? item?.name ?? "Məhsul"),
-            slug,
-            price: Number(finalPrice ?? 0),
-            oldPrice,
-            imageUrl: toAbsoluteAssetUrl(variation?.main_image ?? item?.main_image),
-        });
-    });
-
-    const unique = new Map<string, BrandProductCard>();
-    cards.forEach((item) => {
-        if (!item.slug || unique.has(item.slug)) return;
-        unique.set(item.slug, item);
-    });
-
-    return Array.from(unique.values());
-};
-
 export default async function BrandSlugPage({
     params,
     searchParams,
 }: {
     params: Promise<{ slug: string }>;
-    searchParams?: Promise<{ page?: string | string[] }>;
+    searchParams?: Promise<{ page?: string | string[]; per_page?: string | string[]; sort?: string | string[] }>;
 }) {
     const { slug } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    const currentUiParams = new URLSearchParams();
+    if (resolvedSearchParams) {
+        for (const [key, value] of Object.entries(resolvedSearchParams)) {
+            const v = Array.isArray(value) ? value[0] : value;
+            if (typeof v === "string" && v.trim()) currentUiParams.set(key, v);
+        }
+    }
+
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
     const cookieStore = await cookies();
     const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
@@ -219,17 +181,14 @@ export default async function BrandSlugPage({
     }
 
     const [
-        productListResponse,
+        brandLookupResponse,
         headerMenuResponse,
         footerMenuResponse,
         settingsResponse,
         categoriesResponse,
     ] = await Promise.all([
-        api.get<ProductListApiResponse>(config.endpoints.products.paginatedList, {
-            params: {
-                page: String(requestedPage),
-                per_page: "20",
-            },
+        api.get<LiveSearchResponseData>("/product/live-search", {
+            params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
             locale,
             cache: "no-store",
         }),
@@ -249,6 +208,32 @@ export default async function BrandSlugPage({
             locale,
         }),
     ]);
+
+    const brandLookupPayload = brandLookupResponse.success && brandLookupResponse.data ? brandLookupResponse.data : null;
+    const brandItems = Array.isArray(brandLookupPayload?.brands?.items) ? brandLookupPayload.brands.items : [];
+    const desiredSlug = slugify(slug);
+    const matchedBrand = brandItems.find((item) => slugify(String(item?.slug ?? "")) === desiredSlug)
+        ?? brandItems.find((item) => slugify(String(item?.name ?? "")) === desiredSlug)
+        ?? brandItems[0];
+
+    const brandFilterId = Number(matchedBrand?.filter_id);
+    const brandValueId = Number(matchedBrand?.id);
+    const hasBrandFilter = Number.isFinite(brandFilterId) && brandFilterId > 0 && Number.isFinite(brandValueId) && brandValueId > 0;
+
+    const perPageRaw = Number(currentUiParams.get("per_page") ?? "20");
+    const perPage = Number.isFinite(perPageRaw) ? Math.min(60, Math.max(1, perPageRaw)) : 20;
+    const sort = String(currentUiParams.get("sort") ?? "").trim();
+
+    const productListResponse = await api.get<ProductListApiResponse>(config.endpoints.products.paginatedList, {
+        params: {
+            page: String(requestedPage),
+            per_page: String(perPage),
+            ...(sort ? { sort } : null),
+            ...(hasBrandFilter ? { [`filters[${brandFilterId}][]`]: String(brandValueId) } : { q: String(slug ?? "").trim() }),
+        },
+        locale,
+        cache: "no-store",
+    });
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
@@ -298,18 +283,37 @@ export default async function BrandSlugPage({
 
     const detailData = productListResponse.success && productListResponse.data ? productListResponse.data : null;
     const fallbackPageName = normalizeSlugText(slug) || slug;
-    const pageName = String(detailData?.menu?.name ?? fallbackPageName).trim() || fallbackPageName;
+    const pageName = String(matchedBrand?.name ?? detailData?.menu?.name ?? fallbackPageName).trim() || fallbackPageName;
     const breadcrumbItems = [
         { label: locale === "en" ? "Home" : "Ana səhifə", href: `/${locale}` },
         { label: "Brend" },
         { label: pageName, isCurrent: true as const },
     ];
 
-    const cards = mapBrandCards(detailData);
+    const listItems = Array.isArray(detailData?.items) ? detailData.items : [];
     const pagination = detailData?.pagination;
     const lastPage = Math.max(1, Number(pagination?.last_page ?? 1));
-    const currentPage = Math.min(requestedPage, lastPage);
+    const currentPage = Math.max(1, Math.min(Number(pagination?.current_page ?? requestedPage), lastPage));
     const paginationTokens = buildPaginationTokens(currentPage, lastPage);
+
+    const buildHrefWithParams = (params: URLSearchParams) => {
+        const qs = params.toString();
+        return qs ? `/brands/${slug}?${qs}` : `/brands/${slug}`;
+    };
+
+    const sortOptions = Array.isArray(detailData?.sort_options) ? detailData.sort_options : [];
+    const sortOptionsFallback = [
+        { key: "newest", label: "Yenilər: üstdə" },
+        { key: "name_asc", label: "Ad (A-Z)" },
+        { key: "name_desc", label: "Ad (Z-A)" },
+        { key: "price_asc", label: "Qiymət (artan)" },
+        { key: "price_desc", label: "Qiymət (azalan)" },
+        { key: "popular", label: "Reytinq" },
+        { key: "most_sale", label: "Model" },
+    ];
+    const effectiveSortOptions = sortOptions.length > 0 ? sortOptions : sortOptionsFallback;
+    const activeSort = String(sort || "newest").trim() || "newest";
+    const perPageOptions = [20, 40, 60];
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
@@ -324,103 +328,150 @@ export default async function BrandSlugPage({
 
             <Breadcrumb
                 items={breadcrumbItems}
-                className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2 [&_ul.breadcrumb]:!mb-0 [&_ul.breadcrumb]:!pb-0 [&_ul.breadcrumb]:!leading-none [&_ul.breadcrumb]:!flex [&_ul.breadcrumb]:!items-center [&_ul.breadcrumb_li]:!inline-flex [&_ul.breadcrumb_li]:!items-center [&_ul.breadcrumb_li]:!leading-none [&_ul.breadcrumb_li]:!text-[16px] [&_ul.breadcrumb_li]:!font-normal [&_.breadcrumb-previous]:!inline-flex [&_.breadcrumb-previous]:!items-center [&_.breadcrumb-previous]:!leading-none [&_.breadcrumb-previous]:!font-normal [&_.breadcrumb-previous]:!text-[#8ea0b4] [&_.breadcrumb-current]:!inline-flex [&_.breadcrumb-current]:!items-center [&_.breadcrumb-current]:!leading-none [&_.breadcrumb-current]:!font-medium [&_.breadcrumb-current]:!text-[13px] [&_.breadcrumb-current]:!text-[rgba(132,150,171,1)] [&_ul.breadcrumb_li+li::before]:!inline-flex [&_ul.breadcrumb_li+li::before]:!items-center [&_ul.breadcrumb_li+li::before]:!leading-none [&_ul.breadcrumb_li+li::before]:!align-middle [&_ul.breadcrumb_li+li::before]:!text-[#d2dae3] [&_ul.breadcrumb_li:first-child_.breadcrumb-previous]:!text-[13px] [&_ul.breadcrumb_li:first-child_.breadcrumb-previous]:!text-[rgba(132,150,171,1)] [&_ul.breadcrumb_li:first-child_.breadcrumb-previous]:!cursor-pointer [&_ul.breadcrumb_li:first-child_.breadcrumb-previous:hover]:!no-underline [&_ul.breadcrumb_li:first-child_.breadcrumb-previous:hover]:!text-[rgba(132,150,171,1)] [&_ul.breadcrumb_li:nth-child(2)_.breadcrumb-previous]:!text-[13px] [&_ul.breadcrumb_li:nth-child(2)_.breadcrumb-previous]:!text-[rgba(132,150,171,1)] [&_ul.breadcrumb_li:nth-child(2)_.breadcrumb-previous]:!cursor-pointer [&_ul.breadcrumb_li:nth-child(2)_.breadcrumb-previous:hover]:!no-underline [&_ul.breadcrumb_li:nth-child(2)_.breadcrumb-previous:hover]:!text-[rgba(132,150,171,1)]"
+                className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
                 showTitle
                 pageTitle={pageName}
-                titleClassName="mb-0 !text-left !w-full !text-[39px] !font-[700] !leading-[39px] !text-[rgba(15,15,15,1)]"
+                titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
             />
 
-            <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2">
-                <div className="mb-4 flex min-h-[64px] flex-wrap items-center gap-3 rounded-[16px] bg-white px-4 py-3 shadow-[0_0_16px_-10px_rgba(15,23,42,0.26)]">
-                    <button type="button" className="rounded-[9px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#4b5565]">Əsas</button>
-                    <button type="button" className="rounded-[9px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#4b5565]">Ad</button>
-                    <button type="button" className="rounded-[9px] bg-[#0f57d6] px-4 py-2 text-[14px] font-semibold text-white">Qiymət</button>
-                    <button type="button" className="rounded-[9px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#4b5565]">Reytinq</button>
-                    <button type="button" className="rounded-[9px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#4b5565]">Model</button>
-                </div>
+            <section className="mx-auto w-full max-w-[1280px] !px-1 pt-6 pb-10 lg:!px-2 lg:pb-12">
+                <PendingNavProvider>
+                    <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
 
-                {cards.length === 0 ? (
-                    <div className="rounded-[16px] border border-[#e6ebf2] bg-[#f9fafc] px-5 py-4 text-[15px] text-[#4b5565]">
-                        Məhsul tapılmadı.
+                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-wrap items-center gap-3 rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                        {effectiveSortOptions.map((opt) => {
+                            const key = String(opt?.key ?? "").trim();
+                            if (!key) return null;
+                            const next = new URLSearchParams(currentUiParams.toString());
+                            next.set("page", "1");
+                            next.set("sort", key);
+                            const isActive = key === activeSort;
+                            return (
+                                <PendingLink
+                                    key={key}
+                                    href={buildHrefWithParams(next)}
+                                    className={`rounded-[9px] px-4 py-2 text-[14px] transition-colors ${
+                                        isActive
+                                            ? "bg-[#0f57d6] font-semibold text-white"
+                                            : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
+                                    }`}
+                                >
+                                    {opt?.label ?? key}
+                                </PendingLink>
+                            );
+                        })}
+
+                        <details className="relative ml-auto z-40">
+                            <summary className="list-none cursor-pointer rounded-[10px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#111318]">
+                                {perPage}
+                                <span className="ml-2 inline-block text-[#6b7280]">▾</span>
+                            </summary>
+                            <div className="absolute right-0 z-50 mt-2 w-[120px] overflow-hidden rounded-[16px] border border-[#eee] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                {perPageOptions.map((opt) => {
+                                    const next = new URLSearchParams(currentUiParams.toString());
+                                    next.set("page", "1");
+                                    next.set("per_page", String(opt));
+                                    const href = buildHrefWithParams(next);
+                                    return (
+                                        <PendingLink
+                                            key={opt}
+                                            href={href}
+                                            className={`block px-4 py-2 text-[14px] ${
+                                                opt === perPage ? "bg-[#e7efff] text-[#0f57d6]" : "text-[#111318] hover:bg-[#f5f7fb]"
+                                            }`}
+                                        >
+                                            {opt}
+                                        </PendingLink>
+                                    );
+                                })}
+                            </div>
+                        </details>
                     </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                            {cards.map((item) => (
-                                <article key={item.id} className="group rounded-[14px] border border-[#e7ebf1] bg-white p-4 transition-shadow hover:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.35)]">
-                                    <div className="mb-3 flex items-start justify-between gap-2">
-                                        <button type="button" className="text-[#8a96a8] hover:text-[#0f57d6]" aria-label="favorite">
-                                            <i className="fa-regular fa-heart text-[14px]" />
-                                        </button>
-                                        <button type="button" className="text-[#8a96a8] hover:text-[#0f57d6]" aria-label="compare">
-                                            <i className="fa-solid fa-arrow-right-arrow-left text-[12px]" />
-                                        </button>
-                                    </div>
 
-                                    <Link href={`/product/${item.slug}`} className="block">
-                                        <div className="mb-3 flex h-[160px] items-center justify-center overflow-hidden rounded-[10px] bg-[#fbfcfe] p-2">
-                                            {item.imageUrl ? (
-                                                <img src={item.imageUrl} alt={item.name} className="max-h-full w-auto object-contain" />
-                                            ) : (
-                                                <div className="text-[13px] text-[#8a96a8]">No image</div>
-                                            )}
-                                        </div>
-                                        <h3 className="line-clamp-2 min-h-[44px] text-[15px] leading-[1.35] font-medium text-[#1f2328]">{item.name}</h3>
-                                    </Link>
-
-                                    <div className="mt-3">
-                                        {typeof item.oldPrice === "number" && item.oldPrice > item.price ? (
-                                            <p className="text-[13px] text-[#9aa4b2] line-through">{formatPrice(item.oldPrice)}</p>
-                                        ) : null}
-                                        <p className="text-[30px] leading-none font-bold text-[#111318]">{formatPrice(item.price)}</p>
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
+                    <div className="relative min-h-[360px]">
+                        {listItems.length > 0 ? (
+                            <ProductStrip
+                                items={listItems}
+                                variant="selected"
+                                layout="grid"
+                                showHeader={false}
+                                gridClassName="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5"
+                            />
+                        ) : (
+                            <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                Məhsul tapılmadı.
+                            </div>
+                        )}
 
                         {lastPage > 1 ? (
                             <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                                <Link
-                                    href={{ pathname: `/brands/${slug}`, query: { page: String(Math.max(1, currentPage - 1)) } }}
-                                    aria-disabled={currentPage <= 1}
-                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${currentPage <= 1 ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"}`}
-                                >
-                                    <i className="fa-solid fa-chevron-left text-[12px]" />
-                                </Link>
+                                {(() => {
+                                    const prevParams = new URLSearchParams(currentUiParams.toString());
+                                    prevParams.set("page", String(Math.max(1, currentPage - 1)));
+                                    const nextParams = new URLSearchParams(currentUiParams.toString());
+                                    nextParams.set("page", String(Math.min(lastPage, currentPage + 1)));
 
-                                {paginationTokens.map((token, index) => {
-                                    if (token === "ellipsis") {
-                                        return (
-                                            <span key={`ellipsis-${index}`} className="inline-flex h-9 w-9 items-center justify-center text-[16px] text-[#8b97a9] sm:h-10 sm:w-10">
-                                                ...
-                                            </span>
-                                        );
-                                    }
-
-                                    const isActive = token === currentPage;
                                     return (
-                                        <Link
-                                            key={`page-${token}`}
-                                            href={{ pathname: `/brands/${slug}`, query: { page: String(token) } }}
-                                            aria-current={isActive ? "page" : undefined}
-                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-[13px] font-semibold transition-colors sm:h-10 sm:w-10 sm:text-[14px] ${isActive ? "border-[#0f57d6] bg-[#0f57d6] text-white" : "border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb]"}`}
-                                        >
-                                            {token}
-                                        </Link>
-                                    );
-                                })}
+                                        <>
+                                            <PendingLink
+                                                href={buildHrefWithParams(prevParams)}
+                                                aria-disabled={currentPage <= 1}
+                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${
+                                                    currentPage <= 1 ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
+                                                }`}
+                                            >
+                                                <i className="fa-solid fa-chevron-left text-[12px]" />
+                                            </PendingLink>
 
-                                <Link
-                                    href={{ pathname: `/brands/${slug}`, query: { page: String(Math.min(lastPage, currentPage + 1)) } }}
-                                    aria-disabled={currentPage >= lastPage}
-                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${currentPage >= lastPage ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"}`}
-                                >
-                                    <i className="fa-solid fa-chevron-right text-[12px]" />
-                                </Link>
+                                            {paginationTokens.map((token, idx) => {
+                                                if (token === "ellipsis") {
+                                                    return (
+                                                        <span
+                                                            key={`ellipsis-${idx}`}
+                                                            className="inline-flex h-9 w-9 items-center justify-center text-[16px] text-[#8b97a9] sm:h-10 sm:w-10"
+                                                        >
+                                                            ...
+                                                        </span>
+                                                    );
+                                                }
+
+                                                const next = new URLSearchParams(currentUiParams.toString());
+                                                next.set("page", String(token));
+                                                const href = buildHrefWithParams(next);
+                                                const isActive = token === currentPage;
+
+                                                return (
+                                                    <PendingLink
+                                                        key={`page-${token}`}
+                                                        href={href}
+                                                        aria-current={isActive ? "page" : undefined}
+                                                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-[13px] font-semibold transition-colors sm:h-10 sm:w-10 sm:text-[14px] ${
+                                                            isActive
+                                                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                                                : "border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb]"
+                                                        }`}
+                                                    >
+                                                        {token}
+                                                    </PendingLink>
+                                                );
+                                            })}
+
+                                            <PendingLink
+                                                href={buildHrefWithParams(nextParams)}
+                                                aria-disabled={currentPage >= lastPage}
+                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${
+                                                    currentPage >= lastPage ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
+                                                }`}
+                                            >
+                                                <i className="fa-solid fa-chevron-right text-[12px]" />
+                                            </PendingLink>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         ) : null}
-                    </>
-                )}
+                    </div>
+                </PendingNavProvider>
             </section>
 
 
