@@ -25,6 +25,7 @@ import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { RequestForm } from "@/app/components/RequestForm/request-form";
 
 type GridItem = {
     id?: number | string;
@@ -420,9 +421,20 @@ export default async function GridDetailPage({
         const resolvedName = String(active.name ?? product?.name ?? "").trim() || "Məhsul";
 
         const variations = Array.isArray(detail.variations) ? detail.variations : [];
-        const paymentMethods = Array.isArray(detail.payment_methods) ? detail.payment_methods : [];
         const related = Array.isArray(detail.related) ? detail.related : [];
         const labels = Array.isArray(detail.labels) ? detail.labels : [];
+        const detailFilters = Array.isArray(active.filters) ? active.filters : Array.isArray(detail.filters) ? detail.filters : [];
+        const productCode = String(active.slug ?? active.id ?? product?.id ?? "").trim().toUpperCase();
+        const stockText = typeof active.stock === "number" && active.stock > 0 ? "✓ Məhdud saydadır" : "Stokda yoxdur";
+        const specRows = detailFilters
+            .map((filter) => {
+                const label = String(filter?.name ?? "").trim();
+                const value = String(filter?.values?.[0]?.name ?? "").trim();
+                if (!label || !value) return null;
+                return { label, value };
+            })
+            .filter((entry): entry is { label: string; value: string } => Boolean(entry))
+            .slice(0, 3);
 
         const breadcrumbItems = [
             { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
@@ -455,18 +467,22 @@ export default async function GridDetailPage({
                     titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
                 />
 
-                <main className="mx-auto w-full max-w-[1280px] !px-1 pt-2 pb-10 lg:!px-2 lg:pb-12">
-                    <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-10">
+                <main className="mx-auto w-full max-w-[1280px] !px-1 pt-1 pb-10 lg:!px-2 lg:pb-12">
+                    <h1 className="mb-6 text-[34px] leading-tight font-bold tracking-[-0.02em] text-[#111318] max-lg:text-[28px]">
+                        {resolvedName}
+                    </h1>
+
+                    <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-12">
                         <div className="w-full">
-                            <div className="overflow-hidden rounded-[16px] border border-[#e2e6ef] bg-white">
+                            <div className="flex min-h-[420px] items-center justify-center lg:min-h-[540px]">
                                 {images[0] ? (
                                     <img
                                         src={images[0]}
                                         alt={resolvedName}
-                                        className="h-[320px] w-full object-contain sm:h-[420px] lg:h-[520px]"
+                                        className="max-h-[500px] w-full object-contain"
                                     />
                                 ) : (
-                                    <div className="h-[320px] w-full bg-[#f7f7f7] sm:h-[420px] lg:h-[520px]" />
+                                    <div className="h-[420px] w-full" />
                                 )}
                             </div>
 
@@ -475,22 +491,78 @@ export default async function GridDetailPage({
                                     {images.slice(0, 12).map((src, idx) => (
                                         <div
                                             key={`${src}-${idx}`}
-                                            className="overflow-hidden rounded-[12px] border border-[#e2e6ef] bg-white"
+                                            className="overflow-hidden rounded-[10px] border border-[#e2e6ef] bg-white"
                                         >
-                                            <img src={src} alt={resolvedName} className="h-[72px] w-full object-contain" />
+                                            <img src={src} alt={resolvedName} className="h-[66px] w-full object-contain" />
                                         </div>
                                     ))}
                                 </div>
                             ) : null}
                         </div>
 
-                        <div className="w-full">
-                            <div className="rounded-[16px] border border-[#e2e6ef] bg-white p-4 sm:p-6">
-                                <h1 className="text-[22px] leading-tight font-semibold text-[#111318] sm:text-[26px]">
-                                    {resolvedName}
-                                </h1>
+                        <div className="w-full pt-2">
+                            <div className="text-[24px] font-bold text-[#2a2a2d] max-lg:text-[24px]">
+                                Qiymət: {currentPrice.toFixed(2)}₼
+                            </div>
+                            {hasDiscount && oldPrice ? (
+                                <div className="mt-1 text-[17px] font-medium text-[#8d95a6] line-through">
+                                    {oldPrice.toFixed(2)}₼
+                                </div>
+                            ) : null}
 
-                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                            {navbarPhone ? (
+                                <div className="mt-5 flex items-center gap-2 text-[27px] font-semibold text-[#2a2a2d] max-lg:text-[23px]">
+                                    <i className="fa-solid fa-phone text-[15px]" aria-hidden="true" />
+                                    {navbarPhone}
+                                </div>
+                            ) : null}
+
+                            <div className="mt-6 h-px w-full bg-[#dce3ef]" />
+
+                            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-[15px]">
+                                <span className="text-[#77839b]">Məhsul kodu: {productCode || "-"}</span>
+                                <span className="font-semibold text-[#ffcc00]">{stockText}</span>
+                            </div>
+
+                            <div className="mt-5 space-y-2 text-[16px]">
+                                {specRows.map((row) => (
+                                    <div key={row.label} className="flex items-center gap-2">
+                                        <span className="min-w-[92px] text-[#2a2a2d]">{row.label}:</span>
+                                        <span className="h-px flex-1 bg-[#dce3ef]" aria-hidden="true" />
+                                        <span className="text-[#2a2a2d]">{row.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {variations.length > 1 ? (
+                                <div className="mt-6">
+                                    <div className="text-[14px] font-semibold text-[#111318]">Variantlar</div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {variations.map((variation) => {
+                                            const vSlug = String(variation?.slug ?? "").trim();
+                                            if (!vSlug) return null;
+                                            const vName = String(variation?.name ?? "").trim() || vSlug;
+                                            const isActive = String(active.slug ?? "").trim() === vSlug;
+                                            return (
+                                                <a
+                                                    key={vSlug}
+                                                    href={`/${normalizedLocale}/products/${encodeURIComponent(vSlug)}`}
+                                                    className={`inline-flex items-center rounded-full border px-3 py-1 text-[13px] font-medium transition-colors ${
+                                                        isActive
+                                                            ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                                            : "border-[#e2e6ef] bg-white text-[#111318] hover:border-[#0f57d6]"
+                                                    }`}
+                                                >
+                                                    {vName}
+                                                </a>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {labels.length > 0 || typeof discountPercent === "number" ? (
+                                <div className="mt-4 flex flex-wrap items-center gap-2">
                                     {labels.map((label) => {
                                         const text = String(label?.name ?? "").trim();
                                         if (!text) return null;
@@ -512,133 +584,29 @@ export default async function GridDetailPage({
                                         </span>
                                     ) : null}
                                 </div>
-
-                                <div className="mt-4">
-                                    {hasDiscount && oldPrice ? (
-                                        <div className="text-[16px] font-medium text-[#7b8596] line-through">
-                                            {oldPrice.toFixed(2)}₼
-                                        </div>
-                                    ) : null}
-                                    <div className="text-[30px] font-bold text-[#111318] sm:text-[36px]">
-                                        {currentPrice.toFixed(2)}₼
-                                    </div>
-                                    <div className="mt-1 text-[14px] text-[#4b5563]">
-                                        {typeof active.stock === "number" && active.stock > 0
-                                            ? `Stokda var: ${active.stock}`
-                                            : "Stokda yoxdur"}
-                                    </div>
-                                </div>
-
-                                {variations.length > 1 ? (
-                                    <div className="mt-6">
-                                        <div className="text-[14px] font-semibold text-[#111318]">Variantlar</div>
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                            {variations.map((variation) => {
-                                                const vSlug = String(variation?.slug ?? "").trim();
-                                                if (!vSlug) return null;
-                                                const vName = String(variation?.name ?? "").trim() || vSlug;
-                                                const isActive = String(active.slug ?? "").trim() === vSlug;
-                                                return (
-                                                    <a
-                                                        key={vSlug}
-                                                        href={`/${normalizedLocale}/products/${encodeURIComponent(vSlug)}`}
-                                                        className={`inline-flex items-center rounded-full border px-3 py-1 text-[13px] font-medium transition-colors ${
-                                                            isActive
-                                                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                                                                : "border-[#e2e6ef] bg-white text-[#111318] hover:border-[#0f57d6]"
-                                                        }`}
-                                                    >
-                                                        {vName}
-                                                    </a>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ) : null}
-
-                                {product?.description ? (
-                                    <div className="mt-6">
-                                        <div className="text-[14px] font-semibold text-[#111318]">Təsvir</div>
-                                        <div
-                                            className="prose mt-2 max-w-none"
-                                            dangerouslySetInnerHTML={{ __html: product.description }}
-                                        />
-                                    </div>
-                                ) : null}
-                            </div>
-
-                            {paymentMethods.length > 0 ? (
-                                <section className="mt-6 rounded-[16px] border border-[#e2e6ef] bg-white p-4 sm:p-6">
-                                    <h2 className="text-[16px] font-semibold text-[#111318]">Ödəniş üsulları</h2>
-                                    <div className="mt-4 space-y-4">
-                                        {paymentMethods.map((method) => {
-                                            const title = String(method?.name ?? "").trim() || String(method?.key ?? "").trim();
-                                            if (!title) return null;
-                                            const icon = resolveAssetUrl(method?.icon_path ?? null);
-                                            const installments = Array.isArray(method?.installments) ? method.installments : [];
-                                            return (
-                                                <div key={method?.key ?? title} className="rounded-[14px] border border-[#e2e6ef] p-4">
-                                                    <div className="flex items-center gap-3">
-                                                        {icon ? (
-                                                            <img
-                                                                src={icon}
-                                                                alt={title}
-                                                                className="h-8 w-8 object-contain"
-                                                            />
-                                                        ) : null}
-                                                        <div className="flex-1">
-                                                            <div className="text-[14px] font-semibold text-[#111318]">{title}</div>
-                                                            {method?.description ? (
-                                                                <div className="mt-1 text-[13px] text-[#4b5563]">
-                                                                    {method.description}
-                                                                </div>
-                                                            ) : null}
-                                                        </div>
-                                                    </div>
-
-                                                    {installments.length > 0 ? (
-                                                        <div className="mt-3 overflow-hidden rounded-[12px] border border-[#e2e6ef]">
-                                                            <table className="w-full border-collapse text-left text-[13px]">
-                                                                <thead className="bg-[#f7f7f7] text-[#111318]">
-                                                                    <tr>
-                                                                        <th className="px-3 py-2 font-semibold">Ay</th>
-                                                                        <th className="px-3 py-2 font-semibold">Faiz</th>
-                                                                        <th className="px-3 py-2 font-semibold">Aylıq</th>
-                                                                        <th className="px-3 py-2 font-semibold">Cəmi</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {installments.map((inst) => (
-                                                                        <tr key={inst?.id ?? `${method?.key}-${inst?.month}`}>
-                                                                            <td className="px-3 py-2">{inst?.month ?? "-"}</td>
-                                                                            <td className="px-3 py-2">
-                                                                                {typeof inst?.percent === "number"
-                                                                                    ? `${inst.percent}%`
-                                                                                    : "-"}
-                                                                            </td>
-                                                                            <td className="px-3 py-2">
-                                                                                {typeof inst?.monthly_amount === "number"
-                                                                                    ? `${inst.monthly_amount.toFixed(2)}₼`
-                                                                                    : "-"}
-                                                                            </td>
-                                                                            <td className="px-3 py-2">
-                                                                                {typeof inst?.total_with_interest === "number"
-                                                                                    ? `${inst.total_with_interest.toFixed(2)}₼`
-                                                                                    : "-"}
-                                                                            </td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
                             ) : null}
+
                         </div>
+                    </section>
+
+                    <section className="mt-10">
+                        <div className="flex items-end gap-10 border-b border-[#dce3ef]">
+                            <span className="-mb-px border-b border-[#2454e7] pb-2 text-[30px] font-bold leading-none text-[#2454e7] max-lg:text-[20px]">
+                                Məhsul haqqında
+                            </span>
+                            <span className="pb-2 text-[30px] font-bold leading-none text-[#8b95a8] max-lg:text-[20px]">Xüsusiyyətlər</span>
+                            <span className="pb-2 text-[30px] font-bold leading-none text-[#8b95a8] max-lg:text-[20px]">Şərhlər (0)</span>
+                        </div>
+
+                        <div className="mt-4 text-[14px] leading-[1.42857143] text-[#1b202b] max-lg:text-[14px] [&_p]:text-[14px] [&_p]:font-normal [&_p]:text-[#1b202b] [&_span]:text-[14px] [&_span]:font-normal [&_span]:text-[#1b202b] [&_b]:text-[14px] [&_b]:font-normal [&_b]:text-[#1b202b] [&_strong]:text-[14px] [&_strong]:font-normal [&_strong]:text-[#1b202b]">
+                            {product?.description ? (
+                                <div dangerouslySetInnerHTML={{ __html: product.description }} />
+                            ) : (
+                                <div className="min-h-[24px]" />
+                            )}
+                        </div>
+
+                        <div className="mt-6" />
                     </section>
 
                     {related.length > 0 ? (
@@ -650,6 +618,10 @@ export default async function GridDetailPage({
                         </section>
                     ) : null}
                 </main>
+
+                <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
+                    <RequestForm />
+                </div>
 
                 <LogoutToast />
 
