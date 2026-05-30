@@ -8,20 +8,15 @@ import type {
     ProjectSettingsData,
     ProjectSettingsResponseData,
 } from "@repo/types/types";
-import {
-    Heart,
-    LogOut,
-    Lock,
-    MapPin,
-    Package,
-    UserRound,
-} from "lucide-react";
+import { Breadcrumb } from "@repo/ui";
+import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { ChangePasswordForm } from "./change-password-form";
 
 type NavItem = {
     label: string;
@@ -47,7 +42,7 @@ const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
 
 const navItems: NavItem[] = [
     { label: "Hesabım", href: "/account", icon: UserRound },
-    { label: "Sifariş tarixçəsi", href: "/account/sifaris-tarixcesi", icon: Package },
+    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Package },
     { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
     { label: "Şifrə", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
@@ -70,17 +65,19 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function OrderHistoryPage({
+export default async function AccountPasswordPage({
     params,
 }: {
     params: Promise<{ locale: string }>;
 }) {
     const { locale: routeLocale } = await params;
     const locale = routeLocale.trim().toLowerCase();
+    const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
+    const homePageMeta = config.pages.home[normalizedLocale];
+    const accountPageMeta = config.pages.account[normalizedLocale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
-
     if (!authToken) {
         redirect(`/${locale}/signin`);
     }
@@ -98,19 +95,23 @@ export default async function OrderHistoryPage({
         notFound();
     }
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale,
-    });
-
-    const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale,
-    });
+    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse] = await Promise.all([
+        api.get<FooterMenusData>(config.endpoints.menus.list, {
+            params: { in_footer: "1" },
+            locale,
+        }),
+        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
+            locale,
+        }),
+        api.get<any>(config.endpoints.menus.list, {
+            params: { in_header: "1" },
+            locale,
+        }),
+        api.get<any>("/product/categories", {
+            params: { in_header: "1" },
+            locale,
+        }),
+    ]);
 
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
@@ -125,11 +126,6 @@ export default async function OrderHistoryPage({
             const path = hrefPart ? `/${locale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
             return { label: item.name ?? item.title ?? item.link ?? "", href: path };
         });
-
-    const categoriesResponse = await api.get<any>("/product/categories", {
-        params: { in_header: "1" },
-        locale,
-    });
 
     let headerCategoryItems: any[] = [];
     if (categoriesResponse.success && categoriesResponse.data) {
@@ -179,6 +175,9 @@ export default async function OrderHistoryPage({
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
+    const activeHref = "/account/password";
+    const pageTitle = "Şifrəni dəyiş";
+
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
             <NavbarWrapper
@@ -190,52 +189,43 @@ export default async function OrderHistoryPage({
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <section className="mx-auto w-full max-w-[1280px] px-5 pt-5 pb-12 sm:px-10 lg:px-0 lg:pt-6 lg:pb-14">
-                <nav className="mb-4 flex items-center gap-1.5 text-[13px] font-medium">
-                    <Link href={`/${locale}`} className="text-[rgba(132,150,171,1)] hover:text-[rgba(120,139,161,1)]">Ana səhifə</Link>
-                    <span className="text-[16px] leading-none text-[#c6cedb]">»</span>
-                    <Link href={`/${locale}/account`} className="text-[#8496ab] hover:text-[#74879f]">Hesab</Link>
-                    <span className="text-[16px] leading-none text-[#c6cedb]">»</span>
-                    <span className="text-[#8496ab]">Sifariş tarixçəsi</span>
-                </nav>
+            <Breadcrumb
+                items={[
+                    { label: homePageMeta.name, href: homePageMeta.url },
+                    { label: accountPageMeta.name, href: accountPageMeta.url },
+                    { label: pageTitle, isCurrent: true },
+                ]}
+                className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
+                showTitle
+                pageTitle={pageTitle}
+                titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
+            />
 
-                <h1 className="text-[38px] leading-none font-bold tracking-[-0.02em] text-[#0F131A]">
-                    Sifariş tarixçəsi
-                </h1>
+            <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
+                <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
+                    <aside className="hidden w-full max-w-[260px] lg:block">
+                        <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
+                        <div className="mt-5 border-t border-[#D2D9E4]" />
 
-                <div className="mt-10 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
-                    <aside className="w-full max-w-[260px]">
-                        <h2 className="pl-3 text-[18px] leading-none font-bold text-[#0F131A]">Naviqasiya</h2>
-                        <div className="mt-4 ml-2 border-t border-[#D2D9E4]" />
-
-                        <ul className="mt-1 space-y-0.5 pl-3">
+                        <ul className="mt-0.5 space-y-0.5">
                             {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = label === "Sifariş tarixçəsi";
-
+                                const isActive = href === activeHref;
                                 return (
                                     <li key={label}>
                                         <Link
                                             href={`/${locale}${href}`}
-                                            className={`group inline-flex min-h-0 w-full items-center gap-2 py-2 text-left text-[14px] transition-colors ${
+                                            className={`group inline-flex w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
                                                 isActive
                                                     ? "bg-[#F0F1F3] text-[#0D47FF]"
                                                     : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
                                             }`}
-                                            style={{
-                                                fontFamily: "'Twemoji Country Flags', var(--body-font, \"Verdana\")",
-                                                fontWeight: 540,
-                                                WebkitFontSmoothing: "antialiased",
-                                                MozOsxFontSmoothing: "grayscale",
-                                            }}
                                         >
                                             <Icon
                                                 className={`size-4 transition-colors ${
-                                                    isActive
-                                                        ? "text-[#0D47FF]"
-                                                        : "text-[#707887] group-hover:text-[#0D47FF]"
+                                                    isActive ? "text-[#0D47FF]" : "text-[#707887] group-hover:text-[#0D47FF]"
                                                 }`}
                                             />
-                                            <span className="min-h-0 text-[14px] font-[540] tracking-[-0.01em]">{label}</span>
+                                            <span>{label}</span>
                                         </Link>
                                     </li>
                                 );
@@ -243,11 +233,11 @@ export default async function OrderHistoryPage({
                         </ul>
                     </aside>
 
-                    <div className="pt-0 -mt-8">
-                        <div className="mb-10 w-full rounded-[20px] bg-[#f7f7f7] p-5 text-[14px] font-medium text-[#202938]">
-                            Sizin hər hansı bir sifarişiniz mövcud deyil!
+                    <section className="w-full rounded-[20px] bg-white px-5 pb-5 pt-0">
+                        <div className="w-full">
+                            <ChangePasswordForm locale={locale} />
                         </div>
-                    </div>
+                    </section>
                 </div>
             </section>
 

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
-export default async function OrderHistoryPage() {
+export default async function AccountAddressRedirectPage() {
     const cookieStore = await cookies();
     const cookieLocale = cookieStore.get("preferred-locale")?.value?.trim().toLowerCase() ?? "";
     const normalizedPreferredLocale = (["az", "ru", "en"].includes(cookieLocale)
@@ -14,5 +14,6 @@ export default async function OrderHistoryPage() {
         redirect(`/${normalizedPreferredLocale}/signin`);
     }
 
-    redirect(`/${normalizedPreferredLocale}/account/sifaris-tarixcesi`);
+    redirect(`/${normalizedPreferredLocale}/account/address`);
 }
+

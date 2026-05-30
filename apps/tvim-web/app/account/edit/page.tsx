@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import type {
     FooterMenusData,
     Language,
@@ -9,21 +9,14 @@ import type {
     ProjectSettingsResponseData,
 } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
-import {
-    Archive,
-    Heart,
-    LogOut,
-    Lock,
-    MapPin,
-    Package,
-    UserRound,
-} from "lucide-react";
+import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { EditProfileForm } from "@/app/[locale]/account/edit/edit-profile-form";
 
 type NavItem = {
     label: string;
@@ -31,35 +24,9 @@ type NavItem = {
     icon: ComponentType<{ className?: string }>;
 };
 
-type ActionItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string; strokeWidth?: number }>;
-};
-
-const FontAwesomeNewspaperIcon = ({ className }: { className?: string }) => (
-    <i className={`account-index__icon fa fa-newspaper text-[35px] leading-none ${className ?? ""}`} aria-hidden="true" />
-);
-
 const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
     <i
-        className={`account-index__icon fa-solid fa-reply ${className ?? ""}`}
-        style={{
-            MozOsxFontSmoothing: "grayscale",
-            WebkitFontSmoothing: "antialiased",
-            display: "inline-block",
-            fontStyle: "normal",
-            fontVariant: "normal",
-            textRendering: "auto",
-            lineHeight: 1,
-        }}
-        aria-hidden="true"
-    />
-);
-
-const FontAwesomeReplyActionIcon = ({ className }: { className?: string }) => (
-    <i
-        className={`account-index__icon fa-solid fa-reply text-[34px] leading-none ${className ?? ""}`}
+        className={`account-index__icon fa fa-reply ${className ?? ""}`}
         style={{
             MozOsxFontSmoothing: "grayscale",
             WebkitFontSmoothing: "antialiased",
@@ -84,16 +51,6 @@ const navItems: NavItem[] = [
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];
 
-const actionItems: ActionItem[] = [
-    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Archive },
-    { label: "Məlumatları redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlərə düzəliş et", href: "/wishlist", icon: Heart },
-    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: FontAwesomeReplyActionIcon },
-    { label: "Xəbər bülleteninə abunə ol / olma", href: "/account/newsletter", icon: FontAwesomeNewspaperIcon },
-];
-
 const extractHeaderItems = (rawHeaderData: unknown) => {
     if (Array.isArray(rawHeaderData)) return rawHeaderData;
     if (!rawHeaderData || typeof rawHeaderData !== "object") return [];
@@ -108,21 +65,23 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function AccountPage({
-    params,
-}: {
-    params: Promise<{ locale: string }>;
-}) {
-    const { locale: routeLocale } = await params;
-    const locale = routeLocale.trim().toLowerCase();
-    const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
-    const homePageMeta = config.pages.home[normalizedLocale];
-    const accountPageMeta = config.pages.account[normalizedLocale];
+type AuthUserResponse = {
+    name?: string | null;
+    surname?: string | null;
+    email?: string | null;
+    phone?: string | null;
+};
 
+export default async function AccountEditPage() {
     const cookieStore = await cookies();
+    const cookieLocale = cookieStore.get("preferred-locale")?.value?.trim().toLowerCase() ?? "";
+    const normalizedPreferredLocale = (["az", "ru", "en"].includes(cookieLocale)
+        ? cookieLocale
+        : "az") as "az" | "ru" | "en";
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+
     if (!authToken) {
-        redirect(`/${locale}/signin`);
+        redirect(`/${normalizedPreferredLocale}/signin`);
     }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -134,11 +93,20 @@ export default async function AccountPage({
         );
     }
 
-    if (!langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
-        notFound();
-    }
+    const siteDefaultLocale =
+        langResponse.data.find((language) => language.is_default_site)?.code ??
+        config.project.defLang;
 
-    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse] = await Promise.all([
+    const supportedLocales = new Set(langResponse.data.map((language) => language.code.toLowerCase()));
+    const locale = supportedLocales.has(cookieLocale)
+        ? cookieLocale
+        : siteDefaultLocale.toLowerCase();
+
+    const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
+    const homePageMeta = config.pages.home[normalizedLocale];
+    const accountPageMeta = config.pages.account[normalizedLocale];
+
+    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse, userResponse] = await Promise.all([
         api.get<FooterMenusData>(config.endpoints.menus.list, {
             params: { in_footer: "1" },
             locale,
@@ -153,6 +121,11 @@ export default async function AccountPage({
         api.get<any>("/product/categories", {
             params: { in_header: "1" },
             locale,
+        }),
+        api.get<AuthUserResponse>(config.endpoints.auth.user ?? config.endpoints.auth.me, {
+            locale,
+            headers: { Authorization: `Bearer ${authToken}` },
+            cache: "no-store",
         }),
     ]);
 
@@ -218,7 +191,8 @@ export default async function AccountPage({
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
-    const activeHref = "/account";
+    const user = userResponse.success ? userResponse.data : null;
+    const activeHref = "/account/edit";
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
@@ -234,11 +208,12 @@ export default async function AccountPage({
             <Breadcrumb
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
-                    { label: accountPageMeta.name, isCurrent: true },
+                    { label: accountPageMeta.name, href: `/${locale}/account` },
+                    { label: "Məlumatları redaktə et", isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle="Hesabım"
+                pageTitle="Məlumatları redaktə et"
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 
@@ -251,12 +226,11 @@ export default async function AccountPage({
                         <ul className="mt-0.5 space-y-0.5">
                             {navItems.map(({ label, href, icon: Icon }) => {
                                 const isActive = href === activeHref;
-
                                 return (
                                     <li key={label}>
                                         <Link
                                             href={`/${locale}${href}`}
-                                            className={`group inline-flex min-h-0 w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
+                                            className={`group inline-flex w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
                                                 isActive
                                                     ? "bg-[#F0F1F3] text-[#0D47FF]"
                                                     : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
@@ -277,20 +251,19 @@ export default async function AccountPage({
                         </ul>
                     </aside>
 
-                    <div className="mx-auto grid w-fit max-w-full grid-cols-2 justify-center justify-items-center gap-x-8 gap-y-6 sm:w-full sm:max-w-[900px] sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 md:gap-x-6 md:gap-y-4 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
-                        {actionItems.map(({ label, href, icon: Icon }) => (
-                            <Link
-                                href={`/${locale}${href}`}
-                                key={label}
-                                className="flex flex-col items-center text-center py-4 sm:py-0"
-                            >
-                                <Icon className="size-[34px] text-[#808080]" strokeWidth={1.9} />
-                                <p className="mt-4 w-[160px] text-[14px] leading-[1.25] font-medium text-[#565F6F] sm:mt-3">
-                                    {label}
-                                </p>
-                            </Link>
-                        ))}
-                    </div>
+                    <section className="w-full rounded-[20px] bg-white p-5">
+                        <div className="w-full">
+                            <EditProfileForm
+                                locale={locale}
+                                initialValues={{
+                                    name: user?.name ?? "",
+                                    surname: user?.surname ?? "",
+                                    email: user?.email ?? "",
+                                    phone: user?.phone ?? "",
+                                }}
+                            />
+                        </div>
+                    </section>
                 </div>
             </section>
 

@@ -8,6 +8,7 @@ import type {
     ProjectSettingsData,
     ProjectSettingsResponseData,
 } from "@repo/types/types";
+import { Breadcrumb } from "@repo/ui";
 import {
     Archive,
     Heart,
@@ -60,7 +61,7 @@ const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
 
 const navItems: NavItem[] = [
     { label: "Hesabım", href: "/account", icon: UserRound },
-    { label: "Sifariş tarixçəsi", href: "/account/sifaris-tarixcesi", icon: Package },
+    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Package },
     { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
     { label: "Şifrə", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
@@ -70,7 +71,7 @@ const navItems: NavItem[] = [
 ];
 
 const actionItems: ActionItem[] = [
-    { label: "Sifariş tarixçəsi", href: "/account/sifaris-tarixcesi", icon: Archive },
+    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Archive },
     { label: "Məlumatları redaktə et", href: "/account/edit", icon: UserRound },
     { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
@@ -122,6 +123,10 @@ export default async function AccountPage() {
     const locale = supportedLocales.has(cookieLocale)
         ? cookieLocale
         : siteDefaultLocale.toLowerCase();
+
+    const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
+    const homePageMeta = config.pages.home[normalizedLocale];
+    const accountPageMeta = config.pages.account[normalizedLocale];
 
     const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
         params: { in_footer: "1" },
@@ -204,6 +209,8 @@ export default async function AccountPage() {
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
+    const activeHref = "/account";
+
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
             <NavbarWrapper
@@ -215,31 +222,32 @@ export default async function AccountPage() {
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <section className="mx-auto w-full max-w-[1280px] px-5 pt-5 pb-12 sm:px-10 lg:px-0 lg:pt-6 lg:pb-14">
-                <nav className="mb-4 flex items-center gap-1.5 text-[11px] text-[#9AA2B1]">
-                    <Link href="/" className="hover:text-[#6f7788]">Ana səhifə</Link>
-                    <span>»</span>
-                    <span>Hesab</span>
-                </nav>
+            <Breadcrumb
+                items={[
+                    { label: homePageMeta.name, href: homePageMeta.url },
+                    { label: accountPageMeta.name, isCurrent: true },
+                ]}
+                className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
+                showTitle
+                pageTitle="Hesabım"
+                titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
+            />
 
-                <h1 className="text-[34px] leading-none font-bold tracking-[-0.02em] text-[#0F131A] sm:text-[42px]">
-                    Hesabım
-                </h1>
+            <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
+                <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
+                    <aside className="hidden w-full max-w-[260px] lg:block">
+                        <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
+                        <div className="mt-5 border-t border-[#D2D9E4]" />
 
-                <div className="mt-16 grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="w-full max-w-[320px]">
-                        <h2 className="-mt-1 pl-6 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
-                        <div className="mt-5 ml-2 border-t border-[#D2D9E4]" />
-
-                        <ul className="mt-0.5 space-y-0.5 pl-6">
+                        <ul className="mt-0.5 space-y-0.5">
                             {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = label === "Ünvan kitabçası";
+                                const isActive = href === activeHref;
 
                                 return (
                                     <li key={label}>
                                         <Link
                                             href={`/${locale}${href}`}
-                                            className={`group inline-flex w-full items-center gap-2.5 py-2 text-left text-[14px] font-medium transition-colors ${
+                                            className={`group inline-flex w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
                                                 isActive
                                                     ? "bg-[#F0F1F3] text-[#0D47FF]"
                                                     : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
@@ -260,15 +268,15 @@ export default async function AccountPage() {
                         </ul>
                     </aside>
 
-                    <div className="grid w-full max-w-[900px] justify-self-start grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 md:grid-cols-4 md:gap-x-6 md:gap-y-1 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
+                    <div className="mx-auto grid w-fit max-w-full grid-cols-2 justify-center justify-items-center gap-x-8 gap-y-6 sm:w-full sm:max-w-[900px] sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 md:gap-x-6 md:gap-y-4 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
                         {actionItems.map(({ label, href, icon: Icon }) => (
                             <Link
                                 href={`/${locale}${href}`}
                                 key={label}
-                                className="flex flex-col items-center text-center"
+                                className="flex flex-col items-center text-center py-4 sm:py-0"
                             >
                                 <Icon className="size-[34px] text-[#808080]" strokeWidth={1.9} />
-                                <p className="mt-3 max-w-[150px] text-[14px] leading-[1.25] font-medium text-[#565F6F]">
+                                <p className="mt-4 w-[160px] text-[14px] leading-[1.25] font-medium text-[#565F6F] sm:mt-3">
                                     {label}
                                 </p>
                             </Link>

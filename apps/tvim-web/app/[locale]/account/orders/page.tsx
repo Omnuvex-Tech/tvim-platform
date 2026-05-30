@@ -2,22 +2,9 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import type {
-    FooterMenusData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
+import type { FooterMenusData, Language, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
-import {
-    Archive,
-    Heart,
-    LogOut,
-    Lock,
-    MapPin,
-    Package,
-    UserRound,
-} from "lucide-react";
+import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { Footer } from "@/app/components/Footer/footer";
@@ -31,35 +18,30 @@ type NavItem = {
     icon: ComponentType<{ className?: string }>;
 };
 
-type ActionItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+type OrderStatus = {
+    code?: string | null;
+    text?: string | null;
 };
 
-const FontAwesomeNewspaperIcon = ({ className }: { className?: string }) => (
-    <i className={`account-index__icon fa fa-newspaper text-[35px] leading-none ${className ?? ""}`} aria-hidden="true" />
-);
+type OrderTotals = {
+    total?: number | string | null;
+    payable_total?: number | string | null;
+};
+
+type Order = {
+    id: number;
+    uuid?: string | null;
+    number?: string | null;
+    status?: OrderStatus | null;
+    payment_status?: OrderStatus | null;
+    currency?: string | null;
+    totals?: OrderTotals | null;
+    placed_at?: string | null;
+};
 
 const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
     <i
-        className={`account-index__icon fa-solid fa-reply ${className ?? ""}`}
-        style={{
-            MozOsxFontSmoothing: "grayscale",
-            WebkitFontSmoothing: "antialiased",
-            display: "inline-block",
-            fontStyle: "normal",
-            fontVariant: "normal",
-            textRendering: "auto",
-            lineHeight: 1,
-        }}
-        aria-hidden="true"
-    />
-);
-
-const FontAwesomeReplyActionIcon = ({ className }: { className?: string }) => (
-    <i
-        className={`account-index__icon fa-solid fa-reply text-[34px] leading-none ${className ?? ""}`}
+        className={`account-index__icon fa fa-reply ${className ?? ""}`}
         style={{
             MozOsxFontSmoothing: "grayscale",
             WebkitFontSmoothing: "antialiased",
@@ -84,16 +66,6 @@ const navItems: NavItem[] = [
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];
 
-const actionItems: ActionItem[] = [
-    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Archive },
-    { label: "Məlumatları redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrəni dəyiş", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlərə düzəliş et", href: "/wishlist", icon: Heart },
-    { label: "Geri qaytarma sorğuları", href: "/account/returns", icon: FontAwesomeReplyActionIcon },
-    { label: "Xəbər bülleteninə abunə ol / olma", href: "/account/newsletter", icon: FontAwesomeNewspaperIcon },
-];
-
 const extractHeaderItems = (rawHeaderData: unknown) => {
     if (Array.isArray(rawHeaderData)) return rawHeaderData;
     if (!rawHeaderData || typeof rawHeaderData !== "object") return [];
@@ -108,22 +80,44 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-export default async function AccountPage({
+const formatAmount = (value: unknown) => {
+    const n = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(n)) return "";
+    return n.toFixed(2).replace(/\.00$/, "");
+};
+
+const formatPlacedAt = (raw: string) => {
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleString("az-AZ", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
+
+export default async function OrdersPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ locale: string }>;
+    searchParams: Promise<{ per_page?: string; page?: string; status?: string; q?: string }>;
 }) {
     const { locale: routeLocale } = await params;
     const locale = routeLocale.trim().toLowerCase();
     const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
     const homePageMeta = config.pages.home[normalizedLocale];
     const accountPageMeta = config.pages.account[normalizedLocale];
+    const orderHistoryPageMeta = config.pages.orderHistory[normalizedLocale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+
     if (!authToken) {
         redirect(`/${locale}/signin`);
     }
+
+    const query = await searchParams;
+    const status = typeof query.status === "string" ? query.status.trim() : "";
+    const q = typeof query.q === "string" ? query.q.trim() : "";
+    const page = typeof query.page === "string" ? query.page.trim() : "";
+    const perPage = typeof query.per_page === "string" ? query.per_page.trim() : "";
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
     if (!langResponse.success || !langResponse.data) {
@@ -138,7 +132,7 @@ export default async function AccountPage({
         notFound();
     }
 
-    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse] = await Promise.all([
+    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse, ordersResponse] = await Promise.all([
         api.get<FooterMenusData>(config.endpoints.menus.list, {
             params: { in_footer: "1" },
             locale,
@@ -153,6 +147,17 @@ export default async function AccountPage({
         api.get<any>("/product/categories", {
             params: { in_header: "1" },
             locale,
+        }),
+        api.get<Order[]>("/customer/orders", {
+            locale,
+            cache: "no-store",
+            headers: { Authorization: `Bearer ${authToken}` },
+            params: {
+                status: status || undefined,
+                q: q || undefined,
+                page: page || undefined,
+                per_page: perPage || undefined,
+            },
         }),
     ]);
 
@@ -192,10 +197,7 @@ export default async function AccountPage({
         headerCategoryItems = headerTopLevel.filter((item: any) => (((item.type ?? "") + "").toLowerCase() === "categories"));
     }
 
-    const footerMenus =
-        footerMenuResponse.success && footerMenuResponse.data
-            ? footerMenuResponse.data.footer
-            : [];
+    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
 
     let projectSettings: ProjectSettingsData | undefined;
     if (settingsResponse.success && settingsResponse.data) {
@@ -214,11 +216,10 @@ export default async function AccountPage({
         </div>
     ) : undefined;
 
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
+    const navbarPhone = projectSettings?.general.phones.find((phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994"))?.number;
 
-    const activeHref = "/account";
+    const orders = ordersResponse.success && Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
+    const activeHref = "/account/orders";
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
@@ -234,11 +235,12 @@ export default async function AccountPage({
             <Breadcrumb
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
-                    { label: accountPageMeta.name, isCurrent: true },
+                    { label: accountPageMeta.name, href: accountPageMeta.url },
+                    { label: orderHistoryPageMeta.name, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle="Hesabım"
+                pageTitle={orderHistoryPageMeta.title}
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 
@@ -251,7 +253,6 @@ export default async function AccountPage({
                         <ul className="mt-0.5 space-y-0.5">
                             {navItems.map(({ label, href, icon: Icon }) => {
                                 const isActive = href === activeHref;
-
                                 return (
                                     <li key={label}>
                                         <Link
@@ -264,9 +265,7 @@ export default async function AccountPage({
                                         >
                                             <Icon
                                                 className={`size-4 transition-colors ${
-                                                    isActive
-                                                        ? "text-[#0D47FF]"
-                                                        : "text-[#707887] group-hover:text-[#0D47FF]"
+                                                    isActive ? "text-[#0D47FF]" : "text-[#707887] group-hover:text-[#0D47FF]"
                                                 }`}
                                             />
                                             <span>{label}</span>
@@ -277,20 +276,52 @@ export default async function AccountPage({
                         </ul>
                     </aside>
 
-                    <div className="mx-auto grid w-fit max-w-full grid-cols-2 justify-center justify-items-center gap-x-8 gap-y-6 sm:w-full sm:max-w-[900px] sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 md:gap-x-6 md:gap-y-4 lg:gap-x-8 lg:gap-y-2 2xl:grid-cols-3">
-                        {actionItems.map(({ label, href, icon: Icon }) => (
-                            <Link
-                                href={`/${locale}${href}`}
-                                key={label}
-                                className="flex flex-col items-center text-center py-4 sm:py-0"
-                            >
-                                <Icon className="size-[34px] text-[#808080]" strokeWidth={1.9} />
-                                <p className="mt-4 w-[160px] text-[14px] leading-[1.25] font-medium text-[#565F6F] sm:mt-3">
-                                    {label}
-                                </p>
-                            </Link>
-                        ))}
-                    </div>
+                    <section className="w-full rounded-[20px] bg-white px-5 pb-5 pt-0">
+                        {orders.length === 0 ? (
+                            <div className="w-full rounded-[20px] bg-[#f7f7f7] p-5 text-[14px] font-medium text-[#202938]">
+                                Sizin hər hansı bir sifarişiniz mövcud deyil!
+                            </div>
+                        ) : (
+                            <div className="grid gap-3">
+                                {orders.map((order) => {
+                                    const placedAt = order.placed_at ? formatPlacedAt(order.placed_at) : "";
+                                    const statusText = (order.status?.text ?? "").toString();
+                                    const payText = (order.payment_status?.text ?? "").toString();
+                                    const currency = (order.currency ?? "AZN").toString();
+                                    const total = formatAmount(order.totals?.payable_total ?? order.totals?.total);
+                                    return (
+                                        <div key={order.id} className="rounded-[16px] bg-[#f7f7f7] p-4">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="truncate text-[14px] font-semibold text-[#0F131A]">
+                                                        {order.number || `#${order.id}`}
+                                                    </div>
+                                                    {placedAt ? <div className="mt-1 text-[12px] text-[#565F6F]">{placedAt}</div> : null}
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {statusText ? (
+                                                        <span className="rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-[#0F131A]">
+                                                            {statusText}
+                                                        </span>
+                                                    ) : null}
+                                                    {payText ? (
+                                                        <span className="rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-[#565F6F]">
+                                                            {payText}
+                                                        </span>
+                                                    ) : null}
+                                                    {total ? (
+                                                        <span className="rounded-full bg-[#e8efff] px-2 py-0.5 text-[12px] font-semibold text-[#0D47FF]">
+                                                            {total} {currency}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </section>
                 </div>
             </section>
 

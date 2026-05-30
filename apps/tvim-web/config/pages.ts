@@ -86,17 +86,17 @@ export const pages = {
     },
     orderHistory: {
         az: {
-            url: "/az/account/sifaris-tarixcesi",
+            url: "/az/account/orders",
             title: "Sifariş tarixçəsi",
             name: "Sifariş tarixçəsi",
         },
         ru: {
-            url: "/ru/account/sifaris-tarixcesi",
+            url: "/ru/account/orders",
             title: "Sifariş tarixçəsi",
             name: "Sifariş tarixçəsi",
         },
         en: {
-            url: "/en/account/sifaris-tarixcesi",
+            url: "/en/account/orders",
             title: "Sifariş tarixçəsi",
             name: "Sifariş tarixçəsi",
         },
