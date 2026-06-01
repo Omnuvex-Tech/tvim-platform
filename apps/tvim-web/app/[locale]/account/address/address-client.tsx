@@ -301,11 +301,20 @@ export function AddressClient({
             return fallbackFirstId ? [{ options: roots, selectedId: fallbackFirstId }] : [{ options: roots, selectedId: "" }];
         }
 
-        const levels: DeliveryLevel[] = [{ options: roots, selectedId: String(foundPath[0].id) }];
+        const first = foundPath[0];
+        if (!first) {
+            return fallbackFirstId ? [{ options: roots, selectedId: fallbackFirstId }] : [{ options: roots, selectedId: "" }];
+        }
+
+        const levels: DeliveryLevel[] = [{ options: roots, selectedId: String(first.id) }];
         for (let i = 1; i < foundPath.length; i++) {
-            const parentId = String(foundPath[i - 1].id);
+            const parent = foundPath[i - 1];
+            const current = foundPath[i];
+            if (!parent || !current) break;
+
+            const parentId = String(parent.id);
             const siblings = await fetchDeliveryPrices(parentId, cache);
-            levels.push({ options: siblings, selectedId: String(foundPath[i].id) });
+            levels.push({ options: siblings, selectedId: String(current.id) });
         }
 
         return levels;
@@ -765,7 +774,9 @@ export function AddressClient({
                                                 onChange={(selectedId) => {
                                                     setDeliveryLevels((prev) => {
                                                         const next = prev.slice(0, absoluteIndex + 1);
-                                                        next[absoluteIndex] = { ...next[absoluteIndex], selectedId };
+                                                        const current = next[absoluteIndex];
+                                                        if (!current) return next;
+                                                        next[absoluteIndex] = { options: current.options, selectedId };
                                                         return next;
                                                     });
                                                     void loadChildrenFor(absoluteIndex, selectedId);

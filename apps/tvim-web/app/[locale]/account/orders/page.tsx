@@ -132,6 +132,12 @@ export default async function OrdersPage({
         notFound();
     }
 
+    const orderParams: Record<string, string> = {};
+    if (status) orderParams.status = status;
+    if (q) orderParams.q = q;
+    if (page) orderParams.page = page;
+    if (perPage) orderParams.per_page = perPage;
+
     const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse, ordersResponse] = await Promise.all([
         api.get<FooterMenusData>(config.endpoints.menus.list, {
             params: { in_footer: "1" },
@@ -152,12 +158,7 @@ export default async function OrdersPage({
             locale,
             cache: "no-store",
             headers: { Authorization: `Bearer ${authToken}` },
-            params: {
-                status: status || undefined,
-                q: q || undefined,
-                page: page || undefined,
-                per_page: perPage || undefined,
-            },
+            params: orderParams,
         }),
     ]);
 

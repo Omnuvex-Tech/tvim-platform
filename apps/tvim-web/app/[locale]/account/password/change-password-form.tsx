@@ -120,7 +120,7 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
                 password_confirmation: payload.password_confirmation,
             };
 
-            if (!requestBody.name.trim() || !requestBody.email.trim()) {
+            if (!(requestBody.name ?? "").trim() || !(requestBody.email ?? "").trim()) {
                 notify.error(messages.missingProfile);
                 return;
             }
