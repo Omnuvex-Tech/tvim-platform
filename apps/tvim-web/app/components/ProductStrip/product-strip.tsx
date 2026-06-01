@@ -37,6 +37,7 @@ type Props = {
     layout?: "carousel" | "grid";
     showHeader?: boolean;
     gridClassName?: string;
+    cardsTopSpacingClassName?: string;
 };
 
 const formatPrice = (v: number | string | undefined) => {
@@ -93,6 +94,7 @@ const ProductStrip: React.FC<Props> = ({
     layout = "carousel",
     showHeader = true,
     gridClassName,
+    cardsTopSpacingClassName = "py-3",
 }) => {
     const notify = useNotify();
     const raw = Array.isArray(items) ? items : [];
@@ -221,6 +223,7 @@ const ProductStrip: React.FC<Props> = ({
               const cartVariant: "yellow" | "blue" = stock !== null && stock <= 0 ? "yellow" : "blue";
 
               if (variant === "special") {
+                  const detailHref = `/${localePrefix}/products/${slug}${variant === "special" ? "?source=discount" : ""}`;
                   const discount = oldNum && oldNum > 0 ? `-${Math.max(0, Math.round(100 * (1 - priceNum / oldNum)))}%` : "";
                   return {
                       id,
@@ -229,7 +232,7 @@ const ProductStrip: React.FC<Props> = ({
                       price: formatPrice(priceNum),
                       discount,
                       imageUrl: image,
-                      href: `/${localePrefix}/products/${slug}`,
+                      href: detailHref,
                       cartVariant,
                       productVariationId,
                       isFavorited,
@@ -957,7 +960,7 @@ const ProductStrip: React.FC<Props> = ({
                 <div className="relative">
                     <div
                         ref={viewportRef}
-                        className={useNativeTouchScroll ? "overflow-x-auto overflow-y-hidden py-3 px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "overflow-hidden py-3 px-0"}
+                        className={useNativeTouchScroll ? `overflow-x-auto overflow-y-hidden ${cardsTopSpacingClassName} px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden` : `overflow-hidden ${cardsTopSpacingClassName} px-0`}
                         onPointerDown={!useNativeTouchScroll ? onPointerDown : undefined}
                         onPointerMove={!useNativeTouchScroll ? onPointerMove : undefined}
                         onPointerUp={!useNativeTouchScroll ? endDrag : undefined}

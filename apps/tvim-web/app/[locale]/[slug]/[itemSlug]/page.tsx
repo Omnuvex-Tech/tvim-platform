@@ -26,6 +26,8 @@ import { Footer } from "@/app/components/Footer/footer";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
+import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
+import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
 
 type GridItem = {
     id?: number | string;
@@ -92,6 +94,8 @@ type ProductDetailVariationGalleryItem = {
 
 type ProductDetailVariation = {
     id?: number;
+    sku?: string | null;
+    model?: string | null;
     name?: string;
     slug?: string;
     stock?: number;
@@ -175,6 +179,8 @@ type ProductDetailData = {
     }>;
     product?: {
         id?: number;
+        sku?: string | null;
+        model?: string | null;
         name?: string;
         description?: string | null;
         slug?: string;
@@ -314,10 +320,16 @@ export async function generateMetadata({
 
 export default async function GridDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ locale: string; slug: string; itemSlug: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
     const { locale, slug, itemSlug } = await params;
+    const resolvedSearchParams = searchParams ? await searchParams : {};
+    const sourceParamRaw = resolvedSearchParams?.source;
+    const sourceParam = Array.isArray(sourceParamRaw) ? sourceParamRaw[0] : sourceParamRaw;
+    const isDiscountSource = String(sourceParam ?? "").trim().toLowerCase() === "discount";
     if (slug.trim().toLowerCase() === "brand-news") {
         redirect(`/brands/news/${itemSlug}`);
     }
@@ -419,22 +431,131 @@ export default async function GridDetailPage({
         const hasDiscount = typeof oldPrice === "number" && oldPrice > currentPrice;
         const discountPercent = hasDiscount ? Math.round((1 - currentPrice / oldPrice) * 100) : null;
         const resolvedName = String(active.name ?? product?.name ?? "").trim() || "Məhsul";
+        const activeVariationId = Number(active.id);
+        const productVariationId = Number.isFinite(activeVariationId) && activeVariationId > 0 ? activeVariationId : null;
 
         const variations = Array.isArray(detail.variations) ? detail.variations : [];
         const related = Array.isArray(detail.related) ? detail.related : [];
         const labels = Array.isArray(detail.labels) ? detail.labels : [];
-        const detailFilters = Array.isArray(active.filters) ? active.filters : Array.isArray(detail.filters) ? detail.filters : [];
-        const productCode = String(active.slug ?? active.id ?? product?.id ?? "").trim().toUpperCase();
+        const readText = (value: unknown) => String(value ?? "").trim();
+        const getValueTexts = (raw: unknown): string[] => {
+            if (Array.isArray(raw)) {
+                return raw
+                    .flatMap((entry) => {
+                        if (typeof entry === "string" || typeof entry === "number") {
+                            const text = readText(entry);
+                            return text ? [text] : [];
+                        }
+
+                        if (entry && typeof entry === "object") {
+                            const obj = entry as Record<string, unknown>;
+                            const text =
+                                readText(obj.name) ||
+                                readText(obj.label) ||
+                                readText(obj.title) ||
+                                readText(obj.value) ||
+                                readText(obj.text) ||
+                                readText(obj.slug) ||
+                                readText(obj.id);
+                            return text ? [text] : [];
+                        }
+
+                        return [];
+                    })
+                    .filter(Boolean);
+            }
+
+            if (raw && typeof raw === "object") {
+                const obj = raw as Record<string, unknown>;
+                const text =
+                    readText(obj.name) ||
+                    readText(obj.label) ||
+                    readText(obj.title) ||
+                    readText(obj.value) ||
+                    readText(obj.text) ||
+                    readText(obj.slug) ||
+                    readText(obj.id);
+                return text ? [text] : [];
+            }
+
+            const text = readText(raw);
+            return text ? [text] : [];
+        };
+
+        const normalizeFilter = (rawFilter: unknown) => {
+            if (!rawFilter || typeof rawFilter !== "object") return null;
+            const filter = rawFilter as Record<string, unknown>;
+
+            const label =
+                readText(filter.name) ||
+                readText(filter.label) ||
+                readText(filter.title) ||
+                readText(filter.key) ||
+                readText(filter.slug) ||
+                readText(filter.filter_id);
+            if (!label) return null;
+
+            const values = [
+                ...getValueTexts(filter.values),
+                ...getValueTexts(filter.options),
+                ...getValueTexts(filter.items),
+                ...getValueTexts(filter.value),
+            ].filter(Boolean);
+
+            const uniqueValues = Array.from(new Set(values));
+            const key =
+                readText(filter.filter_id) ||
+                readText(filter.value_id) ||
+                readText(filter.slug) ||
+                label.toLowerCase();
+
+            return { key, label, values: uniqueValues };
+        };
+
+        const rawFilterCandidates: unknown[] = [
+            ...(Array.isArray(detail.filters) ? detail.filters : []),
+            ...(Array.isArray(active.filters) ? active.filters : []),
+            ...(Array.isArray((detail.product as any)?.filters) ? (detail.product as any).filters : []),
+            ...(Array.isArray((active as any)?.attributes) ? (active as any).attributes : []),
+            ...(Array.isArray((detail as any)?.attributes) ? (detail as any).attributes : []),
+        ];
+
+        const normalizedFilterMap = new Map<string, { key: string; label: string; values: string[] }>();
+
+        rawFilterCandidates.forEach((rawFilter) => {
+            const normalized = normalizeFilter(rawFilter);
+            if (!normalized) return;
+
+            const existing = normalizedFilterMap.get(normalized.key);
+            if (!existing) {
+                normalizedFilterMap.set(normalized.key, normalized);
+                return;
+            }
+
+            if (normalized.values.length > existing.values.length) {
+                normalizedFilterMap.set(normalized.key, normalized);
+            }
+        });
+        const productCode = String(
+            active.sku ??
+            active.model ??
+            product?.sku ??
+            product?.model ??
+            active.slug ??
+            active.id ??
+            product?.id ??
+            ""
+        ).trim();
         const stockText = typeof active.stock === "number" && active.stock > 0 ? "✓ Məhdud saydadır" : "Stokda yoxdur";
-        const specRows = detailFilters
+        const allSpecRows = Array.from(normalizedFilterMap.values())
             .map((filter) => {
-                const label = String(filter?.name ?? "").trim();
-                const value = String(filter?.values?.[0]?.name ?? "").trim();
+                const label = filter.label;
+                const value = filter.values.join(", ");
                 if (!label || !value) return null;
                 return { label, value };
             })
-            .filter((entry): entry is { label: string; value: string } => Boolean(entry))
-            .slice(0, 3);
+            .filter((entry): entry is { label: string; value: string } => Boolean(entry));
+        const specRows = allSpecRows.slice(0, 3);
 
         const breadcrumbItems = [
             { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
@@ -501,16 +622,33 @@ export default async function GridDetailPage({
                         </div>
 
                         <div className="w-full pt-2">
-                            <div className="text-[24px] font-bold text-[#2a2a2d] max-lg:text-[24px]">
-                                Qiymət: {currentPrice.toFixed(2)}₼
-                            </div>
-                            {hasDiscount && oldPrice ? (
-                                <div className="mt-1 text-[17px] font-medium text-[#8d95a6] line-through">
-                                    {oldPrice.toFixed(2)}₼
+                            <div className="flex items-start gap-6 max-lg:gap-4">
+                                {typeof discountPercent === "number" ? (
+                                    <span className="mt-1 inline-flex h-[76px] min-w-[76px] items-center justify-center rounded-full bg-[#ff2e43] px-3 text-[30px] font-semibold leading-none text-white max-lg:h-[58px] max-lg:min-w-[58px] max-lg:text-[20px]">
+                                        -{discountPercent}%
+                                    </span>
+                                ) : null}
+
+                                <div>
+                                    {hasDiscount && oldPrice ? (
+                                        <div className="text-[24px] font-semibold text-[#9aa3b4] line-through max-lg:text-[22px]">
+                                            Qiymət: {oldPrice.toFixed(2)}₼
+                                        </div>
+                                    ) : null}
+                                    <div className="text-[52px] leading-none font-bold text-[#ff0000] max-lg:text-[42px]">
+                                        {currentPrice.toFixed(2)}₼
+                                    </div>
                                 </div>
+                            </div>
+
+                            {isDiscountSource ? (
+                                <ProductDetailActions
+                                    productVariationId={productVariationId}
+                                    stock={active.stock}
+                                />
                             ) : null}
 
-                            {navbarPhone ? (
+                            {!isDiscountSource && navbarPhone ? (
                                 <div className="mt-5 flex items-center gap-2 text-[27px] font-semibold text-[#2a2a2d] max-lg:text-[23px]">
                                     <i className="fa-solid fa-phone text-[15px]" aria-hidden="true" />
                                     {navbarPhone}
@@ -561,7 +699,7 @@ export default async function GridDetailPage({
                                 </div>
                             ) : null}
 
-                            {labels.length > 0 || typeof discountPercent === "number" ? (
+                            {labels.length > 0 ? (
                                 <div className="mt-4 flex flex-wrap items-center gap-2">
                                     {labels.map((label) => {
                                         const text = String(label?.name ?? "").trim();
@@ -578,43 +716,17 @@ export default async function GridDetailPage({
                                             </span>
                                         );
                                     })}
-                                    {typeof discountPercent === "number" ? (
-                                        <span className="inline-flex items-center rounded-full bg-[#ff2e43] px-3 py-1 text-[12px] font-semibold text-white">
-                                            -{discountPercent}%
-                                        </span>
-                                    ) : null}
                                 </div>
                             ) : null}
 
                         </div>
                     </section>
 
-                    <section className="mt-10">
-                        <div className="flex items-end gap-10 border-b border-[#dce3ef]">
-                            <span className="-mb-px border-b border-[#2454e7] pb-2 text-[30px] font-bold leading-none text-[#2454e7] max-lg:text-[20px]">
-                                Məhsul haqqında
-                            </span>
-                            <span className="pb-2 text-[30px] font-bold leading-none text-[#8b95a8] max-lg:text-[20px]">Xüsusiyyətlər</span>
-                            <span className="pb-2 text-[30px] font-bold leading-none text-[#8b95a8] max-lg:text-[20px]">Şərhlər (0)</span>
-                        </div>
-
-                        <div className="mt-4 text-[14px] leading-[1.42857143] text-[#1b202b] max-lg:text-[14px] [&_p]:text-[14px] [&_p]:font-normal [&_p]:text-[#1b202b] [&_span]:text-[14px] [&_span]:font-normal [&_span]:text-[#1b202b] [&_b]:text-[14px] [&_b]:font-normal [&_b]:text-[#1b202b] [&_strong]:text-[14px] [&_strong]:font-normal [&_strong]:text-[#1b202b]">
-                            {product?.description ? (
-                                <div dangerouslySetInnerHTML={{ __html: product.description }} />
-                            ) : (
-                                <div className="min-h-[24px]" />
-                            )}
-                        </div>
-
-                        <div className="mt-6" />
-                    </section>
+                    <ProductDetailTabs descriptionHtml={product?.description ?? null} allSpecRows={allSpecRows} commentsCount={0} />
 
                     {related.length > 0 ? (
                         <section className="mt-10">
-                            <h2 className="text-[20px] font-bold text-[#111318]">Oxşar məhsullar</h2>
-                            <div className="mt-4">
-                                <ProductStrip items={related as any} layout="grid" gridClassName="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4" />
-                            </div>
+                            <ProductStrip items={related as any} variant="latest" title="Oxşar məhsullar" layout="carousel" cardsTopSpacingClassName="py-16" />
                         </section>
                     ) : null}
                 </main>

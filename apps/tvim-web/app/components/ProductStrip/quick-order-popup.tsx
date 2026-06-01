@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNotify } from "@repo/ui";
 import { submitPurchaseRequest } from "@/lib/purchase-request/client";
 
@@ -12,12 +12,98 @@ type QuickOrderPopupProps = {
     onClose: () => void;
 };
 
+const AZ_COUNTRY_CODE = "994";
+const AZ_LOCAL_PHONE_LENGTH = 9;
+
+const extractAzerbaijanLocalDigits = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+
+    if (digits.startsWith(AZ_COUNTRY_CODE)) {
+        return digits.slice(AZ_COUNTRY_CODE.length, AZ_COUNTRY_CODE.length + AZ_LOCAL_PHONE_LENGTH);
+    }
+
+    return digits.slice(0, AZ_LOCAL_PHONE_LENGTH);
+};
+
+const formatAzerbaijanPhone = (value: string) => {
+    const localDigits = extractAzerbaijanLocalDigits(value);
+    if (!localDigits) return "";
+
+    const part1 = localDigits.slice(0, 2);
+    const part2 = localDigits.slice(2, 5);
+    const part3 = localDigits.slice(5, 7);
+    const part4 = localDigits.slice(7, 9);
+
+    let formatted = "+994";
+
+    if (part1) {
+        formatted += ` (${part1}`;
+        if (part1.length === 2) {
+            formatted += ")";
+        }
+    }
+
+    if (part2) {
+        formatted += ` ${part2}`;
+    }
+
+    if (part3) {
+        formatted += ` ${part3}`;
+    }
+
+    if (part4) {
+        formatted += ` ${part4}`;
+    }
+
+    return formatted;
+};
+
+const countLocalDigitsBeforeCursor = (value: string, cursorPosition: number) => {
+    const limit = Math.max(0, Math.min(cursorPosition, value.length));
+    const leftPart = value.slice(0, limit);
+    return extractAzerbaijanLocalDigits(leftPart).length;
+};
+
+const getCursorPositionFromLocalDigits = (formatted: string, localDigitsCount: number) => {
+    if (!formatted) return 0;
+    if (localDigitsCount <= 0) {
+        return Math.min(formatted.length, 4);
+    }
+
+    let countryDigitsLeft = AZ_COUNTRY_CODE.length;
+    let seenLocalDigits = 0;
+
+    for (let i = 0; i < formatted.length; i += 1) {
+        const char = formatted[i] ?? "";
+        if (!/\d/.test(char)) continue;
+
+        if (countryDigitsLeft > 0) {
+            countryDigitsLeft -= 1;
+            continue;
+        }
+
+        seenLocalDigits += 1;
+        if (seenLocalDigits >= localDigitsCount) {
+            let nextCursor = i + 1;
+
+            while (nextCursor < formatted.length && /\D/.test(formatted[nextCursor] ?? "")) {
+                nextCursor += 1;
+            }
+
+            return nextCursor;
+        }
+    }
+
+    return formatted.length;
+};
+
 const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId, onClose }: QuickOrderPopupProps) => {
     const notify = useNotify();
     const [fullName, setFullName] = useState("");
-    const [phone, setPhone] = useState("+994 (__) ___-__-__");
+    const [phone, setPhone] = useState("");
     const [quantity, setQuantity] = useState("1");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const phoneInputRef = useRef<HTMLInputElement | null>(null);
 
     const normalizeAzerbaijanPhone = (value: string) => {
         const digits = value.replace(/\D/g, "");
@@ -40,7 +126,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
     useEffect(() => {
         if (!isOpen) {
             setFullName("");
-            setPhone("+994 (__) ___-__-__");
+            setPhone("");
             setQuantity("1");
             setIsSubmitting(false);
             return;
@@ -63,6 +149,59 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
     }
 
     const composedProduct = `${productTitle} ${productCode}`.trim();
+
+    const handlePhoneChange = (value: string, cursorPosition: number | null) => {
+        const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(value, cursorPosition ?? value.length);
+        const formattedPhone = formatAzerbaijanPhone(value);
+
+        setPhone(formattedPhone);
+
+        requestAnimationFrame(() => {
+            const input = phoneInputRef.current;
+            if (!input) return;
+
+            const nextCursor = getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor);
+            input.setSelectionRange(nextCursor, nextCursor);
+        });
+    };
+
+    const handlePhoneBackspace = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== "Backspace") return;
+
+        const input = event.currentTarget;
+        const selectionStart = input.selectionStart;
+        const selectionEnd = input.selectionEnd;
+
+        if (selectionStart === null || selectionEnd === null) return;
+        if (selectionStart !== selectionEnd) return;
+
+        const currentValue = phone;
+        if (!currentValue) return;
+
+        const localDigits = extractAzerbaijanLocalDigits(currentValue);
+        const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(currentValue, selectionStart);
+        const deleteLocalIndex = localDigitsBeforeCursor - 1;
+
+        if (deleteLocalIndex < 0) {
+            event.preventDefault();
+            return;
+        }
+
+        event.preventDefault();
+
+        const nextLocalDigits = localDigits.slice(0, deleteLocalIndex) + localDigits.slice(deleteLocalIndex + 1);
+        const nextFormattedPhone = formatAzerbaijanPhone(nextLocalDigits);
+
+        setPhone(nextFormattedPhone);
+
+        requestAnimationFrame(() => {
+            const target = phoneInputRef.current;
+            if (!target) return;
+
+            const nextCursor = getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex);
+            target.setSelectionRange(nextCursor, nextCursor);
+        });
+    };
 
     const handleSubmit = async () => {
         const cleanedName = fullName.trim();
@@ -140,9 +279,12 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                     <label className="block">
                         <span className="mb-1.5 block text-[16px] font-medium text-[#2b2f35]">Nömrəniz *</span>
                         <input
+                            ref={phoneInputRef}
                             type="tel"
                             value={phone}
-                            onChange={(event) => setPhone(event.target.value)}
+                            onChange={(event) => handlePhoneChange(event.target.value, event.target.selectionStart)}
+                            onKeyDown={handlePhoneBackspace}
+                            placeholder="+994 (__) ___ __ __"
                             className="h-[40px] w-full rounded-full border border-[#dddddd] bg-white px-4 text-[14px] text-[#20242b] outline-none"
                         />
                     </label>
