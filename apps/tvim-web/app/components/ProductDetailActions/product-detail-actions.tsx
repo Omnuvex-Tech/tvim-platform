@@ -9,11 +9,13 @@ import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 type ProductDetailActionsProps = {
     productVariationId: number | null;
     stock?: number | null;
+    variant?: "discount" | "order";
 };
 
 const ProductDetailActions = ({
     productVariationId,
     stock,
+    variant = "discount",
 }: ProductDetailActionsProps) => {
     const notify = useNotify();
     const { items } = useCart();
@@ -133,45 +135,65 @@ const ProductDetailActions = ({
     return (
         <div className="mt-14 max-lg:mt-8">
             <div className="flex flex-nowrap items-center gap-4 max-lg:flex-wrap max-lg:gap-3">
-                <div className="inline-flex h-[72px] min-w-[206px] items-center justify-between rounded-[22px] border border-[#dce3ef] bg-white px-5 max-lg:h-[56px] max-lg:min-w-[172px] max-lg:rounded-[16px]">
-                    <button
-                        type="button"
-                        onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                        className="inline-flex h-10 w-10 items-center justify-center text-[40px] font-light leading-none text-[#8a94a7] max-lg:text-[28px]"
-                        aria-label="Azalt"
-                    >
-                        -
-                    </button>
-                    <span className="min-w-[38px] text-center text-[36px] font-normal leading-none text-[#222733] max-lg:text-[28px]">{quantity}</span>
-                    <button
-                        type="button"
-                        onClick={() => setQuantity((prev) => prev + 1)}
-                        className="inline-flex h-10 w-10 items-center justify-center text-[40px] font-light leading-none text-[#8a94a7] max-lg:text-[28px]"
-                        aria-label="Artır"
-                    >
-                        +
-                    </button>
-                </div>
+                {variant === "discount" ? (
+                    <div className="grid h-[64px] min-w-[190px] grid-cols-[1fr_auto_1fr] items-center rounded-[20px] border border-[rgba(217,228,238,1)] bg-white px-[10px] py-[10px]">
+                        <button
+                            type="button"
+                            onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                            className="inline-flex h-10 w-10 items-center justify-center justify-self-center text-[40px] font-light leading-none text-[#8a94a7] max-lg:text-[28px]"
+                            aria-label="Azalt"
+                        >
+                            -
+                        </button>
+                        <span className="w-[72px] border-none text-center text-[20px] font-normal leading-none text-[#000]">{quantity}</span>
+                        <button
+                            type="button"
+                            onClick={() => setQuantity((prev) => prev + 1)}
+                            className="inline-flex h-10 w-10 items-center justify-center justify-self-center text-[40px] font-light leading-none text-[#8a94a7] max-lg:text-[28px]"
+                            aria-label="Artır"
+                        >
+                            +
+                        </button>
+                    </div>
+                ) : null}
 
                 <button
                     type="button"
-                    onClick={handleAddToCart}
-                    disabled={isAddingToCart || (typeof stock === "number" && stock <= 0)}
-                    className={`inline-flex h-[72px] min-w-[292px] items-center justify-center rounded-[22px] px-10 text-[1.1em] font-medium leading-none transition-colors max-lg:h-[56px] max-lg:min-w-[212px] max-lg:rounded-[16px] max-lg:px-8 ${
-                        inCart
-                            ? "bg-[#57bf67] text-white"
-                            : "bg-[rgba(0,61,255,1)] text-white hover:bg-[#0a33c7]"
+                    onClick={variant === "discount" ? handleAddToCart : undefined}
+                    disabled={variant === "discount" ? isAddingToCart || (typeof stock === "number" && stock <= 0) : false}
+                    className={`m-0 inline-flex h-[64px] min-w-0 items-center justify-center gap-[10px] rounded-[20px] px-[80px] py-[25px] text-[1.1em] font-medium leading-none transition-colors ${
+                        variant === "order"
+                            ? "bg-[#ffd400] text-[#111318]"
+                            : inCart
+                              ? "bg-[#57bf67] text-white"
+                              : "bg-[rgba(0,61,255,1)] text-white hover:bg-[#0a33c7]"
                     } ${(typeof stock === "number" && stock <= 0) || isAddingToCart ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                 >
-                    {inCart ? (
+                    {variant === "order" ? (
+                        <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+                            By order
+                        </span>
+                    ) : inCart ? (
                         <>
-                            <i className="fa-solid fa-check mr-3 text-[1.1em]" aria-hidden="true" />
-                            Səbətdə
+                            <i
+                                className="fa-solid fa-check text-[0.85em]"
+                                aria-hidden="true"
+                                style={{ fontFamily: "'Twemoji Country Flags', 'Font Awesome 5 Free', FontAwesome", fontWeight: 900 }}
+                            />
+                            <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+                                Səbətdə
+                            </span>
                         </>
                     ) : (
                         <>
-                            <i className="fa-solid fa-cart-shopping mr-3 text-[1.1em]" aria-hidden="true" />
-                            Səbətə at
+                            <i
+                                className="fa-solid fa-cart-shopping text-[0.85em]"
+                                aria-hidden="true"
+                                style={{ fontFamily: "'Twemoji Country Flags', 'Font Awesome 5 Free', FontAwesome", fontWeight: 900 }}
+                            />
+                            <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+                                Səbətə at
+                            </span>
                         </>
                     )}
                 </button>
@@ -180,28 +202,28 @@ const ProductDetailActions = ({
                     type="button"
                     onClick={handleFavoriteToggle}
                     disabled={!productVariationId || favoritePending}
-                    className={`inline-flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border transition-colors max-lg:h-[56px] max-lg:w-[56px] max-lg:rounded-[16px] ${
+                    className={`m-0 mt-[2px] inline-flex h-[64px] w-[64px] items-center justify-center rounded-[20px] border border-[rgba(217,228,238,1)] px-[10px] py-[20px] text-[24px] font-semibold transition-colors ${
                         isFavorite
                             ? "border-[#0f57d6] bg-[#0f57d6] text-white"
                             : "border-[#dce3ef] bg-white text-[#0f57d6] hover:bg-[#f4f7ff]"
                     } ${!productVariationId || favoritePending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                     aria-label="Seçilmişlər"
                 >
-                    <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[34px] max-lg:text-[24px]`} aria-hidden="true" />
+                    <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[18px] font-normal`} aria-hidden="true" />
                 </button>
 
                 <button
                     type="button"
                     onClick={handleCompareToggle}
                     disabled={!productVariationId || comparePending}
-                    className={`inline-flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border transition-colors max-lg:h-[56px] max-lg:w-[56px] max-lg:rounded-[16px] ${
+                    className={`m-0 mt-[2px] inline-flex h-[64px] w-[64px] items-center justify-center rounded-[20px] border border-[rgba(217,228,238,1)] px-[10px] py-[20px] text-[24px] font-semibold transition-colors ${
                         isCompared
                             ? "border-[#0f57d6] bg-[#0f57d6] text-white"
                             : "border-[#dce3ef] bg-white text-[#0f57d6] hover:bg-[#f4f7ff]"
                     } ${!productVariationId || comparePending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                     aria-label="Müqayisə"
                 >
-                    <i className="fa-solid fa-code-compare text-[34px] max-lg:text-[24px]" aria-hidden="true" />
+                    <i className="fa-solid fa-code-compare text-[18px] font-normal" aria-hidden="true" />
                 </button>
             </div>
         </div>

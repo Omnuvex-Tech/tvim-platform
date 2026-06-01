@@ -622,31 +622,57 @@ export default async function GridDetailPage({
                         </div>
 
                         <div className="w-full pt-2">
-                            <div className="flex items-start gap-6 max-lg:gap-4">
-                                {typeof discountPercent === "number" ? (
-                                    <span className="mt-1 inline-flex h-[76px] min-w-[76px] items-center justify-center rounded-full bg-[#ff2e43] px-3 text-[30px] font-semibold leading-none text-white max-lg:h-[58px] max-lg:min-w-[58px] max-lg:text-[20px]">
-                                        -{discountPercent}%
-                                    </span>
-                                ) : null}
+                            {isDiscountSource ? (
+                                <div className="flex items-start">
+                                    <div className="relative ml-2 -mt-3 max-lg:ml-1 max-lg:-mt-1">
+                                        {typeof discountPercent === "number" ? (
+                                            <span className="absolute top-[2.8rem] right-full mr-16 inline-flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#ff2e43] text-[18px] font-bold leading-none text-white max-lg:top-[2.1rem] max-lg:mr-8">
+                                                -{discountPercent}%
+                                            </span>
+                                        ) : null}
 
-                                <div>
+                                        {hasDiscount && oldPrice ? (
+                                            <div className="text-[1.05em] font-medium text-[#9aa3b4] line-through">
+                                                Qiymət: {oldPrice.toFixed(2)}₼
+                                            </div>
+                                        ) : null}
+                                        <div className="text-[35px] leading-none font-bold text-[#ff0000] max-lg:text-[35px]">
+                                            {currentPrice.toFixed(2)}₼
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
                                     {hasDiscount && oldPrice ? (
                                         <div className="text-[24px] font-semibold text-[#9aa3b4] line-through max-lg:text-[22px]">
                                             Qiymət: {oldPrice.toFixed(2)}₼
                                         </div>
                                     ) : null}
-                                    <div className="text-[52px] leading-none font-bold text-[#ff0000] max-lg:text-[42px]">
-                                        {currentPrice.toFixed(2)}₼
-                                    </div>
-                                </div>
-                            </div>
+                                    {hasDiscount && oldPrice ? (
+                                        <div className="text-[52px] leading-none font-bold text-[#ff0000] max-lg:text-[42px]">
+                                            {currentPrice.toFixed(2)}₼
+                                        </div>
+                                    ) : (
+                                        <div className="text-[1.8em] leading-none font-bold text-[#2a2a2d]">
+                                            Qiymət: {currentPrice.toFixed(2)}₼
+                                        </div>
+                                    )}
+                                </>
+                            )}
 
                             {isDiscountSource ? (
                                 <ProductDetailActions
                                     productVariationId={productVariationId}
                                     stock={active.stock}
+                                    variant="discount"
                                 />
-                            ) : null}
+                            ) : (
+                                <ProductDetailActions
+                                    productVariationId={productVariationId}
+                                    stock={active.stock}
+                                    variant="order"
+                                />
+                            )}
 
                             {!isDiscountSource && navbarPhone ? (
                                 <div className="mt-5 flex items-center gap-2 text-[27px] font-semibold text-[#2a2a2d] max-lg:text-[23px]">
