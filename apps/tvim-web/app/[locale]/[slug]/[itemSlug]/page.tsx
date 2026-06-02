@@ -28,6 +28,7 @@ import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
+import type { ProductComment } from "@/lib/product-comments/client";
 
 type GridItem = {
     id?: number | string;
@@ -161,6 +162,13 @@ type ProductDetailRelatedItem = {
     main_image?: string | null;
 };
 
+type ProductDetailComments = {
+    items?: unknown[];
+    pagination?: {
+        total?: number;
+    };
+};
+
 type ProductDetailData = {
     menu?: {
         id?: number;
@@ -198,6 +206,7 @@ type ProductDetailData = {
     variations?: ProductDetailVariation[];
     payment_methods?: ProductDetailPaymentMethod[];
     labels?: ProductDetailLabel[];
+    comments?: ProductDetailComments;
     related?: ProductDetailRelatedItem[];
 };
 
@@ -556,6 +565,32 @@ export default async function GridDetailPage({
             })
             .filter((entry): entry is { label: string; value: string } => Boolean(entry));
         const specRows = allSpecRows.slice(0, 3);
+        const detailCommentsCount =
+            typeof detail.comments?.pagination?.total === "number" && detail.comments.pagination.total >= 0
+                ? detail.comments.pagination.total
+                : Array.isArray(detail.comments?.items)
+                ? detail.comments.items.length
+                : 0;
+        const initialComments: ProductComment[] = [];
+        (Array.isArray(detail.comments?.items) ? detail.comments.items : []).forEach((entry, idx) => {
+            if (!entry || typeof entry !== "object") return;
+            const item = entry as Record<string, unknown>;
+
+            const comment = String(item.comment ?? item.message ?? item.text ?? "").trim();
+            if (!comment) return;
+
+            const ratingValue = Number(item.rating ?? item.rate ?? item.star ?? 0);
+            const rating = Number.isFinite(ratingValue) ? Math.max(0, Math.min(5, ratingValue)) : 0;
+
+            initialComments.push({
+                id: String(item.id ?? `${idx + 1}`),
+                author: String(item.fullname ?? item.customer_name ?? item.name ?? "İstifadəçi").trim() || "İstifadəçi",
+                comment,
+                rating,
+                status: String(item.status ?? "").trim() || undefined,
+                createdAt: String(item.created_at ?? "").trim() || undefined,
+            });
+        });
 
         const breadcrumbItems = [
             { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
@@ -665,12 +700,16 @@ export default async function GridDetailPage({
                                     productVariationId={productVariationId}
                                     stock={active.stock}
                                     variant="discount"
+                                    productTitle={resolvedName}
+                                    productCode={productCode}
                                 />
                             ) : (
                                 <ProductDetailActions
                                     productVariationId={productVariationId}
                                     stock={active.stock}
                                     variant="order"
+                                    productTitle={resolvedName}
+                                    productCode={productCode}
                                 />
                             )}
 
@@ -748,7 +787,13 @@ export default async function GridDetailPage({
                         </div>
                     </section>
 
-                    <ProductDetailTabs descriptionHtml={product?.description ?? null} allSpecRows={allSpecRows} commentsCount={0} />
+                    <ProductDetailTabs
+                        descriptionHtml={product?.description ?? null}
+                        allSpecRows={allSpecRows}
+                        commentsCount={detailCommentsCount}
+                        productVariationId={productVariationId}
+                        comments={initialComments}
+                    />
 
                     {related.length > 0 ? (
                         <section className="mt-10">

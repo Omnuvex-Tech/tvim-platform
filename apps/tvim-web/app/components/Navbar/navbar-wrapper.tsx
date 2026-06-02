@@ -402,20 +402,30 @@ const NavbarWrapper = ({
                 .filter((item) => item.name);
         };
 
+        const resolveSectionName = (key: "brands" | "categories" | "products", rawName: unknown) => {
+            const fallbackMap = {
+                brands: "Brendlər",
+                categories: "Kateqoriyalar",
+                products: "Məhsullar",
+            } as const;
+
+            return fallbackMap[key];
+        };
+
         const sections: NavbarSearchSection[] = [
             {
                 key: "brands",
-                name: String(payload.brands?.name ?? "Brendlər"),
+                name: resolveSectionName("brands", payload.brands?.name),
                 items: mapSectionItems(payload.brands?.items, "brand"),
             },
             {
                 key: "categories",
-                name: String(payload.categories?.name ?? "Kateqoriyalar"),
+                name: resolveSectionName("categories", payload.categories?.name),
                 items: mapSectionItems(payload.categories?.items, "category"),
             },
             {
                 key: "products",
-                name: String(payload.products?.name ?? "Məhsullar"),
+                name: resolveSectionName("products", payload.products?.name),
                 items: mapSectionItems(payload.products?.items, "product"),
             },
         ];

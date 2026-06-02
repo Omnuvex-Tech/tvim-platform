@@ -526,6 +526,8 @@ function NavbarSearch({
         const timer = window.setTimeout(async () => {
             setIsLoading(true);
             setError(null);
+            setIsOpen(true);
+            setResults([]);
 
             try {
                 const mapped = onSearchProducts
@@ -616,7 +618,13 @@ function NavbarSearch({
                 <div className="absolute top-[calc(100%+8px)] left-0 right-0 z-[1200] overflow-hidden rounded-[18px] border border-[#dfe5ef] bg-white shadow-[0_16px_34px_rgba(17,24,39,0.16)]">
                     <div className="max-h-[420px] overflow-y-auto">
                         {isLoading ? (
-                            <div className="px-4 py-4 text-[13px] text-[#7b8494]">Axtarılır...</div>
+                            <div className="flex min-h-[78px] items-center justify-center px-4 py-5">
+                                <span
+                                    className="inline-block h-[21px] w-[21px] animate-spin rounded-full border-[3.5px] border-[#f6c9bb] border-t-[#f48368]"
+                                    aria-hidden="true"
+                                />
+                                <span className="sr-only">Axtarılır...</span>
+                            </div>
                         ) : error ? (
                             <div className="px-4 py-4 text-[13px] text-[#d14343]">{error}</div>
                         ) : totalResults === 0 ? (

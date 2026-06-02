@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { Hash, Package, Phone, UserRound } from "lucide-react";
 import { useNotify } from "@repo/ui";
 import { submitPurchaseRequest } from "@/lib/purchase-request/client";
 
@@ -150,6 +151,29 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
 
     const composedProduct = `${productTitle} ${productCode}`.trim();
 
+    const handleQuantityChange = (value: string) => {
+        const onlyDigits = value.replace(/\D/g, "");
+
+        if (!onlyDigits) {
+            setQuantity("");
+            return;
+        }
+
+        const normalized = String(Number.parseInt(onlyDigits, 10));
+        setQuantity(normalized);
+    };
+
+    const handleQuantityBlur = () => {
+        const parsed = Number.parseInt(quantity, 10);
+
+        if (!Number.isFinite(parsed) || parsed < 1) {
+            setQuantity("1");
+            return;
+        }
+
+        setQuantity(String(parsed));
+    };
+
     const handlePhoneChange = (value: string, cursorPosition: number | null) => {
         const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(value, cursorPosition ?? value.length);
         const formattedPhone = formatAzerbaijanPhone(value);
@@ -264,50 +288,74 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                     </button>
                 </div>
 
-                <div className="space-y-4 px-4 pt-3 pb-4">
-                    <label className="block">
-                        <span className="mb-1.5 block text-[16px] font-medium text-[#2b2f35]">Ad və soyadınız *</span>
+                <div className="space-y-4 px-4 pt-4 pb-4">
+                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                        <UserRound className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                         <input
                             type="text"
                             value={fullName}
                             onChange={(event) => setFullName(event.target.value)}
-                            placeholder="Ad və soyadınız *"
-                            className="h-[40px] w-full rounded-full border border-[#dddddd] bg-white px-4 text-[14px] text-[#20242b] outline-none placeholder:text-[#b4b8c0]"
+                            placeholder=""
+                            aria-label="Ad və soyadınız"
+                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                         />
+                        <span
+                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${fullName ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                        >
+                            Ad və soyadınız *
+                        </span>
                     </label>
 
-                    <label className="block">
-                        <span className="mb-1.5 block text-[16px] font-medium text-[#2b2f35]">Nömrəniz *</span>
+                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                        <Phone className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                         <input
                             ref={phoneInputRef}
                             type="tel"
                             value={phone}
                             onChange={(event) => handlePhoneChange(event.target.value, event.target.selectionStart)}
                             onKeyDown={handlePhoneBackspace}
-                            placeholder="+994 (__) ___ __ __"
-                            className="h-[40px] w-full rounded-full border border-[#dddddd] bg-white px-4 text-[14px] text-[#20242b] outline-none"
+                            placeholder=""
+                            aria-label="Telefon"
+                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                         />
+                        <span
+                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${phone ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                        >
+                            Telefon *
+                        </span>
                     </label>
 
-                    <label className="block">
-                        <span className="mb-1.5 block text-[16px] font-medium text-[#2b2f35]">Məhsul</span>
+                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6] bg-[#f3f3f3]">
+                        <Package className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                         <input
                             type="text"
                             value={composedProduct}
                             readOnly
-                            className="h-[40px] w-full rounded-full border border-[#dddddd] bg-[#f3f3f3] px-4 text-[14px] text-[#6a707a] outline-none"
+                            aria-label="Məhsul"
+                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#6a707a] outline-none"
                         />
+                        <span className="pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] opacity-0">
+                            Məhsul
+                        </span>
                     </label>
 
-                    <label className="block">
-                        <span className="mb-1.5 block text-[16px] font-medium text-[#2b2f35]">Miqdar</span>
+                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                        <Hash className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                         <input
-                            type="number"
-                            min={1}
+                            type="text"
+                            inputMode="numeric"
                             value={quantity}
-                            onChange={(event) => setQuantity(event.target.value)}
-                            className="h-[40px] w-full rounded-full border border-[#dddddd] bg-white px-4 text-[14px] text-[#20242b] outline-none"
+                            onChange={(event) => handleQuantityChange(event.target.value)}
+                            onBlur={handleQuantityBlur}
+                            placeholder=""
+                            aria-label="Miqdar"
+                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                         />
+                        <span
+                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${quantity ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                        >
+                            Miqdar
+                        </span>
                     </label>
 
                     <button

@@ -5,17 +5,22 @@ import { useNotify } from "@repo/ui";
 import { addCartItem, hydrateCart, useCart } from "@/lib/cart/client";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
+import { QuickOrderPopup } from "../ProductStrip/quick-order-popup";
 
 type ProductDetailActionsProps = {
     productVariationId: number | null;
     stock?: number | null;
     variant?: "discount" | "order";
+    productTitle?: string;
+    productCode?: string;
 };
 
 const ProductDetailActions = ({
     productVariationId,
     stock,
     variant = "discount",
+    productTitle = "",
+    productCode = "",
 }: ProductDetailActionsProps) => {
     const notify = useNotify();
     const { items } = useCart();
@@ -26,6 +31,7 @@ const ProductDetailActions = ({
     const [isCompared, setIsCompared] = useState(false);
     const [favoritePending, setFavoritePending] = useState(false);
     const [comparePending, setComparePending] = useState(false);
+    const [isQuickOrderOpen, setIsQuickOrderOpen] = useState(false);
 
     const inCart = useMemo(() => {
         if (!productVariationId) return false;
@@ -159,7 +165,7 @@ const ProductDetailActions = ({
 
                 <button
                     type="button"
-                    onClick={variant === "discount" ? handleAddToCart : undefined}
+                    onClick={variant === "discount" ? handleAddToCart : () => setIsQuickOrderOpen(true)}
                     disabled={variant === "discount" ? isAddingToCart || (typeof stock === "number" && stock <= 0) : false}
                     className={`m-0 inline-flex h-[64px] min-w-0 items-center justify-center gap-[10px] rounded-[20px] px-[80px] py-[25px] text-[1.1em] font-medium leading-none transition-colors ${
                         variant === "order"
@@ -167,7 +173,7 @@ const ProductDetailActions = ({
                             : inCart
                               ? "bg-[#57bf67] text-white"
                               : "bg-[rgba(0,61,255,1)] text-white hover:bg-[#0a33c7]"
-                    } ${(typeof stock === "number" && stock <= 0) || isAddingToCart ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                    } ${variant === "discount" && ((typeof stock === "number" && stock <= 0) || isAddingToCart) ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                 >
                     {variant === "order" ? (
                         <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
@@ -226,6 +232,14 @@ const ProductDetailActions = ({
                     <i className="fa-solid fa-code-compare text-[18px] font-normal" aria-hidden="true" />
                 </button>
             </div>
+
+            <QuickOrderPopup
+                isOpen={isQuickOrderOpen}
+                productTitle={productTitle}
+                productCode={productCode}
+                productVariationId={productVariationId}
+                onClose={() => setIsQuickOrderOpen(false)}
+            />
         </div>
     );
 };

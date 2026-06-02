@@ -50,6 +50,11 @@ export const endpoints = {
         purchaseRequests: "/product/purchase-requests",
     },
 
+    productComments: {
+        list: "/product/comments",
+        create: "/product/comments",
+    },
+
     favorites: {
         list: "/favorites",
         toggle: "/favorites/toggle",
