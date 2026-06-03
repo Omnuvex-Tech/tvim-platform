@@ -407,9 +407,12 @@ export default async function GridDetailPage({
         </div>
     ) : undefined;
 
-    const navbarPhone = navbarPhones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
+    const navbarPhone = (
+        navbarPhones.find((phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994"))?.number ??
+        navbarPhones.find((phone) => phone.number.trim().startsWith("+994"))?.number ??
+        navbarPhones[0]?.number ??
+        "+994 (50) 828-08-88"
+    ).trim();
 
     if (isProductSlug(slug)) {
         const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale, authToken);
@@ -717,11 +720,16 @@ export default async function GridDetailPage({
                                 />
                             )}
 
-                            {!isDiscountSource && navbarPhone ? (
-                                <div className="mt-5 flex items-center gap-2 text-[27px] font-semibold text-[#2a2a2d] max-lg:text-[23px]">
-                                    <i className="fa-solid fa-phone text-[15px]" aria-hidden="true" />
-                                    {navbarPhone}
-                                </div>
+                            {navbarPhone ? (
+                                <a
+                                    href={`tel:${navbarPhone.replace(/\s|\(|\)|-/g, "")}`}
+                                    className={`flex w-fit cursor-pointer items-center gap-2 font-[family-name:var(--font-inter)] text-[17px] leading-none font-bold text-[#12151d] ${
+                                        isDiscountSource ? "mt-5" : "mt-6"
+                                    }`}
+                                >
+                                    <i className="fas fa-phone-volume size-[18px] text-[#12151D]" aria-hidden="true" />
+                                    <span>{navbarPhone}</span>
+                                </a>
                             ) : null}
 
                             <div className="mt-6 h-px w-full bg-[#dce3ef]" />
