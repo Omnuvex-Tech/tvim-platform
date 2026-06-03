@@ -390,20 +390,24 @@ export default async function GridDetailPage({
 
     const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
     const projectSettings = settingsResponse.success ? settingsResponse.data?.data : undefined;
+    const generalSettings = projectSettings?.general;
+    const navbarLogoSrc = generalSettings?.images?.logo ?? null;
+    const navbarSiteTitle = String(generalSettings?.site_title ?? "").trim();
+    const navbarPhones = Array.isArray(generalSettings?.phones) ? generalSettings.phones : [];
 
-    const navbarLogo = projectSettings?.general.images.logo ? (
+    const navbarLogo = navbarLogoSrc ? (
         <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
+            src={navbarLogoSrc}
+            alt={navbarSiteTitle}
             className="h-10 w-auto object-contain sm:h-12 lg:h-14"
         />
-    ) : projectSettings?.general.site_title ? (
+    ) : navbarSiteTitle ? (
         <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
+            {navbarSiteTitle}
         </div>
     ) : undefined;
 
-    const navbarPhone = projectSettings?.general.phones.find(
+    const navbarPhone = navbarPhones.find(
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
