@@ -115,6 +115,30 @@ const ProductDetailTabs = ({
     const recaptchaRef = useRef<HTMLDivElement | null>(null);
     const recaptchaWidgetIdRef = useRef<number | null>(null);
 
+    // --- Sliding indicator ---
+    const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+    const [activeIndicator, setActiveIndicator] = useState({ left: 0, width: 0 });
+    const [hoverIndicator, setHoverIndicator] = useState({ left: 0, width: 0 });
+    const [hoveredTab, setHoveredTab] = useState<TabKey | null>(null);
+
+    useEffect(() => {
+        const container = tabsContainerRef.current;
+        if (!container) return;
+        const btn = container.querySelector<HTMLButtonElement>(`[data-tab="${activeTab}"]`);
+        if (!btn) return;
+        setActiveIndicator({ left: btn.offsetLeft, width: btn.offsetWidth });
+    }, [activeTab]);
+
+    const handleTabMouseEnter = (tab: TabKey) => {
+        const container = tabsContainerRef.current;
+        if (!container) return;
+        const btn = container.querySelector<HTMLButtonElement>(`[data-tab="${tab}"]`);
+        if (!btn) return;
+        setHoverIndicator({ left: btn.offsetLeft, width: btn.offsetWidth });
+        setHoveredTab(tab);
+    };
+    // -------------------------
+
     const hasDescription = useMemo(() => Boolean(String(descriptionHtml ?? "").trim()), [descriptionHtml]);
     const hasFeatures = allSpecRows.length > 0;
     const keywordItems = useMemo(() => metaKeywords.map((entry) => String(entry ?? "").trim()).filter(Boolean), [metaKeywords]);
@@ -331,22 +355,62 @@ const ProductDetailTabs = ({
                 onError={() => setCaptchaError("reCAPTCHA skripti yüklənmədi.")}
             />
 
-            <div className="flex items-end gap-10 border-b border-[#dce3ef]">
+            {/* Tab header with sliding indicator */}
+            <div
+                ref={tabsContainerRef}
+                id="product-features"
+                className="relative flex items-end gap-10 border-b border-[#dce3ef]"
+            >
+                {/* Active tab indicator - always visible */}
+                <div
+                    className="absolute bottom-0 h-[1px] transition-all duration-300 ease-in-out"
+                    style={{
+                        left: activeIndicator.left,
+                        width: activeIndicator.width,
+                        backgroundColor: "#2454e7",
+                    }}
+                />
+                {/* Hover indicator - scales in from left when hovering a non-active tab */}
+                {hoveredTab && hoveredTab !== activeTab ? (
+                    <div
+                        className="absolute bottom-0 h-[1px] origin-left"
+                        style={{
+                            left: hoverIndicator.left,
+                            width: hoverIndicator.width,
+                            backgroundColor: "#8b95a8",
+                            animation: "scaleInX 0.25s ease-out forwards",
+                        }}
+                    />
+                ) : null}
+                <style>{`
+                    @keyframes scaleInX {
+                        from { transform: scaleX(0); }
+                        to { transform: scaleX(1); }
+                    }
+                `}</style>
+
                 <button
                     type="button"
+                    data-tab="about"
                     onClick={() => setActiveTab("about")}
-                    className={`-mb-px cursor-pointer border-b pb-2 text-[24px] font-bold leading-none transition-colors max-lg:text-[24px] ${
-                        activeTab === "about" ? "border-[#2454e7] text-[#2454e7]" : "border-transparent text-[#8b95a8]"
+                    onMouseEnter={() => handleTabMouseEnter("about")}
+                    onMouseLeave={() => setHoveredTab(null)}
+                    className={`-mb-px cursor-pointer pb-2 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:text-[24px] ${
+                        activeTab === "about" ? "text-[#2454e7]" : "text-[#8b95a8]"
                     }`}
                     style={{ fontFamily: "var(--font-inter), sans-serif" }}
                 >
                     Məhsul haqqında
                 </button>
                 <button
+                    id="tab-features"
                     type="button"
+                    data-tab="features"
                     onClick={() => setActiveTab("features")}
-                    className={`-mb-px cursor-pointer border-b pb-2 text-[24px] font-bold leading-none transition-colors max-lg:text-[24px] ${
-                        activeTab === "features" ? "border-[#2454e7] text-[#2454e7]" : "border-transparent text-[#8b95a8]"
+                    onMouseEnter={() => handleTabMouseEnter("features")}
+                    onMouseLeave={() => setHoveredTab(null)}
+                    className={`-mb-px cursor-pointer pb-2 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:text-[24px] ${
+                        activeTab === "features" ? "text-[#2454e7]" : "text-[#8b95a8]"
                     }`}
                     style={{ fontFamily: "var(--font-inter), sans-serif" }}
                 >
@@ -354,9 +418,12 @@ const ProductDetailTabs = ({
                 </button>
                 <button
                     type="button"
+                    data-tab="comments"
                     onClick={() => setActiveTab("comments")}
-                    className={`-mb-px cursor-pointer border-b pb-2 text-[24px] font-bold leading-none transition-colors max-lg:text-[24px] ${
-                        activeTab === "comments" ? "border-[#2454e7] text-[#2454e7]" : "border-transparent text-[#8b95a8]"
+                    onMouseEnter={() => handleTabMouseEnter("comments")}
+                    onMouseLeave={() => setHoveredTab(null)}
+                    className={`-mb-px cursor-pointer pb-2 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:text-[24px] ${
+                        activeTab === "comments" ? "text-[#2454e7]" : "text-[#8b95a8]"
                     }`}
                     style={{ fontFamily: "var(--font-inter), sans-serif" }}
                 >

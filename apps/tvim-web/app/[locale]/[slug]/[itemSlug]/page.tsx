@@ -29,6 +29,7 @@ import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
 import type { ProductComment } from "@/lib/product-comments/client";
+import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-link";
 
 type GridItem = {
     id?: number | string;
@@ -738,16 +739,16 @@ export default async function GridDetailPage({
                                 <span className="text-[#77839b]">Məhsul kodu: {productCode || "-"}</span>
                                 <span className="font-semibold text-[#ffcc00]">{stockText}</span>
                             </div>
-
-                            <div className="mt-5 space-y-2 text-[16px]">
-                                {specRows.map((row) => (
-                                    <div key={row.label} className="flex items-center gap-2">
-                                        <span className="min-w-[92px] text-[#2a2a2d]">{row.label}:</span>
-                                        <span className="h-px flex-1 bg-[#dce3ef]" aria-hidden="true" />
-                                        <span className="text-[#2a2a2d]">{row.value}</span>
-                                    </div>
-                                ))}
-                            </div>
+<div className="mt-5 space-y-2 text-[16px]">
+    {specRows.map((row, idx) => (
+        <div key={row.label} className="flex items-center gap-2">
+            <span className="min-w-[92px] text-[#2a2a2d]">{row.label}:</span>
+            <span className="h-px flex-1 bg-[#dce3ef]" aria-hidden="true" />
+            <span className={idx === 0 ? "text-[#003dff]" : "text-[#2a2a2d]"}>{row.value}</span>
+        </div>
+    ))}
+    {allSpecRows.length > 0 ? <ProductSpecLink /> : null}
+</div>
 
                             {variations.length > 1 ? (
                                 <div className="mt-6">
