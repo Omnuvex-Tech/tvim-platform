@@ -3,13 +3,11 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { FooterMenusData, Language, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
-import { Breadcrumb } from "@repo/ui";
-import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
+import { ChevronUp, Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
 type NavItem = {
@@ -24,8 +22,68 @@ type OrderStatus = {
 };
 
 type OrderTotals = {
+    subtotal?: number | string | null;
+    discount_hour_discount?: number | string | null;
+    promo_discount?: number | string | null;
+    delivery_price?: number | string | null;
     total?: number | string | null;
+    initial_payment?: number | string | null;
+    remaining_installment_total?: number | string | null;
+    monthly_amount?: number | string | null;
     payable_total?: number | string | null;
+};
+
+type OrderItem = {
+    id?: number;
+    product_name?: string | null;
+    variation_name?: string | null;
+    sku?: string | null;
+    image?: string | null;
+    qty?: number | null;
+    original_unit_price?: number | string | null;
+    unit_price?: number | string | null;
+    line_total?: number | string | null;
+    line_subtotal?: number | string | null;
+    line_discount_hour?: number | string | null;
+};
+
+type OrderDetail = {
+    id?: number;
+    uuid?: string | null;
+    number?: string | null;
+    status?: OrderStatus | null;
+    payment_status?: OrderStatus | null;
+    currency?: string | null;
+    totals?: OrderTotals | null;
+    placed_at?: string | null;
+    items?: OrderItem[] | null;
+    payment_method?: {
+        name?: string | null;
+        description?: string | null;
+        icon_path?: string | null;
+        selected_installment?: {
+            month?: number | null;
+            percent?: number | string | null;
+            initial_payment?: number | string | null;
+            monthly_amount?: number | string | null;
+            remaining_total_with_interest?: number | string | null;
+        } | null;
+    } | null;
+    payments?: Array<{
+        id?: number;
+        method_code?: string | null;
+        status?: OrderStatus | null;
+        amount?: number | string | null;
+        currency?: string | null;
+        paid_at?: string | null;
+        provider_reference?: string | null;
+        provider_payment_id?: string | null;
+        payment_installment?: {
+            month?: number | null;
+            initial_payment?: number | string | null;
+            monthly_amount?: number | string | null;
+        } | null;
+    }> | null;
 };
 
 type Order = {
@@ -37,23 +95,16 @@ type Order = {
     currency?: string | null;
     totals?: OrderTotals | null;
     placed_at?: string | null;
+    items?: OrderItem[] | null;
+    payment_method?: OrderDetail["payment_method"] | null;
+    payments?: OrderDetail["payments"] | null;
 };
 
-const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
-    <i
-        className={`account-index__icon fa fa-reply ${className ?? ""}`}
-        style={{
-            MozOsxFontSmoothing: "grayscale",
-            WebkitFontSmoothing: "antialiased",
-            display: "inline-block",
-            fontStyle: "normal",
-            fontVariant: "normal",
-            textRendering: "auto",
-            lineHeight: 1,
-        }}
-        aria-hidden="true"
-    />
-);
+type OrdersApiPayload = {
+    data?: Order[] | { items?: Order[]; data?: Order[]; orders?: Order[] } | null;
+    items?: Order[] | null;
+    orders?: Order[] | null;
+};
 
 const navItems: NavItem[] = [
     { label: "Hesabım", href: "/account", icon: UserRound },
@@ -62,9 +113,54 @@ const navItems: NavItem[] = [
     { label: "Şifrə", href: "/account/password", icon: Lock },
     { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
     { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
-    { label: "Geri qaytarma", href: "/account/returns", icon: FontAwesomeReplyIcon },
+    {
+        label: "Geri qaytarma",
+        href: "/account/returns",
+        icon: ({ className }: { className?: string }) => (
+            <i
+                className={`account-index__icon fa fa-reply ${className ?? ""}`}
+                style={{
+                    MozOsxFontSmoothing: "grayscale",
+                    WebkitFontSmoothing: "antialiased",
+                    display: "inline-block",
+                    fontStyle: "normal",
+                    fontVariant: "normal",
+                    textRendering: "auto",
+                    lineHeight: 1,
+                }}
+                aria-hidden="true"
+            />
+        ),
+    },
     { label: "Çıxış", href: "/logout", icon: LogOut },
 ];
+
+const getStatusTabs = (locale: "az" | "ru" | "en") => {
+    if (locale === "en") {
+        return [
+            { label: "All", value: "" },
+            { label: "Processing", value: "processing" },
+            { label: "Delivered", value: "completed" },
+            { label: "Cancelled", value: "canceled" },
+        ];
+    }
+
+    if (locale === "ru") {
+        return [
+            { label: "Все", value: "" },
+            { label: "В процессе", value: "processing" },
+            { label: "Доставлено", value: "completed" },
+            { label: "Отменено", value: "canceled" },
+        ];
+    }
+
+    return [
+        { label: "Hamısı", value: "" },
+        { label: "Prosessdə", value: "processing" },
+        { label: "Təhvil verildi", value: "completed" },
+        { label: "Ləğv edildi", value: "canceled" },
+    ];
+};
 
 const extractHeaderItems = (rawHeaderData: unknown) => {
     if (Array.isArray(rawHeaderData)) return rawHeaderData;
@@ -80,16 +176,45 @@ const extractHeaderItems = (rawHeaderData: unknown) => {
     return [];
 };
 
-const formatAmount = (value: unknown) => {
-    const n = typeof value === "number" ? value : Number(value);
-    if (!Number.isFinite(n)) return "";
-    return n.toFixed(2).replace(/\.00$/, "");
+const extractOrders = (payload: unknown): Order[] => {
+    if (Array.isArray(payload)) return payload as Order[];
+    if (!payload || typeof payload !== "object") return [];
+
+    const source = payload as OrdersApiPayload;
+    if (Array.isArray(source.data)) return source.data;
+    if (Array.isArray(source.items)) return source.items;
+    if (Array.isArray(source.orders)) return source.orders;
+
+    if (source.data && typeof source.data === "object") {
+        const nested = source.data;
+        if (Array.isArray(nested.data)) return nested.data;
+        if (Array.isArray(nested.items)) return nested.items;
+        if (Array.isArray(nested.orders)) return nested.orders;
+    }
+
+    return [];
 };
 
-const formatPlacedAt = (raw: string) => {
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return raw;
-    return d.toLocaleString("az-AZ", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const formatAmount = (value: unknown) => {
+    const numeric = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(numeric)) return "";
+    return numeric.toFixed(2).replace(/\.00$/, "");
+};
+
+const formatDate = (value?: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("az-AZ", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+};
+
+const normalizeLocale = (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    return (["az", "ru", "en"].includes(normalized) ? normalized : "az") as "az" | "ru" | "en";
 };
 
 export default async function OrdersPage({
@@ -100,11 +225,7 @@ export default async function OrdersPage({
     searchParams: Promise<{ per_page?: string; page?: string; status?: string; q?: string }>;
 }) {
     const { locale: routeLocale } = await params;
-    const locale = routeLocale.trim().toLowerCase();
-    const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
-    const homePageMeta = config.pages.home[normalizedLocale];
-    const accountPageMeta = config.pages.account[normalizedLocale];
-    const orderHistoryPageMeta = config.pages.orderHistory[normalizedLocale];
+    const locale = normalizeLocale(routeLocale);
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
@@ -154,7 +275,7 @@ export default async function OrdersPage({
             params: { in_header: "1" },
             locale,
         }),
-        api.get<Order[]>("/customer/orders", {
+        api.get<OrdersApiPayload>("/customer/orders", {
             locale,
             cache: "no-store",
             headers: { Authorization: `Bearer ${authToken}` },
@@ -162,12 +283,28 @@ export default async function OrdersPage({
         }),
     ]);
 
+    const orders = ordersResponse.success ? extractOrders(ordersResponse.data) : [];
+
+    const detailEntries = await Promise.all(
+        orders.map(async (order) => {
+            const lookupId = order.uuid || String(order.id);
+            const response = await api.get<OrderDetail>(`/order/orders/${encodeURIComponent(lookupId)}`, {
+                locale,
+                cache: "no-store",
+                headers: { Authorization: `Bearer ${authToken}` },
+            });
+            return [lookupId, response.success ? response.data : null] as const;
+        })
+    );
+
+    const detailMap = new Map<string, OrderDetail>();
+    detailEntries.forEach(([key, value]) => {
+        if (value) detailMap.set(key, value);
+    });
+
     const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
     const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems
-        .filter((item: any) => !item || !item.parent_id || Number(item.parent_id) === 0)
-        .filter(Boolean);
-
+    const headerTopLevel = headerItems.filter((item: any) => !item || !item.parent_id || Number(item.parent_id) === 0).filter(Boolean);
     const headerMenuItems = headerTopLevel
         .filter((item: any) => (((item.type ?? "") + "").toLowerCase() !== "categories"))
         .map((item: any) => {
@@ -189,9 +326,7 @@ export default async function OrdersPage({
         }
 
         const filtered = items.filter(
-            (item) =>
-                !!item &&
-                (item.in_header === true || item.in_header === 1 || item.in_header === "1" || item.in_header === "true")
+            (item) => !!item && (item.in_header === true || item.in_header === 1 || item.in_header === "1" || item.in_header === "true")
         );
         headerCategoryItems = filtered.length > 0 ? filtered : items;
     } else {
@@ -212,14 +347,17 @@ export default async function OrdersPage({
             className="h-10 w-auto object-contain sm:h-12 lg:h-14"
         />
     ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
+        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">{projectSettings.general.site_title}</div>
     ) : undefined;
 
     const navbarPhone = projectSettings?.general.phones.find((phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994"))?.number;
-
-    const orders = ordersResponse.success && Array.isArray(ordersResponse.data) ? ordersResponse.data : [];
+    const tabs = [
+        { label: "Hamısı", value: "" },
+        { label: "Prosessdə", value: "processing" },
+        { label: "Təhvil verildi", value: "completed" },
+        { label: "Ləğv edildi", value: "canceled" },
+    ];
+    const ordersPageUrl = `/${locale}/account/orders`;
     const activeHref = "/account/orders";
 
     return (
@@ -233,18 +371,6 @@ export default async function OrdersPage({
                 initialCatalogItems={headerCategoryItems}
             />
 
-            <Breadcrumb
-                items={[
-                    { label: homePageMeta.name, href: homePageMeta.url },
-                    { label: accountPageMeta.name, href: accountPageMeta.url },
-                    { label: orderHistoryPageMeta.name, isCurrent: true },
-                ]}
-                className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
-                showTitle
-                pageTitle={orderHistoryPageMeta.title}
-                titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
-            />
-
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
                 <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
                     <aside className="hidden w-full max-w-[260px] lg:block">
@@ -254,6 +380,7 @@ export default async function OrdersPage({
                         <ul className="mt-0.5 space-y-0.5">
                             {navItems.map(({ label, href, icon: Icon }) => {
                                 const isActive = href === activeHref;
+
                                 return (
                                     <li key={label}>
                                         <Link
@@ -277,60 +404,153 @@ export default async function OrdersPage({
                         </ul>
                     </aside>
 
-                    <section className="w-full rounded-[20px] bg-white px-5 pb-5 pt-0">
-                        {orders.length === 0 ? (
-                            <div className="w-full rounded-[20px] bg-[#f7f7f7] p-5 text-[14px] font-medium text-[#202938]">
-                                Sizin hər hansı bir sifarişiniz mövcud deyil!
-                            </div>
-                        ) : (
-                            <div className="grid gap-3">
-                                {orders.map((order) => {
-                                    const placedAt = order.placed_at ? formatPlacedAt(order.placed_at) : "";
-                                    const statusText = (order.status?.text ?? "").toString();
-                                    const payText = (order.payment_status?.text ?? "").toString();
-                                    const currency = (order.currency ?? "AZN").toString();
-                                    const total = formatAmount(order.totals?.payable_total ?? order.totals?.total);
+                    <div className="w-full">
+                        <div className="flex items-center gap-4 overflow-x-auto text-[13px] font-medium text-[#8A97AB] sm:text-[14px]">
+                            {tabs.map((tab) => {
+                                const active = tab.value === status;
+                                const href = tab.value ? `${ordersPageUrl}?status=${encodeURIComponent(tab.value)}` : ordersPageUrl;
+                                return (
+                                    <Link
+                                        key={tab.label}
+                                        href={href}
+                                        className={`whitespace-nowrap transition-colors ${
+                                            active ? "font-semibold text-[#0D47FF]" : "text-[#8A97AB] hover:text-[#0D47FF]"
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        <div className="mt-8 space-y-6 sm:mt-10 sm:space-y-8">
+                            {!ordersResponse.success ? (
+                                <div className="rounded-[18px] bg-[#f7f8fb] p-5 text-[14px] font-medium text-[#b42318]">
+                                    {ordersResponse.message || "Sifarişlər yüklənmədi."}
+                                </div>
+                            ) : orders.length === 0 ? (
+                                <div className="rounded-[18px] bg-[#f7f8fb] p-5 text-[14px] font-medium text-[#202938]">
+                                    Sizin hər hansı bir sifarişiniz mövcud deyil!
+                                </div>
+                            ) : (
+                                orders.map((order, index) => {
+                                    const detail = detailMap.get(order.uuid || String(order.id)) || null;
+                                    const orderData = detail ?? order;
+                                    const items = Array.isArray(orderData.items) ? orderData.items : [];
+                                    const statusText = (orderData.status?.text ?? order.status?.text ?? "").toString();
+                                    const paymentStatusText = (orderData.payment_status?.text ?? order.payment_status?.text ?? "").toString();
+                                    const orderNumber = orderData.number || order.number || `#${order.id}`;
+                                    const placedAt = formatDate(orderData.placed_at || order.placed_at);
+                                    const currency = (orderData.currency || order.currency || "AZN").toString();
+                                    const payableTotal = formatAmount(
+                                        orderData.totals?.payable_total ?? orderData.totals?.total ?? order.totals?.payable_total ?? order.totals?.total
+                                    );
+                                    const paymentMethodName = orderData.payment_method?.name || "-";
+                                    const itemTotal = (item: OrderItem) => formatAmount(item.line_total ?? item.unit_price ?? item.original_unit_price ?? 0);
+                                    const itemImage = (item: OrderItem) => item.image || "";
+                                    const mainItem = items[0] || null;
+
                                     return (
-                                        <div key={order.id} className="rounded-[16px] bg-[#f7f7f7] p-4">
-                                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <div className="truncate text-[14px] font-semibold text-[#0F131A]">
-                                                        {order.number || `#${order.id}`}
+                                        <details key={order.id} className="group border-b border-[#D8E1EC] pb-5 sm:pb-6" open={index === 0}>
+                                            <summary className="flex list-none cursor-pointer items-center justify-between gap-4 py-4 [&::-webkit-details-marker]:hidden">
+                                                <div className="flex min-w-0 flex-wrap items-center gap-x-10 gap-y-2">
+                                                    <div className="text-[15px] font-semibold text-[#0D47FF] sm:text-[16px]">
+                                                        Sifariş №: {orderNumber}
                                                     </div>
-                                                    {placedAt ? <div className="mt-1 text-[12px] text-[#565F6F]">{placedAt}</div> : null}
+                                                    {placedAt ? (
+                                                        <div className="text-[13px] font-semibold text-[#0D47FF] sm:text-[14px]">{placedAt}</div>
+                                                    ) : null}
                                                 </div>
-                                                <div className="flex flex-wrap items-center gap-2">
+                                                <div className="flex items-center gap-6">
                                                     {statusText ? (
-                                                        <span className="rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-[#0F131A]">
+                                                        <span className="rounded-full bg-[#FFD400] px-4 py-2 text-[12px] font-semibold text-[#0F131A] sm:text-[13px]">
                                                             {statusText}
                                                         </span>
                                                     ) : null}
-                                                    {payText ? (
-                                                        <span className="rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-[#565F6F]">
-                                                            {payText}
-                                                        </span>
-                                                    ) : null}
-                                                    {total ? (
-                                                        <span className="rounded-full bg-[#e8efff] px-2 py-0.5 text-[12px] font-semibold text-[#0D47FF]">
-                                                            {total} {currency}
-                                                        </span>
-                                                    ) : null}
+                                                    <ChevronUp className="size-5 shrink-0 text-[#0D47FF] transition-transform duration-200 group-open:rotate-180" />
+                                                </div>
+                                            </summary>
+
+                                            <div className="border-t border-[#D8E1EC] py-6 sm:py-8">
+                                                {items.length > 0 ? (
+                                                    <div className="space-y-6">
+                                                        {items.map((item, itemIndex) => (
+                                                            <div key={item.id ?? `${order.id}-${itemIndex}`} className="flex items-start justify-between gap-4 sm:gap-6">
+                                                                <div className="flex min-w-0 items-start gap-4">
+                                                                    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
+                                                                        {itemImage(item) ? (
+                                                                            <img src={itemImage(item)} alt={item.product_name || "Məhsul"} className="h-full w-full object-contain" />
+                                                                        ) : null}
+                                                                    </div>
+
+                                                                    <div className="min-w-0 pt-1">
+                                                                        <p className="text-[13px] text-[#8A97AB] sm:text-[14px]">Model: {item.sku || item.variation_name || "-"}</p>
+                                                                        <p className="mt-1 text-[13px] font-semibold text-[#0F131A] sm:text-[14px]">Sayı: {item.qty ?? 0}</p>
+                                                                        <p className="mt-2 text-[16px] font-semibold leading-tight text-[#0F131A] sm:text-[18px]">
+                                                                            {item.product_name || "-"}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="pt-7 text-[18px] font-semibold leading-none text-[#0F131A] sm:pt-8 sm:text-[22px]">
+                                                                    {itemTotal(item)}
+                                                                    <span className="ml-0.5 text-[14px] font-semibold sm:text-[16px]">
+                                                                        {currency === "AZN" ? "₼" : currency}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : mainItem ? (
+                                                    <div className="flex items-start justify-between gap-4 sm:gap-6">
+                                                        <div className="flex min-w-0 items-start gap-4">
+                                                            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
+                                                                {mainItem.image ? (
+                                                                    <img src={mainItem.image} alt={mainItem.product_name || "Məhsul"} className="h-full w-full object-contain" />
+                                                                ) : null}
+                                                            </div>
+                                                            <div className="min-w-0 pt-1">
+                                                                <p className="text-[13px] text-[#8A97AB] sm:text-[14px]">Model: {mainItem.sku || mainItem.variation_name || "-"}</p>
+                                                                <p className="mt-1 text-[13px] font-semibold text-[#0F131A] sm:text-[14px]">Sayı: {mainItem.qty ?? 0}</p>
+                                                                <p className="mt-2 text-[16px] font-semibold leading-tight text-[#0F131A] sm:text-[18px]">{mainItem.product_name || "-"}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="pt-7 text-[18px] font-semibold leading-none text-[#0F131A] sm:pt-8 sm:text-[22px]">
+                                                            {itemTotal(mainItem)}
+                                                            <span className="ml-0.5 text-[14px] font-semibold sm:text-[16px]">
+                                                                {currency === "AZN" ? "₼" : currency}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+
+                                            <div className="border-t border-[#D8E1EC] pt-6">
+                                                <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+                                                    <div className="text-[14px] font-semibold leading-tight text-[#0F131A] sm:self-center sm:text-[16px]">
+                                                        Ödəmə metodu:: {paymentMethodName}
+                                                    </div>
+                                                    <div className="flex flex-col items-start gap-1 sm:items-end">
+                                                        <div className="text-[14px] font-semibold leading-tight text-[#0F131A] sm:text-[16px]">
+                                                            Məbləğ: {payableTotal}
+                                                            <span className="ml-0.5">{currency === "AZN" ? "₼" : currency}</span>
+                                                        </div>
+                                                        {paymentStatusText ? (
+                                                            <div className="text-[12px] text-[#8A97AB] sm:text-[13px]">{paymentStatusText}</div>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </details>
                                     );
-                                })}
-                            </div>
-                        )}
-                    </section>
+                                })
+                            )}
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
-                <RequestForm />
-            </div>
-
-            <div className="mt-24 w-full lg:mt-28">
+            <div className="mt-auto w-full pt-12 lg:pt-20">
                 <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
             </div>
         </div>

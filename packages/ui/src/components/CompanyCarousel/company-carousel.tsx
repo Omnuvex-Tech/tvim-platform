@@ -19,6 +19,7 @@ type Props = {
 
 const SLIDE_DURATION = 3000;
 const ANIMATION_DURATION = 600;
+const DEFAULT_VISIBLE_COUNT = 6;
 
 const getVisibleCount = (width: number) => {
   if (width >= 1024) return 6;
@@ -36,7 +37,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
 
-  const [visibleCount, setVisibleCount] = useState(() => getVisibleCount(typeof window !== "undefined" ? window.innerWidth : 1200));
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_COUNT);
   const [itemWidth, setItemWidth] = useState(0);
 
   const pausedRef = useRef(false);

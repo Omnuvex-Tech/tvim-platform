@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { useLanguageStore } from "@/stores";
+import { hydrateCart } from "@/lib/cart/client";
 
 type LoginFormProps = {
     locale: string;
@@ -175,6 +176,20 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             }
 
             notify.success("Giriş uğurla tamamlandı.");
+            try {
+                await hydrateCart(true);
+            } catch {
+            }
+            window.dispatchEvent(new Event("tvim:favorites-updated"));
+            window.dispatchEvent(new Event("tvim:compare-updated"));
+            window.dispatchEvent(
+                new CustomEvent("tvim:auth-updated", {
+                    detail: {
+                        isAuthenticated: true,
+                        user: (user ?? null) as Record<string, unknown> | null,
+                    },
+                })
+            );
             router.replace(`/${effectiveLocale}`);
             router.refresh();
         } catch {

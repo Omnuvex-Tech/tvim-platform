@@ -49,12 +49,37 @@ type SessionResponse = {
     };
 };
 
-let authSessionPromise: Promise<SessionResponse | null> | null = null;
-let authSessionCache: SessionResponse | null = null;
+const AUTH_UPDATED_EVENT = "tvim:auth-updated";
 
-const getAuthSession = async (): Promise<SessionResponse | null> => {
-    if (authSessionCache) return authSessionCache;
-    if (authSessionPromise) return await authSessionPromise;
+type AuthUpdatedDetail = {
+    isAuthenticated: boolean;
+    user?: SessionUser | null;
+};
+
+type AuthSnapshot = {
+    isAuthenticated: boolean;
+    user: SessionUser | null;
+};
+
+let lastAuthSnapshot: AuthSnapshot | null = null;
+
+const AUTH_SESSION_TTL_MS = 10_000;
+
+let authSessionPromise: Promise<SessionResponse | null> | null = null;
+let authSessionCache: { value: SessionResponse | null; timestamp: number } | null = null;
+
+const getAuthSession = async (force = false): Promise<SessionResponse | null> => {
+    if (force) {
+        authSessionCache = null;
+    }
+
+    if (authSessionCache && Date.now() - authSessionCache.timestamp < AUTH_SESSION_TTL_MS) {
+        return authSessionCache.value;
+    }
+
+    if (authSessionPromise) {
+        return await authSessionPromise;
+    }
 
     const promise = (async () => {
         try {
@@ -68,15 +93,15 @@ const getAuthSession = async (): Promise<SessionResponse | null> => {
             });
 
             if (!response.ok) {
-                authSessionCache = null;
+                authSessionCache = { value: null, timestamp: Date.now() };
                 return null;
             }
 
             const payload = (await response.json()) as SessionResponse;
-            authSessionCache = payload;
+            authSessionCache = { value: payload, timestamp: Date.now() };
             return payload;
         } catch {
-            authSessionCache = null;
+            authSessionCache = { value: null, timestamp: Date.now() };
             return null;
         } finally {
             authSessionPromise = null;
@@ -141,8 +166,8 @@ const NavbarWrapper = ({
         removeItem: removeCartItem,
         hydrateCart: hydrateCartAsync,
     } = useCart();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [authUser, setAuthUser] = useState<SessionUser | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => lastAuthSnapshot?.isAuthenticated ?? false);
+    const [authUser, setAuthUser] = useState<SessionUser | null>(() => lastAuthSnapshot?.user ?? null);
     const cartCount = useMemo(
         () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
         [cartItems]
@@ -255,10 +280,18 @@ const NavbarWrapper = ({
                 const nextIsAuthenticated = payload?.data?.isAuthenticated === true;
                 setIsAuthenticated(nextIsAuthenticated);
                 setAuthUser(payload?.data?.user ?? null);
+                lastAuthSnapshot = {
+                    isAuthenticated: nextIsAuthenticated,
+                    user: payload?.data?.user ?? null,
+                };
             } catch {
                 if (!isMounted) return;
                 setIsAuthenticated(false);
                 setAuthUser(null);
+                lastAuthSnapshot = {
+                    isAuthenticated: false,
+                    user: null,
+                };
             }
         };
 
@@ -267,6 +300,35 @@ const NavbarWrapper = ({
         return () => {
             isMounted = false;
         };
+    }, []);
+
+    useEffect(() => {
+        const onAuthUpdated = (event: Event) => {
+            const detail = (event as CustomEvent<AuthUpdatedDetail>).detail;
+            if (!detail) return;
+
+            const nextSnapshot: AuthSnapshot = {
+                isAuthenticated: detail.isAuthenticated === true,
+                user: detail.user ?? null,
+            };
+
+            lastAuthSnapshot = nextSnapshot;
+            authSessionCache = {
+                value: {
+                    success: true,
+                    data: {
+                        isAuthenticated: nextSnapshot.isAuthenticated,
+                        user: nextSnapshot.user,
+                    },
+                },
+                timestamp: Date.now(),
+            };
+            setIsAuthenticated(nextSnapshot.isAuthenticated);
+            setAuthUser(nextSnapshot.user);
+        };
+
+        window.addEventListener(AUTH_UPDATED_EVENT, onAuthUpdated as EventListener);
+        return () => window.removeEventListener(AUTH_UPDATED_EVENT, onAuthUpdated as EventListener);
     }, []);
 
     useEffect(() => {

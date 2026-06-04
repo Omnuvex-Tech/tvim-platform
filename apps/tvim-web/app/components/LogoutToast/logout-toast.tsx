@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useNotify } from "@repo/ui";
+import { hydrateCart } from "@/lib/cart/client";
 
 export function LogoutToast() {
     const notify = useNotify();
@@ -24,6 +25,22 @@ export function LogoutToast() {
         handledMessageRef.current = logoutMessage;
 
         notify.success(logoutMessage);
+        void (async () => {
+            try {
+                await hydrateCart(true);
+            } catch {
+            }
+            window.dispatchEvent(new Event("tvim:favorites-updated"));
+            window.dispatchEvent(new Event("tvim:compare-updated"));
+            window.dispatchEvent(
+                new CustomEvent("tvim:auth-updated", {
+                    detail: {
+                        isAuthenticated: false,
+                        user: null,
+                    },
+                })
+            );
+        })();
 
         const nextParams = new URLSearchParams(searchParams.toString());
         nextParams.delete("logout_message");

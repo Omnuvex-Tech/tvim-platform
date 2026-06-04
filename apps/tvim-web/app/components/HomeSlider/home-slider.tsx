@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { Slider } from "@repo/types/types";
 import styles from "./home-slider.module.css";
 
@@ -11,6 +12,16 @@ type HomeSliderProps = {
 
 const AUTOPLAY_MS = 5000;
 
+const isExternalHref = (href: string) => /^https?:\/\//i.test(href);
+
+const normalizeHref = (href: string) => {
+    const trimmed = href.trim();
+    if (!trimmed) return "";
+    if (trimmed.startsWith("/")) return trimmed;
+    if (isExternalHref(trimmed)) return trimmed;
+    return `/${trimmed}`;
+};
+
 export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     const activeSlides = useMemo(
         () => slides.filter((slide) => slide.is_active).sort((a, b) => a.sort_order - b.sort_order),
@@ -20,15 +31,53 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     const viewportRef = useRef<HTMLDivElement | null>(null);
     const dragStartXRef = useRef<number | null>(null);
     const dragOffsetRef = useRef(0);
+    const dragPointerIdRef = useRef<number | null>(null);
     const suppressClickRef = useRef(false);
     const [index, setIndex] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [autoplayKey, setAutoplayKey] = useState(0);
 
+    const resetInteractionState = () => {
+        const viewport = viewportRef.current;
+        const pointerId = dragPointerIdRef.current;
+
+        if (viewport && pointerId !== null && viewport.hasPointerCapture(pointerId)) {
+            try {
+                viewport.releasePointerCapture(pointerId);
+            } catch {
+                // Ignore capture release errors when the pointer is already gone.
+            }
+        }
+
+        dragStartXRef.current = null;
+        dragOffsetRef.current = 0;
+        dragPointerIdRef.current = null;
+        suppressClickRef.current = false;
+        setIsDragging(false);
+        setDragOffset(0);
+    };
+
     useEffect(() => {
         setIndex(0);
+        resetInteractionState();
     }, [activeSlides.length]);
+
+    useEffect(() => {
+        const resetOnReturn = () => {
+            setIndex(0);
+            resetInteractionState();
+            setAutoplayKey((currentKey) => currentKey + 1);
+        };
+
+        window.addEventListener("pageshow", resetOnReturn);
+        window.addEventListener("focus", resetOnReturn);
+
+        return () => {
+            window.removeEventListener("pageshow", resetOnReturn);
+            window.removeEventListener("focus", resetOnReturn);
+        };
+    }, []);
 
     useEffect(() => {
         if (activeSlides.length <= 1) {
@@ -56,6 +105,8 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
             return;
         }
 
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dragPointerIdRef.current = event.pointerId;
         setIsDragging(true);
         dragStartXRef.current = event.clientX;
         suppressClickRef.current = false;
@@ -73,9 +124,13 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         setDragOffset(nextOffset);
     };
 
-    const handlePointerEnd = () => {
+    const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
         if (!isDragging) {
             return;
+        }
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
         }
 
         const viewportWidth = viewportRef.current?.clientWidth ?? 0;
@@ -98,8 +153,15 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
         setIsDragging(false);
         dragStartXRef.current = null;
+        dragPointerIdRef.current = null;
         dragOffsetRef.current = 0;
         setDragOffset(0);
+    };
+
+    const handleLostPointerCapture = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (dragPointerIdRef.current === event.pointerId) {
+            resetInteractionState();
+        }
     };
 
     const handleClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -126,7 +188,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerEnd}
                     onPointerCancel={handlePointerEnd}
-                    onPointerLeave={handlePointerEnd}
+                    onLostPointerCapture={handleLostPointerCapture}
                     onClickCapture={handleClickCapture}
                     onDragStart={(event) => event.preventDefault()}
                     style={{ touchAction: "pan-y" }}
@@ -137,17 +199,29 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                     >
                         {activeSlides.map((slide) => {
                             const isLinkAction = slide.action_type === "link" && !!slide.button_link;
-                            const slideLink = isLinkAction ? slide.button_link : undefined;
+                            const slideLink = isLinkAction ? normalizeHref(slide.button_link ?? "") : "";
+                            const slideIsExternal = slideLink ? isExternalHref(slideLink) : false;
 
                             return (
                                 <article key={slide.id} className="relative h-full w-full shrink-0">
                                     {slideLink ? (
-                                        <a
-                                            href={slideLink}
-                                            className="absolute inset-0 z-[1]"
-                                            aria-label={slide.title ?? "Slider link"}
-                                            draggable={false}
-                                        />
+                                        slideIsExternal ? (
+                                            <a
+                                                href={slideLink}
+                                                className="absolute inset-0 z-[1]"
+                                                aria-label={slide.title ?? "Slider link"}
+                                                draggable={false}
+                                                rel="noreferrer"
+                                            />
+                                        ) : (
+                                            <Link
+                                                href={slideLink}
+                                                className="absolute inset-0 z-[1]"
+                                                aria-label={slide.title ?? "Slider link"}
+                                                draggable={false}
+                                                prefetch={false}
+                                            />
+                                        )
                                     ) : null}
 
                                     <picture className="block h-full w-full">
@@ -198,6 +272,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                         onClick={() => goTo(index - 1)}
                         className={`flex items-center justify-center cursor-pointer rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
                         aria-label="Previous slide"
+                        suppressHydrationWarning
                     >
                         <i className="fas fa-arrow-left" aria-hidden="true" />
                     </button>
@@ -209,6 +284,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                         onClick={() => goTo(index + 1)}
                         className={`flex items-center justify-center cursor-pointer rounded-full bg-white text-black shadow-sm ${styles.controlButton}`}
                         aria-label="Next slide"
+                        suppressHydrationWarning
                     >
                         <i className="fas fa-arrow-right" aria-hidden="true" />
                     </button>

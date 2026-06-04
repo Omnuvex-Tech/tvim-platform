@@ -10,12 +10,14 @@ export async function POST(request: NextRequest) {
         if (authToken) {
             return NextResponse.json(
                 {
-                    success: false,
+                    success: true,
                     message: "Authenticated user does not need a compare token.",
-                    data: [],
+                    data: {
+                        token: null,
+                    },
                 },
                 {
-                    status: 422,
+                    status: 200,
                     headers: compareNoStoreHeaders,
                 }
             );

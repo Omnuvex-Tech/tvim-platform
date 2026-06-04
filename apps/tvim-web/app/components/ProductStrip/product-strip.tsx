@@ -1873,7 +1873,7 @@ const ProductStrip: React.FC<Props> = ({
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 
                                 aria-label="Əvvəlki"
-
+                                suppressHydrationWarning
                             >
 
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
@@ -1897,7 +1897,7 @@ const ProductStrip: React.FC<Props> = ({
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#c7d4ea] bg-white text-[#1c2536] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 
                                 aria-label="Növbəti"
-
+                                suppressHydrationWarning
                             >
 
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>

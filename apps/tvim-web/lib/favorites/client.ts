@@ -1,10 +1,8 @@
 export type FavoriteAction = "created" | "deleted";
 
-const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
+import { ensureGuestToken } from "@/lib/guest/session";
 
-let guestTokenEnsured = false;
-let guestTokenEnsuringPromise: Promise<{ message?: string; token: string | null }> | null = null;
-let guestTokenEnsuringResult: { message?: string; token: string | null } | null = null;
+const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 
 let listFavoritesCache: {
     message?: string;
@@ -183,46 +181,5 @@ export const toggleFavorite = async (productVariationId: number) => {
 };
 
 export const ensureGuestFavoriteToken = async () => {
-    if (guestTokenEnsured) {
-        return guestTokenEnsuringResult ?? { message: "", token: null };
-    }
-
-    if (guestTokenEnsuringPromise) {
-        return await guestTokenEnsuringPromise;
-    }
-
-    const promise = (async () => {
-        try {
-            const response = await fetch("/api/favorites/token", {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    Accept: "application/json",
-                },
-            });
-
-            const payload = await parseResponse<{ token?: string | null }>(response);
-
-            const result = {
-                message: payload.message,
-                token: payload.data?.token ?? null,
-            };
-
-            guestTokenEnsuringResult = result;
-            guestTokenEnsured = true;
-            return result;
-        } catch {
-            const result = { message: "", token: null };
-            guestTokenEnsuringResult = result;
-            guestTokenEnsured = true;
-            return result;
-        }
-    })();
-
-    guestTokenEnsuringPromise = promise;
-    try {
-        return await promise;
-    } finally {
-        guestTokenEnsuringPromise = null;
-    }
+    return await ensureGuestToken();
 };

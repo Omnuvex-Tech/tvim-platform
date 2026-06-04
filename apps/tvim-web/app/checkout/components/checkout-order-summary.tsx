@@ -1,10 +1,12 @@
 import React from "react";
+import { Spinner } from "@repo/ui";
 
 type CheckoutOrderSummaryProps = {
     totalItems: number;
     shipping: number;
     subtotal: number;
     total: number;
+    isSubmitting?: boolean;
     onCheckout: () => void;
 };
 
@@ -15,6 +17,7 @@ const CheckoutOrderSummary = ({
     shipping,
     subtotal,
     total,
+    isSubmitting,
     onCheckout,
 }: CheckoutOrderSummaryProps) => {
     return (
@@ -66,9 +69,10 @@ const CheckoutOrderSummary = ({
             <button
                 type="button"
                 onClick={onCheckout}
-                className="mt-8 inline-flex h-[44px] w-full cursor-pointer items-center justify-center rounded-[20px] bg-[#ffd500] px-5 text-[15px] font-bold text-[#000]"
+                disabled={Boolean(isSubmitting)}
+                className="mt-8 inline-flex h-[44px] w-full cursor-pointer items-center justify-center rounded-[20px] bg-[#ffd500] px-5 text-[15px] font-bold text-[#000] disabled:cursor-not-allowed disabled:opacity-70"
             >
-                Sifarişi rəsmiləşdirin
+                {isSubmitting ? <Spinner size={22} strokeWidth={2} /> : "Sifarişi rəsmiləşdirin"}
             </button>
         </aside>
     );

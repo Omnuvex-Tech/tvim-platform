@@ -588,6 +588,7 @@ function NavbarSearch({
                 onChange={(e) => setValue(e.target.value)}
                 aria-label={searchPlaceholder}
                 placeholder=""
+                suppressHydrationWarning
                 className={cn(
                     "w-full text-[#343943] outline-none focus:ring-1 focus:ring-[rgba(0,0,0,0.24)] focus:ring-offset-0 focus:outline-none transition-shadow duration-150 ease-out",
                     compact
@@ -987,8 +988,8 @@ export function Navbar({
         [mobileLocale]
     );
     const [mobileExpandedIds, setMobileExpandedIds] = useState<number[]>([]);
-    const [favoritesCount, setFavoritesCount] = useState(0);
-    const [compareCount, setCompareCount] = useState(0);
+    const [favoritesCount, setFavoritesCount] = useState(() => favoritesCountCache ?? 0);
+    const [compareCount, setCompareCount] = useState(() => compareCountCache ?? 0);
     const whatsappHref = toWhatsappHref(phone);
 
     const fetchFavoritesCount = useCallback(async (force = false) => {
@@ -1488,6 +1489,7 @@ export function Navbar({
                                     <button
                                         type="button"
                                         aria-expanded={expanded}
+                                        suppressHydrationWarning
                                         onPointerDown={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
@@ -1514,7 +1516,7 @@ export function Navbar({
     };
 
     return (
-        <header data-slot="navbar" className={cn(navbarClasses.root, className)}>
+        <header data-slot="navbar" className={cn(navbarClasses.root, className)} suppressHydrationWarning>
             <div className={navbarClasses.container} ref={containerRef}>
                 <div className={navbarClasses.topRow}>
                     <NavbarLogo logo={logo} logoHref={logoHref} />
@@ -1551,6 +1553,7 @@ export function Navbar({
                                     onClick={() => setIsMobileLocaleOpen((prev) => !prev)}
                                     aria-haspopup="listbox"
                                     aria-expanded={isMobileLocaleOpen}
+                                    suppressHydrationWarning
                                 >
                                     <span className="inline-flex h-[12px] w-[18px] overflow-hidden rounded-[2px] border border-black/10" aria-hidden="true">
                                         <LocaleFlag country={activeMobileLocale.country} />
@@ -1601,6 +1604,7 @@ export function Navbar({
                             type="button"
                             aria-label="Menyunu aç"
                             className="inline-flex size-8 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] bg-white text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
+                            suppressHydrationWarning
                             onPointerDown={(e) => {
                                 if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
                                     e.preventDefault();
@@ -1739,6 +1743,7 @@ export function Navbar({
                     <button
                         type="button"
                         ref={mobileCatalogToggleRef}
+                        suppressHydrationWarning
                         onPointerDown={(e) => {
                             if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
                                 e.preventDefault();
@@ -1800,6 +1805,7 @@ export function Navbar({
                         type="button"
                         aria-label="Menyunu bağla"
                         className="inline-flex size-9 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
+                        suppressHydrationWarning
                         onPointerDown={(e) => {
                             if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
                                 e.preventDefault();
@@ -1919,6 +1925,7 @@ export function Navbar({
                         type="button"
                         aria-label="Kataloqu bağla"
                         className="inline-flex h-full w-[40px] cursor-pointer touch-manipulation items-center justify-center bg-black/5 text-white shadow-[1px_0_7px_rgba(0,0,0,0.18)]"
+                        suppressHydrationWarning
                         onPointerDown={(e) => {
                             if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
                                 e.preventDefault();

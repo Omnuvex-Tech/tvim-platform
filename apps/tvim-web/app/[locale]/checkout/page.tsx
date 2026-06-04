@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type {
     FooterMenusData,
@@ -11,6 +12,9 @@ import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { Breadcrumb } from "@repo/ui";
 import CheckoutClient from "@/app/checkout/checkout-client";
+import type { CheckoutData } from "@/app/checkout/checkout-client";
+import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 
 type LocaleCode = "az" | "ru" | "en";
 const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];
@@ -20,9 +24,55 @@ const normalizeLocale = (value: string): LocaleCode => {
     return SUPPORTED_LOCALES.includes(lower as LocaleCode) ? (lower as LocaleCode) : "az";
 };
 
+const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
+    const cleanBase = baseUrl.replace(/\/+$/, "");
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    return `${cleanBase}${cleanEndpoint}`;
+};
+
+const fetchCheckoutData = async (locale: string, authToken: string | null, guestToken: string | null): Promise<CheckoutData | null> => {
+    const url = normalizeApiUrl(config.api.url, "/order/checkout");
+
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+                "Content-Language": locale,
+                ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+                ...(guestToken ? { "X-Guest-Token": guestToken } : {}),
+            },
+        });
+
+        let payload: unknown = null;
+        try {
+            payload = await response.json();
+        } catch {
+            payload = null;
+        }
+
+        if (!response.ok || !payload || typeof payload !== "object") {
+            return null;
+        }
+
+        const typed = payload as { success?: boolean; data?: unknown };
+        if (typed.success === false) {
+            return null;
+        }
+
+        return (typed.data ?? null) as CheckoutData | null;
+    } catch {
+        return null;
+    }
+};
+
 export default async function CheckoutPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale: routeLocale } = await params;
     const locale = normalizeLocale(routeLocale);
+    const cookieStore = await cookies();
+    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+    const guestToken = decodeGuestTokenFromCookie(cookieStore.get(GUEST_TOKEN_COOKIE)?.value);
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -70,6 +120,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
+    const checkoutData = await fetchCheckoutData(locale, authToken, guestToken);
+
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
             <NavbarWrapper
@@ -93,7 +145,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
             />
 
             <div className="mx-auto mt-3 w-full max-w-[1280px] px-3 lg:mt-4 lg:px-0">
-                <CheckoutClient />
+                <CheckoutClient locale={locale} initialCheckout={checkoutData} isAuthenticated={Boolean(authToken)} />
             </div>
 
             <div className="mt-16 w-full lg:mt-20">

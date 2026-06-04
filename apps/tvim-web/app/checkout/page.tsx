@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type {
     FooterMenusData,
@@ -11,6 +12,9 @@ import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { Breadcrumb } from "@repo/ui";
 import CheckoutClient from "./checkout-client";
+import type { CheckoutData } from "./checkout-client";
+import { AUTH_SESSION_TOKEN_COOKIE, AUTH_SESSION_USER_COOKIE, decodeTokenFromCookie, decodeUserFromCookie } from "@/lib/auth/session";
+import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 
 type LocaleCode = "az" | "ru" | "en";
 const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];
@@ -18,6 +22,49 @@ const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];
 const normalizeLocale = (value: string): LocaleCode => {
     const lower = value.trim().toLowerCase();
     return SUPPORTED_LOCALES.includes(lower as LocaleCode) ? (lower as LocaleCode) : "az";
+};
+
+const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
+    const cleanBase = baseUrl.replace(/\/+$/, "");
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    return `${cleanBase}${cleanEndpoint}`;
+};
+
+const fetchCheckoutData = async (locale: string, authToken: string | null, guestToken: string | null): Promise<CheckoutData | null> => {
+    const url = normalizeApiUrl(config.api.url, "/order/checkout");
+
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+                "Content-Language": locale,
+                ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+                ...(guestToken ? { "X-Guest-Token": guestToken } : {}),
+            },
+        });
+
+        let payload: unknown = null;
+        try {
+            payload = await response.json();
+        } catch {
+            payload = null;
+        }
+
+        if (!response.ok || !payload || typeof payload !== "object") {
+            return null;
+        }
+
+        const typed = payload as { success?: boolean; data?: unknown };
+        if (typed.success === false) {
+            return null;
+        }
+
+        return (typed.data ?? null) as CheckoutData | null;
+    } catch {
+        return null;
+    }
 };
 
 export default async function CheckoutPage() {
@@ -35,6 +82,10 @@ export default async function CheckoutPage() {
         langResponse.data.find((language) => language.is_default_site)?.code ?? config.project.defLang;
 
     const locale = normalizeLocale(siteDefaultLocale);
+    const cookieStore = await cookies();
+    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
+    const authUser = decodeUserFromCookie(cookieStore.get(AUTH_SESSION_USER_COOKIE)?.value);
+    const guestToken = decodeGuestTokenFromCookie(cookieStore.get(GUEST_TOKEN_COOKIE)?.value);
 
     if (!SUPPORTED_LOCALES.includes(locale) || !langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
         notFound();
@@ -72,6 +123,8 @@ export default async function CheckoutPage() {
 
     const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
 
+    const checkoutData = await fetchCheckoutData(locale, authToken, guestToken);
+
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
             <NavbarWrapper
@@ -95,7 +148,12 @@ export default async function CheckoutPage() {
             />
 
             <div className="mx-auto mt-3 w-full max-w-[1280px] px-0 sm:px-3 lg:mt-4 lg:px-0">
-                <CheckoutClient />
+                <CheckoutClient
+                    locale={locale}
+                    initialCheckout={checkoutData}
+                    isAuthenticated={Boolean(authToken)}
+                    authUser={authUser}
+                />
             </div>
 
             <div className="mt-16 w-full lg:mt-20">
@@ -104,4 +162,3 @@ export default async function CheckoutPage() {
         </div>
     );
 }
-

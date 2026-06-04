@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { config } from "@/config";
-import { renderBrandSlugPage } from "@/app/brands/brand-slug-page";
+import { NotFoundRoute } from "@/app/components/NotFoundPage/not-found-route";
 
 const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
 
@@ -9,27 +9,10 @@ const normalizeLocale = (locale: string) => {
     return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
 };
 
-type BrandSlugPageSearchParams = {
-    page?: string | string[];
-    per_page?: string | string[];
-    sort?: string | string[];
-};
-
-export default async function BrandSlugPage({
-    params,
-    searchParams,
-}: {
-    params: Promise<{ slug: string }>;
-    searchParams?: Promise<BrandSlugPageSearchParams>;
-}) {
-    const { slug } = await params;
+export default async function NotFound() {
     const cookieStore = await cookies();
     const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
     const locale = normalizeLocale(cookieLocale || config.project.defLang);
 
-    return renderBrandSlugPage({
-        slug,
-        locale,
-        searchParams,
-    });
+    return <NotFoundRoute locale={locale} />;
 }

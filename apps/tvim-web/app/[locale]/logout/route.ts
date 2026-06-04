@@ -6,6 +6,7 @@ import {
     authCookieOptions,
     decodeTokenFromCookie,
 } from "@/lib/auth/session";
+import { GUEST_TOKEN_COOKIE, guestCookieOptions } from "@/lib/guest/session";
 
 const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
     const cleanBase = baseUrl.replace(/\/+$/, "");
@@ -72,6 +73,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         name: AUTH_SESSION_USER_COOKIE,
         value: "",
         ...authCookieOptions(),
+        maxAge: 0,
+    });
+
+    response.cookies.set({
+        name: GUEST_TOKEN_COOKIE,
+        value: "",
+        ...guestCookieOptions(),
         maxAge: 0,
     });
 

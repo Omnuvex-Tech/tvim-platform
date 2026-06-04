@@ -108,6 +108,7 @@ const LanguageSwitcher = ({
                 onClick={() => setIsOpen((prev) => !prev)}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
+                suppressHydrationWarning
             >
                 <span
                     className={cn(
@@ -157,6 +158,7 @@ const LanguageSwitcher = ({
                                 }}
                                 role="option"
                                 aria-selected={isActive}
+                                suppressHydrationWarning
                             >
                                 <span
                                     className={cn(

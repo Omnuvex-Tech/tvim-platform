@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
-import Script from "next/script";
 import { NotifyProvider, NotifyContainer } from "@repo/ui";
 import { QueryProvider } from "@/app/providers";
 import { config } from "@/config";
@@ -34,7 +33,7 @@ export default function RootLayout({
     children: ReactNode;
 }>) {
     return (
-        <html lang="az">
+        <html lang="az" suppressHydrationWarning>
             <head>
                 <link
                     rel="stylesheet"
@@ -43,10 +42,7 @@ export default function RootLayout({
                     referrerPolicy="no-referrer"
                 />
             </head>
-            <body className={inter.variable}>
-                <Script id="strip-extension-attrs" strategy="beforeInteractive">
-                    {`(function(){try{['fdprocessedid','data-fdprocessedid'].forEach(function(attr){var els=document.querySelectorAll('['+attr+']');for(var i=0;i<els.length;i++){els[i].removeAttribute(attr);}});}catch(e){}})();`}
-                </Script>
+            <body className={inter.variable} suppressHydrationWarning>
                 <QueryProvider>
                     <NotifyProvider>
                         <main className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">{children}</main>

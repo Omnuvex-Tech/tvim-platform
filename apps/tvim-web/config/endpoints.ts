@@ -1,3 +1,5 @@
+const GUEST_TOKEN_ENDPOINT = "/guest-token" as const;
+
 export const endpoints = {
     auth: {
         login: "/customer/auth/login",
@@ -42,9 +44,7 @@ export const endpoints = {
     },
 
     products: {
-        list: "/products",
         paginatedList: "/product/list",
-        detail: (slug: string) => `/products/${slug}`,
         detailBySlug: (slug: string) => `/product/detail/${slug}`,
         categories: "/categories",
         purchaseRequests: "/product/purchase-requests",
@@ -58,13 +58,13 @@ export const endpoints = {
     favorites: {
         list: "/favorites",
         toggle: "/favorites/toggle",
-        token: "/guest-token",
+        token: GUEST_TOKEN_ENDPOINT,
     },
 
     compare: {
         list: "/compare",
         toggle: "/compare/toggle",
-        token: "/guest-token",
+        token: GUEST_TOKEN_ENDPOINT,
     },
 
     cart: {
