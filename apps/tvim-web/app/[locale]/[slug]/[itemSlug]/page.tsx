@@ -625,28 +625,33 @@ export default async function GridDetailPage({
 
                 <Breadcrumb
                     items={breadcrumbItems as any}
-                    className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
+                    className="mx-auto w-full max-w-[1280px] !px-4 lg:!px-2"
                     showTitle={false}
                     pageTitle={resolvedName}
                     titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
                 />
 
-                <main className="mx-auto w-full max-w-[1280px] !px-1 pt-1 pb-10 lg:!px-2 lg:pb-12">
-                    <h1 className="mb-6 text-[34px] leading-tight font-bold tracking-[-0.02em] text-[#111318] max-lg:text-[28px]">
+                <main className="mx-auto w-full max-w-[1280px] !px-4 pt-1 pb-10 lg:!px-2 lg:pb-12">
+                    <h1 className="mb-3 text-[34px] leading-tight font-bold tracking-[-0.02em] text-[#111318] max-lg:text-[22px] lg:mb-6">
                         {resolvedName}
                     </h1>
 
-                    <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-12">
+                    <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] lg:hidden">
+                        <span className="text-[#77839b]">Məhsul kodu: {productCode || "-"}</span>
+                        <span className="font-semibold text-[#ff3030]">{stockText}</span>
+                    </div>
+
+                    <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-12">
                         <div className="w-full">
-                            <div className="flex min-h-[420px] items-center justify-center lg:min-h-[540px]">
+                            <div className="flex min-h-[300px] items-center justify-center lg:min-h-[540px]">
                                 {images[0] ? (
                                     <img
                                         src={images[0]}
                                         alt={resolvedName}
-                                        className="max-h-[500px] w-full object-contain"
+                                        className="max-h-[320px] w-full object-contain lg:max-h-[500px]"
                                     />
                                 ) : (
-                                    <div className="h-[420px] w-full" />
+                                    <div className="h-[300px] w-full lg:h-[420px]" />
                                 )}
                             </div>
 
@@ -664,12 +669,12 @@ export default async function GridDetailPage({
                             ) : null}
                         </div>
 
-                        <div className="w-full pt-2">
+                        <div className="w-full pt-0 lg:pt-2">
                             {isDiscountSource ? (
                                 <div className="flex items-start">
-                                    <div className="relative ml-2 -mt-3 max-lg:ml-1 max-lg:-mt-1">
+                                    <div className="relative ml-2 -mt-3 max-lg:ml-0 max-lg:mt-0">
                                         {typeof discountPercent === "number" ? (
-                                            <span className="absolute top-[2.8rem] right-full mr-16 inline-flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#ff2e43] text-[18px] font-bold leading-none text-white max-lg:top-[2.1rem] max-lg:mr-8">
+                                            <span className="absolute top-[2.8rem] right-full mr-16 inline-flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#ff2e43] text-[18px] font-bold leading-none text-white max-lg:hidden">
                                                 -{discountPercent}%
                                             </span>
                                         ) : null}
@@ -724,7 +729,7 @@ export default async function GridDetailPage({
                             {navbarPhone ? (
                                 <a
                                     href={`tel:${navbarPhone.replace(/\s|\(|\)|-/g, "")}`}
-                                    className={`flex w-fit cursor-pointer items-center gap-2 font-[family-name:var(--font-inter)] text-[17px] leading-none font-bold text-[#12151d] ${
+                                    className={`hidden w-fit cursor-pointer items-center gap-2 font-[family-name:var(--font-inter)] text-[17px] leading-none font-bold text-[#12151d] lg:flex ${
                                         isDiscountSource ? "mt-5" : "mt-6"
                                     }`}
                                 >
@@ -733,13 +738,13 @@ export default async function GridDetailPage({
                                 </a>
                             ) : null}
 
-                            <div className="mt-6 h-px w-full bg-[#dce3ef]" />
+                            <div className="mt-6 hidden h-px w-full bg-[#dce3ef] lg:block" />
 
-                            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-[15px]">
+                            <div className="mt-6 hidden flex-wrap items-center gap-x-6 gap-y-2 text-[15px] lg:flex">
                                 <span className="text-[#77839b]">Məhsul kodu: {productCode || "-"}</span>
                                 <span className="font-semibold text-[#ffcc00]">{stockText}</span>
                             </div>
-<div className="mt-5 space-y-2 text-[16px]">
+<div className="mt-5 hidden space-y-2 text-[16px] lg:block">
     {specRows.map((row, idx) => (
         <div key={row.label} className="flex items-center gap-2">
             <span className="min-w-[92px] text-[#2a2a2d]">{row.label}:</span>
@@ -809,13 +814,13 @@ export default async function GridDetailPage({
                     />
 
                     {related.length > 0 ? (
-                        <section className="mt-10">
-                            <ProductStrip items={related as any} variant="latest" title="Oxşar məhsullar" layout="carousel" cardsTopSpacingClassName="py-16" />
+                        <section className="mt-8 lg:mt-10">
+                            <ProductStrip items={related as any} variant="latest" title="Oxşar məhsullar" layout="carousel" cardsTopSpacingClassName="py-8 lg:py-16" />
                         </section>
                     ) : null}
                 </main>
 
-                <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
+                <div className="mx-auto mt-12 w-full max-w-[1280px] px-4 lg:mt-14 lg:px-0">
                     <RequestForm />
                 </div>
 

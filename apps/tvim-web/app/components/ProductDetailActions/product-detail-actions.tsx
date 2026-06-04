@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNotify } from "@repo/ui";
+import { Minus, Plus } from "lucide-react";
 import { addCartItem, hydrateCart, useCart } from "@/lib/cart/client";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
@@ -110,6 +111,9 @@ const ProductDetailActions = ({
         try {
             const response = await toggleFavorite(productVariationId);
             setIsFavorite(response.data.action === "created");
+            if (response.message) {
+                notify.success(response.message);
+            }
         } catch (error) {
             setIsFavorite(previous);
             const message = error instanceof Error ? error.message : "Favori yenilənərkən xəta baş verdi.";
@@ -129,6 +133,9 @@ const ProductDetailActions = ({
         try {
             const response = await toggleCompare(productVariationId);
             setIsCompared(response.data.action === "created");
+            if (response.message) {
+                notify.success(response.message);
+            }
         } catch (error) {
             setIsCompared(previous);
             const message = error instanceof Error ? error.message : "Müqayisə yenilənərkən xəta baş verdi.";
@@ -139,26 +146,26 @@ const ProductDetailActions = ({
     };
 
     return (
-        <div className="mt-14 max-lg:mt-8">
-            <div className="flex flex-nowrap items-center gap-4 max-lg:flex-wrap max-lg:gap-3">
+        <div className="mt-14 max-lg:mt-6">
+            <div className="flex flex-nowrap items-center gap-4 max-lg:grid max-lg:grid-cols-[minmax(0,1fr)_48px_48px] max-lg:gap-2">
                 {variant === "discount" ? (
-                    <div className="grid h-[64px] min-w-[190px] grid-cols-[1fr_auto_1fr] items-center rounded-[20px] border border-[rgba(217,228,238,1)] bg-white px-[10px] py-[10px]">
+                    <div className="grid h-[64px] w-[172px] shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-[20px] border border-[rgba(217,228,238,1)] bg-white px-[12px] max-lg:col-span-1 max-lg:h-[48px] max-lg:w-[112px] max-lg:rounded-[14px] max-lg:px-2">
                         <button
                             type="button"
                             onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                            className="inline-flex h-10 w-10 items-center justify-center justify-self-center text-[40px] font-light leading-none text-[#8a94a7] max-lg:text-[28px]"
+                            className="inline-flex h-10 w-8 cursor-pointer items-center justify-center justify-self-start text-[#8a94a7] max-lg:w-6"
                             aria-label="Azalt"
                         >
-                            -
+                            <Minus className="size-[20px] max-lg:size-[16px]" strokeWidth={3.2} aria-hidden="true" />
                         </button>
-                        <span className="w-[72px] border-none text-center text-[20px] font-normal leading-none text-[#000]">{quantity}</span>
+                        <span className="min-w-[32px] border-none text-center text-[20px] font-normal leading-none text-[#000] max-lg:min-w-[24px] max-lg:text-[15px]">{quantity}</span>
                         <button
                             type="button"
                             onClick={() => setQuantity((prev) => prev + 1)}
-                            className="inline-flex h-10 w-10 items-center justify-center justify-self-center text-[40px] font-light leading-none text-[#8a94a7] max-lg:text-[28px]"
+                            className="inline-flex h-10 w-8 cursor-pointer items-center justify-center justify-self-end text-[#8a94a7] max-lg:w-6"
                             aria-label="Artır"
                         >
-                            +
+                            <Plus className="size-[20px] max-lg:size-[16px]" strokeWidth={3.2} aria-hidden="true" />
                         </button>
                     </div>
                 ) : null}
@@ -167,12 +174,12 @@ const ProductDetailActions = ({
                     type="button"
                     onClick={variant === "discount" ? handleAddToCart : () => setIsQuickOrderOpen(true)}
                     disabled={variant === "discount" ? isAddingToCart || (typeof stock === "number" && stock <= 0) : false}
-                    className={`m-0 inline-flex h-[64px] min-w-0 items-center justify-center gap-[10px] rounded-[20px] px-[80px] py-[25px] text-[1.1em] font-medium leading-none transition-colors ${
+                    className={`m-0 inline-flex h-[64px] min-w-0 items-center justify-center gap-[10px] rounded-[20px] px-[80px] py-[25px] text-[1.1em] font-medium leading-none transition-colors max-lg:h-[48px] max-lg:w-full max-lg:rounded-[14px] max-lg:px-5 max-lg:py-0 ${
                         variant === "order"
-                            ? "bg-[#ffd400] text-[#111318]"
+                            ? "bg-[#ffd400] text-[#111318] max-lg:col-start-1 max-lg:row-start-1"
                             : inCart
-                              ? "bg-[#57bf67] text-white"
-                              : "bg-[rgba(0,61,255,1)] text-white hover:bg-[#0a33c7]"
+                              ? "bg-[#57bf67] text-white max-lg:col-span-3 max-lg:row-start-2"
+                              : "bg-[rgba(0,61,255,1)] text-white hover:bg-[#0a33c7] max-lg:col-span-3 max-lg:row-start-2"
                     } ${variant === "discount" && ((typeof stock === "number" && stock <= 0) || isAddingToCart) ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                 >
                     {variant === "order" ? (
@@ -208,7 +215,7 @@ const ProductDetailActions = ({
                     type="button"
                     onClick={handleFavoriteToggle}
                     disabled={!productVariationId || favoritePending}
-                    className={`m-0 mt-[2px] inline-flex h-[64px] w-[64px] items-center justify-center rounded-[20px] border border-[rgba(217,228,238,1)] px-[10px] py-[20px] text-[24px] font-semibold transition-colors ${
+                    className={`m-0 mt-[2px] inline-flex h-[64px] w-[64px] items-center justify-center rounded-[20px] border border-[rgba(217,228,238,1)] px-[10px] py-[20px] text-[24px] font-semibold transition-colors max-lg:col-start-2 max-lg:row-start-1 max-lg:mt-0 max-lg:h-[48px] max-lg:w-[48px] max-lg:rounded-[14px] max-lg:p-0 ${
                         isFavorite
                             ? "border-[#0f57d6] bg-[#0f57d6] text-white"
                             : "border-[#dce3ef] bg-white text-[#0f57d6] hover:bg-[#f4f7ff]"
@@ -222,7 +229,7 @@ const ProductDetailActions = ({
                     type="button"
                     onClick={handleCompareToggle}
                     disabled={!productVariationId || comparePending}
-                    className={`m-0 mt-[2px] inline-flex h-[64px] w-[64px] items-center justify-center rounded-[20px] border border-[rgba(217,228,238,1)] px-[10px] py-[20px] text-[24px] font-semibold transition-colors ${
+                    className={`m-0 mt-[2px] inline-flex h-[64px] w-[64px] items-center justify-center rounded-[20px] border border-[rgba(217,228,238,1)] px-[10px] py-[20px] text-[24px] font-semibold transition-colors max-lg:col-start-3 max-lg:row-start-1 max-lg:mt-0 max-lg:h-[48px] max-lg:w-[48px] max-lg:rounded-[14px] max-lg:p-0 ${
                         isCompared
                             ? "border-[#0f57d6] bg-[#0f57d6] text-white"
                             : "border-[#dce3ef] bg-white text-[#0f57d6] hover:bg-[#f4f7ff]"

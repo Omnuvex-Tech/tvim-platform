@@ -1592,7 +1592,7 @@ const ProductStrip: React.FC<Props> = ({
 
             <article
 
-                className={`group relative flex flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
+                className={`group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
 
             >
 
@@ -1950,7 +1950,7 @@ const ProductStrip: React.FC<Props> = ({
 
                             {products.map((product) => (
 
-                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border px-2 sm:px-3">
+                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border h-auto px-2 sm:px-3">
 
                                     {renderCard(product, { dragging: isDragging })}
 

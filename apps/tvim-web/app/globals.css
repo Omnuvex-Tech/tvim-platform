@@ -83,7 +83,7 @@
 
 	.product-carousel .hoopz-thumb__name {
 		font-size: 13px;
-		min-height: auto;
+		min-height: 60px;
 	}
 }
 

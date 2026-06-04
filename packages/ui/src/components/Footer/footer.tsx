@@ -34,9 +34,9 @@ const Footer = ({
             data-slot="footer"
             className={cn("w-full font-[family-name:var(--font-inter)] text-[#24262b]", className)}
         >
-            <div className="mx-auto w-full max-w-[1280px] pt-10 pb-4">
-                <div className={cn("grid gap-9 md:grid-cols-2 lg:gap-14", lgColsClass)}>
-                    <div className="space-y-6">
+            <div className="mx-auto w-full max-w-[1280px] px-5 pt-10 pb-4 lg:px-0">
+                <div className={cn("grid grid-cols-2 gap-x-8 gap-y-5 md:grid-cols-2 lg:gap-14", lgColsClass)}>
+                    <div className="col-span-2 space-y-5 lg:col-span-1 lg:space-y-6">
                         <div className="flex items-end gap-0">
                             <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                                 {logo}
@@ -46,7 +46,7 @@ const Footer = ({
                             </span>
                         </div>
 
-                        <p className="mt-2 text-[14px] font-normal text-[rgba(119,119,119,1)] leading-[20px] max-w-[500px]">
+                        <p className="mt-2 w-full max-w-none text-[13px] leading-[1.35] font-normal text-[rgba(119,119,119,1)] lg:max-w-[500px] lg:text-[14px] lg:leading-[20px]">
                             Diqqət! Monitorun rəng göstərmə xüsusiyyətlərinə görə məhsulun öz rəngi saytdakı rəngindən fərqli ola bilər.
                         </p>
 
@@ -57,9 +57,9 @@ const Footer = ({
 
                     {categoryLinks.length > 0 ? (
                         <div>
-                            <h3 className="text-[21px] font-bold leading-none">{categoryTitle}</h3>
+                            <h3 className="text-[16px] font-bold leading-none lg:text-[21px]">{categoryTitle}</h3>
                             <div className="mt-4 pr-2">
-                                <ul className="space-y-2.5 text-[14px] font-medium text-[#272a30]">
+                                <ul className="space-y-3 text-[13px] font-medium text-[#272a30] lg:space-y-2.5 lg:text-[14px]">
                                     {categoryLinks.map((item) => (
                                         <li key={item.label}>
                                             <a href={item.href} className="transition-colors hover:text-black">
@@ -74,8 +74,8 @@ const Footer = ({
 
                     {companyLinks.length > 0 ? (
                         <div>
-                            <h3 className="text-[21px] font-bold leading-none">{companyTitle}</h3>
-                            <ul className="mt-4 space-y-2.5 text-[14px] font-medium text-[#272a30]">
+                            <h3 className="text-[16px] font-bold leading-none lg:text-[21px]">{companyTitle}</h3>
+                            <ul className="mt-4 space-y-3 text-[13px] font-medium text-[#272a30] lg:space-y-2.5 lg:text-[14px]">
                                 {companyLinks.map((item) => (
                                     <li key={item.label}>
                                         <a href={item.href} className="transition-colors hover:text-black">
@@ -89,8 +89,8 @@ const Footer = ({
 
                     {customerLinks.length > 0 ? (
                         <div>
-                            <h3 className="text-[21px] font-bold leading-none">{customerTitle}</h3>
-                            <ul className="mt-4 space-y-2.5 text-[14px] font-medium text-[#272a30]">
+                            <h3 className="text-[16px] font-bold leading-none lg:text-[21px]">{customerTitle}</h3>
+                            <ul className="mt-4 space-y-3 text-[13px] font-medium text-[#272a30] lg:space-y-2.5 lg:text-[14px]">
                                 {customerLinks.map((item) => (
                                     <li key={item.label}>
                                         <a href={item.href} className="transition-colors hover:text-black">
@@ -103,14 +103,14 @@ const Footer = ({
                     ) : null}
 
                     {contacts.length > 0 ? (
-                        <div className="mx-0 max-w-full min-w-0 pl-0 pr-0 space-y-3 text-[14px] leading-[1.3] font-medium text-[#1f2329] sm:max-w-[320px] sm:text-[15px] lg:max-w-[360px]">
+                        <div className="col-span-2 mx-0 max-w-full min-w-0 space-y-3.5 pl-0 pr-0 text-[17px] leading-[1.3] font-normal text-[#1f2329] sm:max-w-[320px] lg:col-span-1 lg:max-w-[360px] lg:space-y-3 lg:text-[14px] lg:font-medium">
                             {contacts.map((item) => {
                                         const content = (
                                             <>
                                                 {item.icon ? (
                                                     <span
                                                         className={cn(
-                                                            "flex size-[38px] shrink-0 items-center justify-center rounded-full border border-[#d6d9de] text-[#2f5dff]",
+                                                            "flex size-[34px] shrink-0 items-center justify-center rounded-full border border-[#d6d9de] text-[#2f5dff] lg:size-[38px]",
                                                             item.href ? "mt-0.5" : "-mt-0.5"
                                                         )}
                                                     >
@@ -143,11 +143,14 @@ const Footer = ({
                     ) : null}
                 </div>
 
-                {rightsText ? <p className="mt-1 text-[15px] text-[#7a7e84] font-normal">{rightsText}</p> : null}
+                {rightsText ? <p className="mt-6 text-[13px] font-normal text-[#7a7e84] lg:mt-1 lg:text-[15px]">{rightsText}</p> : null}
+                {socials.length > 0 && !rightsText ? (
+                    <p className="mt-6 text-[13px] font-normal text-[#7a7e84] lg:hidden">Bütün hüquqlar qorunur © 2016—2025</p>
+                ) : null}
             </div>
 
             {socials.length > 0 ? (
-                <div className="w-full bg-black/5 [box-shadow:0_0_0_100vmax_rgba(0,0,0,0.05)] [clip-path:inset(0_-100vmax)]">
+                <div className="hidden w-full bg-black/5 [box-shadow:0_0_0_100vmax_rgba(0,0,0,0.05)] [clip-path:inset(0_-100vmax)] lg:block">
                     <div className={cn("mx-auto w-full max-w-[1280px] px-0 py-3 lg:px-0 lg:grid lg:items-center", lgColsClass)}>
                         <div className="flex flex-wrap items-center justify-start gap-2.5 lg:col-start-1">
                             {socials.map((item, index) => (

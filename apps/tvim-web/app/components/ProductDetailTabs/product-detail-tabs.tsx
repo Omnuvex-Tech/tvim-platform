@@ -126,7 +126,10 @@ const ProductDetailTabs = ({
         if (!container) return;
         const btn = container.querySelector<HTMLButtonElement>(`[data-tab="${activeTab}"]`);
         if (!btn) return;
-        setActiveIndicator({ left: btn.offsetLeft, width: btn.offsetWidth });
+        setActiveIndicator({
+            left: activeTab === "about" ? 0 : btn.offsetLeft,
+            width: activeTab === "about" ? btn.offsetLeft + btn.offsetWidth : btn.offsetWidth,
+        });
     }, [activeTab]);
 
     const handleTabMouseEnter = (tab: TabKey) => {
@@ -347,7 +350,7 @@ const ProductDetailTabs = ({
     };
 
     return (
-        <section className="mt-10">
+        <section className="mt-10 max-lg:mt-8">
             <Script
                 src="https://www.google.com/recaptcha/api.js?render=explicit"
                 strategy="afterInteractive"
@@ -359,21 +362,21 @@ const ProductDetailTabs = ({
             <div
                 ref={tabsContainerRef}
                 id="product-features"
-                className="relative flex items-end gap-10 border-b border-[#dce3ef]"
+                className="relative -ml-3 flex items-end gap-10 border-b border-[#dce3ef] pl-3 max-lg:ml-0 max-lg:flex-col max-lg:items-stretch max-lg:gap-0 max-lg:border-b-0 max-lg:pl-0"
             >
                 {/* Active tab indicator - always visible */}
                 <div
-                    className="absolute bottom-0 h-[1px] transition-all duration-300 ease-in-out"
+                    className="absolute bottom-0 h-[1px] transition-all duration-300 ease-in-out max-lg:hidden"
                     style={{
                         left: activeIndicator.left,
                         width: activeIndicator.width,
-                        backgroundColor: "#2454e7",
+                        backgroundColor: "rgba(0, 56, 245, 1)",
                     }}
                 />
                 {/* Hover indicator - scales in from left when hovering a non-active tab */}
                 {hoveredTab && hoveredTab !== activeTab ? (
                     <div
-                        className="absolute bottom-0 h-[1px] origin-left"
+                        className="absolute bottom-0 h-[1px] origin-left max-lg:hidden"
                         style={{
                             left: hoverIndicator.left,
                             width: hoverIndicator.width,
@@ -395,10 +398,13 @@ const ProductDetailTabs = ({
                     onClick={() => setActiveTab("about")}
                     onMouseEnter={() => handleTabMouseEnter("about")}
                     onMouseLeave={() => setHoveredTab(null)}
-                    className={`-mb-px cursor-pointer pb-2 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:text-[24px] ${
-                        activeTab === "about" ? "text-[#2454e7]" : "text-[#8b95a8]"
+                    className={`-mb-px cursor-pointer pb-3 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:mb-0 max-lg:min-h-[64px] max-lg:border-b max-lg:px-3 max-lg:py-5 max-lg:text-left max-lg:text-[22px] ${
+                        activeTab === "about" ? "max-lg:border-[rgba(0,56,245,1)]" : "max-lg:border-[#e5e9f0]"
                     }`}
-                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                    style={{
+                        fontFamily: "var(--font-inter), sans-serif",
+                        color: activeTab === "about" ? "rgba(0, 56, 245, 1)" : "#8b95a8",
+                    }}
                 >
                     Məhsul haqqında
                 </button>
@@ -409,10 +415,13 @@ const ProductDetailTabs = ({
                     onClick={() => setActiveTab("features")}
                     onMouseEnter={() => handleTabMouseEnter("features")}
                     onMouseLeave={() => setHoveredTab(null)}
-                    className={`-mb-px cursor-pointer pb-2 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:text-[24px] ${
-                        activeTab === "features" ? "text-[#2454e7]" : "text-[#8b95a8]"
+                    className={`-mb-px cursor-pointer pb-3 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:mb-0 max-lg:min-h-[64px] max-lg:border-b max-lg:px-3 max-lg:py-5 max-lg:text-left max-lg:text-[22px] ${
+                        activeTab === "features" ? "max-lg:border-[rgba(0,56,245,1)]" : "max-lg:border-[#e5e9f0]"
                     }`}
-                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                    style={{
+                        fontFamily: "var(--font-inter), sans-serif",
+                        color: activeTab === "features" ? "rgba(0, 56, 245, 1)" : "#8b95a8",
+                    }}
                 >
                     Xüsusiyyətlər
                 </button>
@@ -422,10 +431,13 @@ const ProductDetailTabs = ({
                     onClick={() => setActiveTab("comments")}
                     onMouseEnter={() => handleTabMouseEnter("comments")}
                     onMouseLeave={() => setHoveredTab(null)}
-                    className={`-mb-px cursor-pointer pb-2 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:text-[24px] ${
-                        activeTab === "comments" ? "text-[#2454e7]" : "text-[#8b95a8]"
+                    className={`-mb-px cursor-pointer pb-3 text-[24px] font-bold leading-none transition-colors duration-300 max-lg:mb-0 max-lg:min-h-[64px] max-lg:border-b max-lg:px-3 max-lg:py-5 max-lg:text-left max-lg:text-[22px] ${
+                        activeTab === "comments" ? "max-lg:border-[rgba(0,56,245,1)]" : "max-lg:border-[#e5e9f0]"
                     }`}
-                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                    style={{
+                        fontFamily: "var(--font-inter), sans-serif",
+                        color: activeTab === "comments" ? "rgba(0, 56, 245, 1)" : "#8b95a8",
+                    }}
                 >
                     Şərhlər ({resolvedCommentsCount})
                 </button>
@@ -476,10 +488,10 @@ const ProductDetailTabs = ({
 
             {activeTab === "comments" ? (
                 <div className="mt-6">
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[22px] leading-[1.2] font-normal text-[#111318]">
+                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[20px] leading-[1.2] font-normal text-[#111318]">
                         <span className="text-[#111318]">Şərh: {resolvedCommentsCount}</span>
                         <span className="text-[#111318]">Orta qiymət: {averageRating.toFixed(1)}</span>
-                        <div className="flex items-center gap-1 text-[#c7cdd9] text-[22px] leading-none">
+                        <div className="flex items-center gap-1 text-[#c7cdd9] text-[20px] leading-none">
                             {Array.from({ length: 5 }).map((_, idx) => (
                                 <i
                                     key={`summary-star-${idx}`}
@@ -491,7 +503,7 @@ const ProductDetailTabs = ({
                         <button
                             type="button"
                             onClick={() => setShowCommentForm((prev) => !prev)}
-                            className="inline-flex items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-4 !py-[15px] !text-[16px] !leading-[1px] !font-[650] text-white transition-opacity hover:opacity-95"
+                            className="inline-flex items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-4 !py-[14px] !text-[14px] !leading-[1px] !font-[650] text-white transition-opacity hover:opacity-95"
                             style={{ fontFamily: "var(--font-inter), sans-serif" }}
                         >
                             Şərh yaz
@@ -619,7 +631,9 @@ const ProductDetailTabs = ({
                                 ))}
                             </div>
                         ) : (
-                            <div className="min-h-[24px] text-[14px] leading-[1.42857143] text-[#111318]">Bu məhsul üçün şərh yazılmayıb.</div>
+                            <div className="min-h-[24px] text-[14px] font-[450] leading-[1.42857143] text-[#050505]" style={{ fontSize: "14px" }}>
+                                Bu məhsul üçün şərh yazılmayıb.
+                            </div>
                         )}
                     </div>
                 </div>
