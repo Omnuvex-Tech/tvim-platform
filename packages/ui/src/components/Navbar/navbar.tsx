@@ -620,10 +620,7 @@ function NavbarSearch({
                     <div className="max-h-[420px] overflow-y-auto">
                         {isLoading ? (
                             <div className="flex min-h-[78px] items-center justify-center px-4 py-5">
-                                <span
-                                    className="inline-block h-[21px] w-[21px] animate-spin rounded-full border-[3.5px] border-[#f6c9bb] border-t-[#f48368]"
-                                    aria-hidden="true"
-                                />
+                                <Spinner size={21} strokeWidth={1.5} className="text-black" />
                                 <span className="sr-only">Axtarılır...</span>
                             </div>
                         ) : error ? (
