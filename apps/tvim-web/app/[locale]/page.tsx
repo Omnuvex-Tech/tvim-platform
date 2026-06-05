@@ -6,9 +6,11 @@ import type {
     ProjectSettingsData,
     ProjectSettingsResponseData,
 } from "@repo/types/types";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
+import { buildHomeMetadata, resolveProjectSettings, resolveSettingsApiLocale, resolveSettingsSeo } from "@/lib/settings";
 import {
     extractHeaderCategories,
     extractHeaderItems,
@@ -23,6 +25,27 @@ import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+    const normalizedLocale = locale.trim().toLowerCase();
+    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
+        params: { lang: normalizedLocale },
+        locale: resolveSettingsApiLocale(normalizedLocale),
+        cache: "no-store",
+    });
+
+    return buildHomeMetadata(
+        settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
+        normalizedLocale,
+    );
+}
 
 export default async function HomePage({
     params,
@@ -52,7 +75,9 @@ export default async function HomePage({
             locale: normalizedLocale,
         }),
         api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale: normalizedLocale,
+            params: { lang: normalizedLocale },
+            locale: resolveSettingsApiLocale(normalizedLocale),
+            cache: "no-store",
         }),
         getMainPageBlocks(normalizedLocale),
         api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
@@ -94,7 +119,7 @@ export default async function HomePage({
     let projectSettings: ProjectSettingsData | undefined;
 
     if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
+        projectSettings = resolveProjectSettings(settingsResponse.data);
     }
 
     const navbarLogo = projectSettings?.general.images.logo ? (

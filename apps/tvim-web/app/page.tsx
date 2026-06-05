@@ -1,10 +1,33 @@
 import type { Language, FooterMenusData, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
+import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
+import { buildHomeMetadata, resolveProjectSettings, resolveSettingsApiLocale, resolveSettingsSeo } from "@/lib/settings";
 import { config } from "@/config";
 import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
 import { Footer } from "./components/Footer/footer";
 import { MainPageBlocks } from "./components/MainPageBlocks/main-page-blocks";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+    const siteDefaultLocale =
+        langResponse.success && langResponse.data
+            ? langResponse.data.find((language) => language.is_default_site)?.code ?? config.project.defLang
+            : config.project.defLang;
+
+    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
+        params: { lang: siteDefaultLocale.toLowerCase() },
+        locale: resolveSettingsApiLocale(siteDefaultLocale),
+        cache: "no-store",
+    });
+
+    return buildHomeMetadata(
+        settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
+        siteDefaultLocale.toLowerCase(),
+    );
+}
 
 export default async function Home() {
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -27,7 +50,9 @@ export default async function Home() {
             locale: siteDefaultLocale,
         }),
         api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale: siteDefaultLocale,
+            params: { lang: siteDefaultLocale.toLowerCase() },
+            locale: resolveSettingsApiLocale(siteDefaultLocale),
+            cache: "no-store",
         }),
         getMainPageBlocks(siteDefaultLocale),
         api.get<any>(config.endpoints.menus.list, {
@@ -93,7 +118,7 @@ export default async function Home() {
     let projectSettings: ProjectSettingsData | undefined;
 
     if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
+        projectSettings = resolveProjectSettings(settingsResponse.data);
     }
 
     const navbarLogo = projectSettings?.general.images.logo ? (

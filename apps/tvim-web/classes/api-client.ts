@@ -70,7 +70,7 @@ export class ApiClient {
                     "Content-Type": "application/json",
                     Accept: "application/json",
                     ...init.headers,
-                    ...(locale ? { "Content-Language": locale } : null),
+                    ...(locale ? { "Content-Language": locale, "Accept-Language": locale } : null),
                 },
             });
 
