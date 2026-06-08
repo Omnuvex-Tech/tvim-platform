@@ -44,6 +44,9 @@ export async function generateMetadata({
     return buildHomeMetadata(
         settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
         normalizedLocale,
+        {
+            canonicalPath: normalizedLocale,
+        },
     );
 }
 

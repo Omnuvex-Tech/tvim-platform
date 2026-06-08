@@ -52,8 +52,9 @@ const buildUpstreamHeaders = (request: NextRequest) => {
     return headers;
 };
 
-export async function POST(request: NextRequest, context: { params: { gateway: string } }) {
-    const gateway = context.params.gateway?.trim() ?? "";
+export async function POST(request: NextRequest, context: { params: Promise<{ gateway: string }> }) {
+    const { gateway: gatewayParam } = await context.params;
+    const gateway = gatewayParam?.trim() ?? "";
 
     if (!gateway || !isAllowedGateway(gateway)) {
         return NextResponse.json(

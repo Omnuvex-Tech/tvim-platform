@@ -37,6 +37,13 @@ type ProjectSettingsSitemapData = {
     priority?: string;
 };
 
+type HomeMetadataOptions = {
+    canonicalPath?: string;
+    alternatePathByLocale?: Record<string, string>;
+    locales?: string[];
+    defaultLocale?: string;
+};
+
 const isRecord = (value: unknown): value is AnyRecord =>
     typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -117,6 +124,48 @@ const resolveOpenGraphType = (type: unknown) => {
 const resolveTwitterCard = (card: unknown) => {
     const validCards = ["summary", "summary_large_image", "app", "player"] as const;
     return validCards.find((validCard) => validCard === card);
+};
+
+const normalizeSiteUrl = (url: string | undefined) => String(url || "").replace(/\/+$/, "");
+
+const getUrlOrigin = (url: string | undefined) => {
+    const normalizedUrl = normalizeSiteUrl(url);
+    if (!normalizedUrl) return "";
+
+    try {
+        const parsedUrl = new URL(normalizedUrl);
+        return parsedUrl.origin;
+    } catch {
+        return normalizedUrl;
+    }
+};
+
+const resolveUrl = (siteUrl: string, path: string) => {
+    const normalizedSiteUrl = normalizeSiteUrl(siteUrl);
+    if (!normalizedSiteUrl) return undefined;
+
+    const normalizedPath = path ? `/${path.replace(/^\/+/, "")}` : "/";
+    return `${normalizedSiteUrl}${normalizedPath === "/" ? "" : normalizedPath}`;
+};
+
+const buildLanguageAlternates = (
+    siteUrl: string,
+    locales: string[],
+    defaultLocale: string,
+    alternatePathByLocale: Record<string, string> = {},
+) => {
+    const languages = locales.reduce<Record<string, string>>((acc, locale) => {
+        const normalizedLocale = locale.trim().toLowerCase();
+        const href = resolveUrl(siteUrl, alternatePathByLocale[normalizedLocale] ?? normalizedLocale);
+        if (normalizedLocale && href) acc[normalizedLocale] = href;
+        return acc;
+    }, {});
+
+    const normalizedDefaultLocale = defaultLocale.trim().toLowerCase();
+    const defaultHref = resolveUrl(siteUrl, alternatePathByLocale[normalizedDefaultLocale] ?? normalizedDefaultLocale);
+    if (defaultHref) languages["x-default"] = defaultHref;
+
+    return languages;
 };
 
 const extractPayload = (responseData: unknown) => {
@@ -259,11 +308,22 @@ export const resolveSettingsSitemap = (responseData: unknown): ProjectSettingsSi
 export const buildHomeMetadata = (
     seo: ProjectSettingsSeoData | undefined,
     locale: string,
+    options: HomeMetadataOptions = {},
 ): Metadata => {
     const title = seo?.meta_title || seo?.title || config.project.projectName;
     const description = seo?.meta_description || seo?.description || config.project.projectDescription;
     const keywords = normalizeKeywords(seo?.meta_keywords ?? seo?.keywords);
-    const canonical = seo?.canonical || (config.project.url ? `${config.project.url}/${locale}` : undefined);
+    const siteUrl = getUrlOrigin(seo?.canonical || config.project.url);
+    const canonical = resolveUrl(siteUrl, options.canonicalPath ?? locale);
+    const locales = options.locales?.length ? options.locales : ["az", "en", "ru"];
+    const defaultLocale = options.defaultLocale ?? config.project.defLang;
+    const automaticLanguages = buildLanguageAlternates(siteUrl, locales, defaultLocale, options.alternatePathByLocale);
+    const apiLanguages = seo?.alternates?.reduce<Record<string, string>>((acc, alternate) => {
+        const hrefLang = alternate.hreflang;
+        const href = alternate.href ?? alternate.url;
+        if (hrefLang && href) acc[hrefLang] = href;
+        return acc;
+    }, {});
 
     return {
         title,
@@ -271,12 +331,10 @@ export const buildHomeMetadata = (
         keywords,
         alternates: {
             canonical,
-            languages: seo?.alternates?.reduce<Record<string, string>>((acc, alternate) => {
-                const hrefLang = alternate.hreflang;
-                const href = alternate.href ?? alternate.url;
-                if (hrefLang && href) acc[hrefLang] = href;
-                return acc;
-            }, {}),
+            languages: {
+                ...automaticLanguages,
+                ...apiLanguages,
+            },
         },
         openGraph: seo?.open_graph
             ? {

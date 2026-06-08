@@ -7,13 +7,13 @@ import type {
     HeaderCategoriesResponseData,
     HeaderMenuResponseData,
     Language,
-    ProjectSettingsData,
     ProjectSettingsResponseData,
 } from "@repo/types/types";
 import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import { buildHomeMetadata, resolveProjectSettings, resolveSettingsApiLocale } from "@/lib/settings";
 import {
     extractHeaderCategories,
     extractHeaderItems,
@@ -47,6 +47,7 @@ type MenuDetailData = {
         meta_keywords?: any;
     };
     data: {
+        description?: string;
         mode?: string;
         submit?: {
             method: string;
@@ -177,7 +178,9 @@ type ProductListApiResponse = {
 async function getMenuDetail(slug: string, locale: string) {
     try {
         const response = await api.get<MenuDetailData>(config.endpoints.menus.detail(slug), {
-            locale,
+            params: { lang: locale },
+            locale: resolveSettingsApiLocale(locale),
+            cache: "no-store",
         });
         if (response.success && response.data) {
             return response.data;
@@ -190,47 +193,36 @@ async function getMenuDetail(slug: string, locale: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, locale } = await params;
-    const detail = await getMenuDetail(slug, locale);
+    const normalizedLocale = locale.trim().toLowerCase();
+    const detail = await getMenuDetail(slug, normalizedLocale);
 
     if (!detail) return {};
 
-    const { seo } = detail.menu;
+    const seo = detail.data?.seo ?? detail.menu.seo;
+    const multiLinks = detail.menu.multi_links ?? {};
+    const currentLink = multiLinks[normalizedLocale] || multiLinks[normalizedLocale.toUpperCase()] || detail.menu.link || slug;
+    const currentPath = `${normalizedLocale}/${String(currentLink).replace(/^\/+/, "")}`;
+    const alternatePathByLocale = ["az", "en", "ru"].reduce<Record<string, string>>((acc, alternateLocale) => {
+        const link = multiLinks[alternateLocale] || multiLinks[alternateLocale.toUpperCase()] || detail.menu.link || slug;
+        acc[alternateLocale] = `${alternateLocale}/${String(link).replace(/^\/+/, "")}`;
+        return acc;
+    }, {});
 
-    // Keywords may come from multiple places depending on CMS shape.
-    // Support: seo.meta_keywords, detail.data.meta_keywords, detail.data.meta?.meta_keywords
-    let rawKeywords: any = seo?.meta_keywords ?? detail.data?.meta_keywords ?? detail.data?.meta?.meta_keywords ?? detail.menu?.meta_keywords;
-    if (rawKeywords && typeof rawKeywords === "string") {
-        rawKeywords = rawKeywords.split(",").map((s: string) => s.trim()).filter(Boolean);
-    }
-
-    return {
-        title: seo?.meta_title || detail.menu.name,
-        description: seo?.meta_description,
-        keywords: rawKeywords,
-        alternates: {
+    return buildHomeMetadata(
+        {
+            meta_title: seo?.meta_title || detail.menu.title || detail.menu.name,
+            meta_description: seo?.meta_description || detail.menu.description || detail.data?.description,
+            meta_keywords: seo?.meta_keywords ?? detail.data?.meta_keywords ?? detail.data?.meta?.meta_keywords ?? detail.menu?.meta_keywords,
             canonical: seo?.canonical,
-            languages: seo?.alternates?.reduce((acc: any, alt: any) => {
-                acc[alt.locale] = alt.url;
-                return acc;
-            }, {}),
+            alternates: seo?.alternates,
+            open_graph: seo?.open_graph,
         },
-        openGraph: seo?.open_graph ? {
-            title: seo.open_graph.title,
-            description: seo.open_graph.description,
-            url: seo.open_graph.url,
-            siteName: seo.open_graph.site_name,
-            images: [
-                {
-                    url: seo.open_graph.image,
-                    width: seo.open_graph.image_width,
-                    height: seo.open_graph.image_height,
-                    alt: seo.open_graph.image_alt,
-                },
-            ],
-            locale: seo.open_graph.locale,
-            type: "website",
-        } : undefined,
-    };
+        normalizedLocale,
+        {
+            canonicalPath: currentPath,
+            alternatePathByLocale,
+        },
+    );
 }
 
 export default async function DynamicMenuPage({ params, searchParams }: Props) {
@@ -257,7 +249,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             locale: normalizedLocale,
         }),
         api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale: normalizedLocale,
+            params: { lang: normalizedLocale },
+            locale: resolveSettingsApiLocale(normalizedLocale),
+            cache: "no-store",
         }),
         api.get<HeaderCategoriesResponseData>("/product/categories", {
             params: { in_header: "1" },
@@ -291,7 +285,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     }
 
     const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-    const projectSettings = settingsResponse.success ? settingsResponse.data?.data : undefined;
+    const projectSettings = settingsResponse.success ? resolveProjectSettings(settingsResponse.data) : undefined;
 
     const navbarLogo = projectSettings?.general.images.logo ? (
         <img

@@ -65,7 +65,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .filter(Boolean)
         .map((locale) => ({
             url: `${siteUrl}/${locale}`,
-            lastModified: new Date(),
             changeFrequency: resolveChangeFrequency(sitemapSettings?.freq),
             priority: resolvePriority(sitemapSettings?.priority),
         }));
@@ -73,7 +72,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
         {
             url: siteUrl,
-            lastModified: new Date(),
             changeFrequency: resolveChangeFrequency(sitemapSettings?.freq),
             priority: resolvePriority(sitemapSettings?.priority),
         },

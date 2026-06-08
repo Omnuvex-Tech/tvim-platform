@@ -26,6 +26,13 @@ export async function generateMetadata(): Promise<Metadata> {
     return buildHomeMetadata(
         settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
         siteDefaultLocale.toLowerCase(),
+        {
+            canonicalPath: "",
+            locales: langResponse.success && langResponse.data
+                ? langResponse.data.map((language) => language.code)
+                : undefined,
+            defaultLocale: siteDefaultLocale,
+        },
     );
 }
 
