@@ -194,6 +194,24 @@ const buildLanguageAlternates = (
     return languages;
 };
 
+const normalizeAlternateHref = (siteUrl: string, href: unknown) => {
+    const raw = String(href ?? "").trim();
+    if (!raw) return undefined;
+
+    const absolute = normalizeAbsoluteHttpUrl(raw);
+    if (absolute) return absolute;
+
+    if (raw.startsWith("/")) {
+        try {
+            return new URL(raw, siteUrl).toString();
+        } catch {
+            return undefined;
+        }
+    }
+
+    return undefined;
+};
+
 const extractPayload = (responseData: unknown) => {
     if (!isRecord(responseData)) return undefined;
 
@@ -339,6 +357,24 @@ export const resolveSettingsSiteUrl = (responseData: unknown): string | undefine
     return normalizeAbsoluteHttpUrl(general.frontend_url);
 };
 
+export const resolveSiteUrlWithFallbacks = ({
+    settingsResponse,
+    requestOrigin,
+    configUrl,
+}: {
+    settingsResponse: unknown;
+    requestOrigin?: string;
+    configUrl?: string;
+}): string | undefined => {
+    const fromSettings = resolveSettingsSiteUrl(settingsResponse);
+    if (fromSettings) return fromSettings;
+
+    const fromRequest = normalizeAbsoluteHttpUrl(requestOrigin);
+    if (fromRequest) return fromRequest;
+
+    return normalizeAbsoluteHttpUrl(configUrl);
+};
+
 export const buildHomeMetadata = (
     seo: ProjectSettingsSeoData | undefined,
     locale: string,
@@ -355,12 +391,21 @@ export const buildHomeMetadata = (
     const automaticLanguages = siteUrl
         ? buildLanguageAlternates(siteUrl, locales, defaultLocale, options.alternatePathByLocale)
         : {};
-    const apiLanguages = seo?.alternates?.reduce<Record<string, string>>((acc, alternate) => {
-        const hrefLang = alternate.hreflang;
-        const href = alternate.href ?? alternate.url;
-        if (hrefLang && href) acc[hrefLang] = href;
-        return acc;
-    }, {}) ?? {};
+    const apiLanguages = siteUrl
+        ? seo?.alternates?.reduce<Record<string, string>>((acc, alternate) => {
+            const hrefLang = String(alternate.hreflang ?? "").trim().toLowerCase();
+            const href = normalizeAlternateHref(siteUrl, alternate.href ?? alternate.url);
+            if (hrefLang && href) acc[hrefLang] = href;
+            return acc;
+        }, {}) ?? {}
+        : {};
+
+    const normalizedLocale = locale.trim().toLowerCase();
+    const languages = {
+        ...automaticLanguages,
+        ...apiLanguages,
+        ...(canonical ? { [normalizedLocale]: canonical } : {}),
+    };
 
     return {
         title,
@@ -368,10 +413,7 @@ export const buildHomeMetadata = (
         keywords,
         alternates: {
             canonical,
-            languages: {
-                ...automaticLanguages,
-                ...apiLanguages,
-            },
+            languages,
         },
         openGraph: seo?.open_graph
             ? {

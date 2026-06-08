@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import type { Language } from "@repo/types/types";
+import { headers } from "next/headers";
 import { config } from "@/config";
-import { resolveSettingsSitemap, resolveSettingsSiteUrl } from "@/lib/settings";
+import { resolveSettingsSitemap, resolveSiteUrlWithFallbacks } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,24 @@ const resolvePriority = (priority: string | undefined) => {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [settings, languages] = await Promise.all([getSettings(), getLanguages()]);
     const sitemapSettings = resolveSettingsSitemap(settings);
-    const siteUrl = resolveSettingsSiteUrl(settings);
+    const requestOrigin = await (async () => {
+        try {
+            const h = await headers();
+            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
+            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
+            const host = forwardedHost || h.get("host")?.trim();
+            if (!host) return undefined;
+            const proto = forwardedProto || "https";
+            return `${proto}://${host}`;
+        } catch {
+            return undefined;
+        }
+    })();
+    const siteUrl = resolveSiteUrlWithFallbacks({
+        settingsResponse: settings,
+        requestOrigin,
+        configUrl: config.project.url,
+    });
 
     if (!siteUrl) return [];
 

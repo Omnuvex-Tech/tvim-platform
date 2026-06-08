@@ -15,6 +15,19 @@ const toNumber = (value: unknown) => {
 
 const toText = (value: unknown) => (typeof value === "string" ? value : "");
 
+const normalizeHttpUrl = (value: unknown) => {
+    const cleaned = String(value ?? "").trim().replace(/^`+|`+$/g, "").trim();
+    if (!cleaned) return "";
+
+    try {
+        const url = new URL(cleaned);
+        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+        return url.toString();
+    } catch {
+        return "";
+    }
+};
+
 const AZ_COUNTRY_CODE = "994";
 const AZ_LOCAL_PHONE_LENGTH = 9;
 
@@ -540,6 +553,21 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
             try {
                 await hydrateCart(true);
             } catch {
+            }
+
+            const payment = json?.data?.payment ?? null;
+            const order = json?.data?.order ?? null;
+            const paymentStatus = toText(payment?.status).trim().toLowerCase();
+            const redirectUrl = normalizeHttpUrl(payment?.redirect_url);
+            const requiresRedirect = Boolean(order?.payment_method?.requires_redirect);
+
+            if (paymentStatus === "redirect_required" || requiresRedirect) {
+                if (!redirectUrl) {
+                    notify.error("Ödəniş linki alınmadı.");
+                    return;
+                }
+                window.location.assign(redirectUrl);
+                return;
             }
 
             if (isAuthenticated) {

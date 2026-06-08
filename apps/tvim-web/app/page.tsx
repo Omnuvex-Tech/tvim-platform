@@ -1,5 +1,6 @@
 import type { Language, FooterMenusData, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
 import {
@@ -7,7 +8,7 @@ import {
     resolveProjectSettings,
     resolveSettingsApiLocale,
     resolveSettingsSeo,
-    resolveSettingsSiteUrl,
+    resolveSiteUrlWithFallbacks,
 } from "@/lib/settings";
 import { config } from "@/config";
 import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
@@ -29,6 +30,26 @@ export async function generateMetadata(): Promise<Metadata> {
         cache: "no-store",
     });
 
+    const requestOrigin = await (async () => {
+        try {
+            const h = await headers();
+            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
+            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
+            const host = forwardedHost || h.get("host")?.trim();
+            if (!host) return undefined;
+            const proto = forwardedProto || "https";
+            return `${proto}://${host}`;
+        } catch {
+            return undefined;
+        }
+    })();
+
+    const siteUrl = resolveSiteUrlWithFallbacks({
+        settingsResponse: settingsResponse.success ? settingsResponse.data : undefined,
+        requestOrigin,
+        configUrl: config.project.url,
+    });
+
     return buildHomeMetadata(
         settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
         siteDefaultLocale.toLowerCase(),
@@ -38,9 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
                 ? langResponse.data.map((language) => language.code)
                 : undefined,
             defaultLocale: siteDefaultLocale,
-            siteUrl: settingsResponse.success
-                ? resolveSettingsSiteUrl(settingsResponse.data)
-                : undefined,
+            siteUrl,
         }
     );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { config } from "@/config";
-import { resolveSettingsRobotsText, resolveSettingsSiteUrl } from "@/lib/settings";
+import { resolveSettingsRobotsText, resolveSiteUrlWithFallbacks } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +30,20 @@ const normalizeUserAgents = (robotsText: string | undefined) => {
     return Array.from(new Set(items));
 };
 
-export async function GET() {
+export async function GET(request: Request) {
     const settings = await getSettings();
-    const siteUrl = resolveSettingsSiteUrl(settings);
+    const requestOrigin = (() => {
+        try {
+            return new URL(request.url).origin;
+        } catch {
+            return undefined;
+        }
+    })();
+    const siteUrl = resolveSiteUrlWithFallbacks({
+        settingsResponse: settings,
+        requestOrigin,
+        configUrl: config.project.url,
+    });
     const userAgents = normalizeUserAgents(resolveSettingsRobotsText(settings));
     const lines = ["User-agent: *", "Allow: /"];
 

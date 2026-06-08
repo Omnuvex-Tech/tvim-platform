@@ -7,6 +7,7 @@ import type {
     ProjectSettingsResponseData,
 } from "@repo/types/types";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
@@ -15,7 +16,7 @@ import {
     resolveProjectSettings,
     resolveSettingsApiLocale,
     resolveSettingsSeo,
-    resolveSettingsSiteUrl,
+    resolveSiteUrlWithFallbacks,
 } from "@/lib/settings";
 import {
     extractHeaderCategories,
@@ -47,12 +48,32 @@ export async function generateMetadata({
         cache: "no-store",
     });
 
+    const requestOrigin = await (async () => {
+        try {
+            const h = await headers();
+            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
+            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
+            const host = forwardedHost || h.get("host")?.trim();
+            if (!host) return undefined;
+            const proto = forwardedProto || "https";
+            return `${proto}://${host}`;
+        } catch {
+            return undefined;
+        }
+    })();
+
+    const siteUrl = resolveSiteUrlWithFallbacks({
+        settingsResponse: settingsResponse.success ? settingsResponse.data : undefined,
+        requestOrigin,
+        configUrl: config.project.url,
+    });
+
     return buildHomeMetadata(
         settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
         normalizedLocale,
         {
             canonicalPath: normalizedLocale,
-            siteUrl: settingsResponse.success ? resolveSettingsSiteUrl(settingsResponse.data) : undefined,
+            siteUrl,
         },
     );
 }

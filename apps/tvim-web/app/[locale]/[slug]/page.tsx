@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import type {
     FooterMenusData,
@@ -208,6 +209,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         return acc;
     }, {});
 
+    const requestOrigin = await (async () => {
+        try {
+            const h = await headers();
+            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
+            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
+            const host = forwardedHost || h.get("host")?.trim();
+            if (!host) return undefined;
+            const proto = forwardedProto || "https";
+            return `${proto}://${host}`;
+        } catch {
+            return undefined;
+        }
+    })();
+
     return buildHomeMetadata(
         {
             meta_title: seo?.meta_title || detail.menu.title || detail.menu.name,
@@ -221,6 +236,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         {
             canonicalPath: currentPath,
             alternatePathByLocale,
+            siteUrl: requestOrigin ?? config.project.url,
         },
     );
 }
