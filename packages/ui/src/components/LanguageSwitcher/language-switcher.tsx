@@ -51,10 +51,12 @@ const LanguageSwitcher = ({
     defLang,
     locale,
     onLocaleChange,
+    localeHrefs,
     variant = "desktop",
 }: LanguageSwitcherProps & {
     locale: string;
     onLocaleChange: (locale: string) => void;
+    localeHrefs?: Record<string, string>;
     variant?: "desktop" | "mobile";
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -141,25 +143,16 @@ const LanguageSwitcher = ({
                             localeOptions.find((o) => o.code === lang.code)?.country || "AZ";
                         const isActive = lang.code === activeLocale;
                         const code = lang.code.toUpperCase();
+                        const href = localeHrefs?.[lang.code.toLowerCase()];
+                        const itemClassName = cn(
+                            "flex w-full cursor-pointer items-center gap-1.5 rounded-[11px] border text-left font-medium text-[#1d2230] transition-colors",
+                            isDesktop ? "h-[34px] px-2 text-[13px]" : "px-2 py-1.5 text-[13px]",
+                            isActive && "border-[#b7caf9] bg-[#dfe8fb]",
+                            !isActive && "border-transparent hover:bg-[#f3f4f6]"
+                        );
 
-                        return (
-                            <button
-                                key={lang.id}
-                                type="button"
-                                className={cn(
-                                    "flex w-full cursor-pointer items-center gap-1.5 rounded-[11px] border text-left font-medium text-[#1d2230] transition-colors",
-                                    isDesktop ? "h-[34px] px-2 text-[13px]" : "px-2 py-1.5 text-[13px]",
-                                    isActive && "border-[#b7caf9] bg-[#dfe8fb]",
-                                    !isActive && "border-transparent hover:bg-[#f3f4f6]"
-                                )}
-                                onClick={() => {
-                                    onLocaleChange(lang.code);
-                                    setIsOpen(false);
-                                }}
-                                role="option"
-                                aria-selected={isActive}
-                                suppressHydrationWarning
-                            >
+                        const itemContent = (
+                            <>
                                 <span
                                     className={cn(
                                         "inline-flex overflow-hidden rounded-[2px] border border-black/10",
@@ -170,6 +163,39 @@ const LanguageSwitcher = ({
                                     <LocaleFlag country={country} />
                                 </span>
                                 <span>{code}</span>
+                            </>
+                        );
+
+                        if (href) {
+                            return (
+                                <a
+                                    key={lang.id}
+                                    href={href}
+                                    className={itemClassName}
+                                    onClick={() => setIsOpen(false)}
+                                    role="option"
+                                    aria-selected={isActive}
+                                    suppressHydrationWarning
+                                >
+                                    {itemContent}
+                                </a>
+                            );
+                        }
+
+                        return (
+                            <button
+                                key={lang.id}
+                                type="button"
+                                className={itemClassName}
+                                onClick={() => {
+                                    onLocaleChange(lang.code);
+                                    setIsOpen(false);
+                                }}
+                                role="option"
+                                aria-selected={isActive}
+                                suppressHydrationWarning
+                            >
+                                {itemContent}
                             </button>
                         );
                     })}

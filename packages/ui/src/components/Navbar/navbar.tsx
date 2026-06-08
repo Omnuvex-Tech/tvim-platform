@@ -329,6 +329,7 @@ export interface NavbarProps {
     languages?: Language[];
     defLang?: string;
     onLocaleChange?: (locale: string) => void;
+    localeHrefs?: Record<string, string>;
     initialCatalogItems?: any[];
     onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchSection[]>;
     isAuthenticated?: boolean;
@@ -689,13 +690,15 @@ function NavbarContact({
     locale, 
     languages, 
     defLang, 
-    onLocaleChange 
+    onLocaleChange,
+    localeHrefs,
 }: { 
     phone: string; 
     locale: string;
     languages?: Language[];
     defLang?: string;
     onLocaleChange?: (locale: string) => void;
+    localeHrefs?: Record<string, string>;
 }) {
     const [isLocaleOpen, setIsLocaleOpen] = useState(false);
     const [selectedLocale, setSelectedLocale] = useState(normalizeLocaleCode(locale));
@@ -747,8 +750,8 @@ function NavbarContact({
                     languages={effectiveLanguages}
                     defLang={effectiveDefLang}
                     locale={selectedLocale.toLowerCase()}
+                    localeHrefs={localeHrefs}
                     onLocaleChange={(newLocale: string) => {
-                        setSelectedLocale(newLocale.toUpperCase());
                         onLocaleChange(newLocale);
                     }}
                     variant="desktop"
@@ -781,6 +784,7 @@ function NavbarContact({
                                     }`}
                                     onClick={() => {
                                         setSelectedLocale(item.code);
+                                        onLocaleChange?.(item.code.toLowerCase());
                                         setIsLocaleOpen(false);
                                     }}
                                     role="option"
@@ -969,6 +973,7 @@ export function Navbar({
     languages,
     defLang,
     onLocaleChange,
+    localeHrefs,
     initialCatalogItems,
     onSearchProducts,
     isAuthenticated = false,
@@ -1527,6 +1532,7 @@ export function Navbar({
                             languages={languages}
                             defLang={defLang}
                             onLocaleChange={onLocaleChange}
+                            localeHrefs={localeHrefs}
                         />
                     </div>
 
@@ -1536,8 +1542,8 @@ export function Navbar({
                                 languages={languages || defaultLanguages}
                                 defLang={defLang || "az"}
                                 locale={mobileLocale.toLowerCase()}
+                                localeHrefs={localeHrefs}
                                 onLocaleChange={(newLocale: string) => {
-                                    setMobileLocale(newLocale.toUpperCase());
                                     onLocaleChange(newLocale);
                                 }}
                                 variant="mobile"
@@ -1571,6 +1577,7 @@ export function Navbar({
                                                 }`}
                                                 onClick={() => {
                                                     setMobileLocale(item.code);
+                                                    onLocaleChange?.(item.code.toLowerCase());
                                                     setIsMobileLocaleOpen(false);
                                                 }}
                                                 role="option"

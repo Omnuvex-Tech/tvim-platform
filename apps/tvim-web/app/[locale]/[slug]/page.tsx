@@ -84,6 +84,10 @@ type Props = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 type ProductListFilterValue = {
     value_id?: number;
     name?: string;
@@ -192,6 +196,16 @@ async function getMenuDetail(slug: string, locale: string) {
     }
 }
 
+const getCanonicalPath = (canonical: unknown) => {
+    if (typeof canonical !== "string" || !canonical.trim()) return "";
+
+    try {
+        return new URL(canonical).pathname.replace(/^\/+/, "");
+    } catch {
+        return canonical.replace(/^\/+/, "");
+    }
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug, locale } = await params;
     const normalizedLocale = locale.trim().toLowerCase();
@@ -201,8 +215,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const seo = detail.data?.seo ?? detail.menu.seo;
     const multiLinks = detail.menu.multi_links ?? {};
+    const seoCanonicalPath = getCanonicalPath(seo?.canonical);
     const currentLink = multiLinks[normalizedLocale] || multiLinks[normalizedLocale.toUpperCase()] || detail.menu.link || slug;
-    const currentPath = `${normalizedLocale}/${String(currentLink).replace(/^\/+/, "")}`;
+    const currentPath = seoCanonicalPath || `${normalizedLocale}/${String(currentLink).replace(/^\/+/, "")}`;
     const alternatePathByLocale = ["az", "en", "ru"].reduce<Record<string, string>>((acc, alternateLocale) => {
         const link = multiLinks[alternateLocale] || multiLinks[alternateLocale.toUpperCase()] || detail.menu.link || slug;
         acc[alternateLocale] = `${alternateLocale}/${String(link).replace(/^\/+/, "")}`;
@@ -230,6 +245,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             meta_keywords: seo?.meta_keywords ?? detail.data?.meta_keywords ?? detail.data?.meta?.meta_keywords ?? detail.menu?.meta_keywords,
             canonical: seo?.canonical,
             alternates: seo?.alternates,
+            x_default: seo?.x_default,
+            twitter: seo?.twitter,
             open_graph: seo?.open_graph,
         },
         normalizedLocale,
@@ -237,6 +254,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             canonicalPath: currentPath,
             alternatePathByLocale,
             siteUrl: requestOrigin ?? config.project.url,
+            useProjectFallbacks: false,
         },
     );
 }
@@ -319,9 +337,10 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
-    const languages = langResponse.success && langResponse.data ? langResponse.data.data : [];
+    const languages = langResponse.success && Array.isArray(langResponse.data) ? langResponse.data : [];
 
     const { menu, data: pageData } = menuDetail;
+    const localizedLinks = menu.multi_links ?? {};
 
     // Normalize keywords for UI and metadata usage
     function normalizeKeywords(raw: any): string[] {
@@ -750,6 +769,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     languages={languages}
                     menuItems={headerMenuItems}
                     initialCatalogItems={headerCategoryItems}
+                    localizedLinks={localizedLinks}
                 />
 
                 <Breadcrumb
@@ -1005,6 +1025,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     languages={languages}
                     menuItems={headerMenuItems}
                     initialCatalogItems={headerCategoryItems}
+                    localizedLinks={localizedLinks}
                 />
 
                 <Breadcrumb
@@ -1091,6 +1112,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     languages={languages}
                     menuItems={headerMenuItems}
                     initialCatalogItems={headerCategoryItems}
+                    localizedLinks={localizedLinks}
                 />
 
                 <Breadcrumb
@@ -1233,6 +1255,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 languages={languages}
                 menuItems={headerMenuItems}
                 initialCatalogItems={headerCategoryItems}
+                localizedLinks={localizedLinks}
             />
 
             <Breadcrumb

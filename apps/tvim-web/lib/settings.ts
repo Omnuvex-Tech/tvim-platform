@@ -13,8 +13,17 @@ type ProjectSettingsSeoData = {
     keywords?: string[] | string;
     canonical?: string;
     alternates?: { hreflang?: string; href?: string; url?: string }[];
+    x_default?: string;
     twitter_card?: string;
     twitter_site?: string;
+    twitter?: {
+        card?: string;
+        site?: string | null;
+        title?: string;
+        description?: string;
+        image?: string;
+        image_alt?: string;
+    };
     open_graph?: {
         title?: string;
         description?: string;
@@ -43,6 +52,7 @@ type HomeMetadataOptions = {
     locales?: string[];
     defaultLocale?: string;
     siteUrl?: string;
+    useProjectFallbacks?: boolean;
 };
 
 const isRecord = (value: unknown): value is AnyRecord =>
@@ -307,8 +317,19 @@ export const resolveSettingsSeo = (responseData: unknown): ProjectSettingsSeoDat
             general.keywords,
         ),
         canonical: String(seo.canonical ?? og.canonical ?? ""),
+        x_default: String(seo.x_default ?? ""),
         twitter_card: String(og.twitter_card ?? seo.twitter_card ?? ""),
         twitter_site: String(og.twitter_site ?? seo.twitter_site ?? ""),
+        twitter: isRecord(seo.twitter)
+            ? {
+                card: String(seo.twitter.card ?? ""),
+                site: typeof seo.twitter.site === "string" ? seo.twitter.site : undefined,
+                title: String(seo.twitter.title ?? ""),
+                description: String(seo.twitter.description ?? ""),
+                image: String(seo.twitter.image ?? ""),
+                image_alt: String(seo.twitter.image_alt ?? ""),
+            }
+            : undefined,
         open_graph: {
             title: String(og.title ?? seo.meta_title ?? seo.title ?? ""),
             description: String(og.description ?? seo.meta_description ?? seo.description ?? ""),
@@ -380,8 +401,9 @@ export const buildHomeMetadata = (
     locale: string,
     options: HomeMetadataOptions = {},
 ): Metadata => {
-    const title = seo?.meta_title || seo?.title || config.project.projectName;
-    const description = seo?.meta_description || seo?.description || config.project.projectDescription;
+    const useProjectFallbacks = options.useProjectFallbacks ?? true;
+    const title = seo?.meta_title || seo?.title || (useProjectFallbacks ? config.project.projectName : undefined);
+    const description = seo?.meta_description || seo?.description || (useProjectFallbacks ? config.project.projectDescription : undefined);
     const keywords = normalizeKeywords(seo?.meta_keywords ?? seo?.keywords);
     const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
     const siteUrl = getUrlOrigin(options.siteUrl ?? canonicalFromSeo);
@@ -436,11 +458,11 @@ export const buildHomeMetadata = (
             }
             : undefined,
         twitter: {
-            card: resolveTwitterCard(seo?.twitter_card ?? seo?.open_graph?.twitter_card) ?? "summary_large_image",
-            site: seo?.twitter_site || seo?.open_graph?.twitter_site || undefined,
-            title,
-            description,
-            images: seo?.open_graph?.image ? [seo.open_graph.image] : undefined,
+            card: resolveTwitterCard(seo?.twitter?.card ?? seo?.twitter_card ?? seo?.open_graph?.twitter_card) ?? "summary_large_image",
+            site: seo?.twitter?.site || seo?.twitter_site || seo?.open_graph?.twitter_site || undefined,
+            title: seo?.twitter?.title || title,
+            description: seo?.twitter?.description || description,
+            images: seo?.twitter?.image ? [seo.twitter.image] : seo?.open_graph?.image ? [seo.open_graph.image] : undefined,
         },
         robots: {
             index: true,
