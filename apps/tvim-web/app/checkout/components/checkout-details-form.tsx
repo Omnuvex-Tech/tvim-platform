@@ -371,7 +371,6 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
 
     useEffect(() => {
         if (addressMode !== "new") return;
-        setSelectedDeliveryLeafId(null);
         setDeliveryLevels((prev) => {
             const selections = prev.map((l) => l.selectedId);
             const next: DeliveryLevel[] = [];
@@ -396,6 +395,22 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
             return next;
         });
     }, [addressMode, deliveryByParent, rootDeliveryOptions]);
+
+    useEffect(() => {
+        if (addressMode !== "new") return;
+        if (deliveryLevels.length === 0) {
+            setSelectedDeliveryLeafId(null);
+            return;
+        }
+
+        const lastSelectedId = String(deliveryLevels[deliveryLevels.length - 1]?.selectedId ?? "").trim();
+        const lastSelectedNum = Number(lastSelectedId);
+        const hasSelected = Boolean(lastSelectedId) && Number.isFinite(lastSelectedNum) && lastSelectedNum > 0;
+        const childrenOptions = hasSelected ? deliveryByParent.get(lastSelectedNum) ?? [] : [];
+        const isLeaf = hasSelected && childrenOptions.length === 0;
+
+        setSelectedDeliveryLeafId(isLeaf ? lastSelectedNum : null);
+    }, [addressMode, deliveryByParent, deliveryLevels]);
 
     const onDeliverySelectChange = (levelIndex: number, nextSelectedId: string) => {
         const selectedNum = Number(nextSelectedId);
