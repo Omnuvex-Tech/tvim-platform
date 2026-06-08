@@ -10,7 +10,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
-import { buildHomeMetadata, resolveProjectSettings, resolveSettingsApiLocale, resolveSettingsSeo } from "@/lib/settings";
+import {
+    buildHomeMetadata,
+    resolveProjectSettings,
+    resolveSettingsApiLocale,
+    resolveSettingsSeo,
+    resolveSettingsSiteUrl,
+} from "@/lib/settings";
 import {
     extractHeaderCategories,
     extractHeaderItems,
@@ -46,6 +52,7 @@ export async function generateMetadata({
         normalizedLocale,
         {
             canonicalPath: normalizedLocale,
+            siteUrl: settingsResponse.success ? resolveSettingsSiteUrl(settingsResponse.data) : undefined,
         },
     );
 }

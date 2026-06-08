@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import type { Language } from "@repo/types/types";
 import { config } from "@/config";
-import { resolveSettingsSitemap } from "@/lib/settings";
+import { resolveSettingsSitemap, resolveSettingsSiteUrl } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -38,12 +38,6 @@ const getLanguages = async (): Promise<Language[]> => {
     return Array.isArray(json?.data) ? json.data : [];
 };
 
-const getSiteUrl = (settings: unknown) => {
-    const payload = (settings as { data?: { data?: { general?: { frontend_url?: string } }; general?: { frontend_url?: string } } }).data;
-    const frontendUrl = payload?.data?.general?.frontend_url ?? payload?.general?.frontend_url;
-    return String(frontendUrl || config.project.url || "").replace(/\/+$/, "");
-};
-
 const resolveChangeFrequency = (frequency: string | undefined) =>
     validChangeFrequencies.find((validFrequency) => validFrequency === frequency);
 
@@ -56,7 +50,7 @@ const resolvePriority = (priority: string | undefined) => {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [settings, languages] = await Promise.all([getSettings(), getLanguages()]);
     const sitemapSettings = resolveSettingsSitemap(settings);
-    const siteUrl = getSiteUrl(settings);
+    const siteUrl = resolveSettingsSiteUrl(settings);
 
     if (!siteUrl) return [];
 

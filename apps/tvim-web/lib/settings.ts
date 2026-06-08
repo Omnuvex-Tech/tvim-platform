@@ -42,10 +42,36 @@ type HomeMetadataOptions = {
     alternatePathByLocale?: Record<string, string>;
     locales?: string[];
     defaultLocale?: string;
+    siteUrl?: string;
 };
 
 const isRecord = (value: unknown): value is AnyRecord =>
     typeof value === "object" && value !== null && !Array.isArray(value);
+
+const normalizeAbsoluteHttpUrl = (value: unknown) => {
+    const cleaned = String(value ?? "").trim().replace(/^`+|`+$/g, "").trim();
+    if (!cleaned) return undefined;
+
+    const normalized = cleaned.replace(/\/+$/, "");
+
+    if (normalized.startsWith("//")) {
+        try {
+            const url = new URL(`https:${normalized}`);
+            return url.toString().replace(/\/+$/, "");
+        } catch {
+            return undefined;
+        }
+    }
+
+    if (!/^https?:\/\//i.test(normalized)) return undefined;
+
+    try {
+        const url = new URL(normalized);
+        return url.toString().replace(/\/+$/, "");
+    } catch {
+        return undefined;
+    }
+};
 
 const pickValue = (item: AnyRecord) =>
     item.value ?? item.val ?? item.content ?? item.text ?? item.data ?? item.link ?? item.url ?? "";
@@ -305,6 +331,14 @@ export const resolveSettingsSitemap = (responseData: unknown): ProjectSettingsSi
     };
 };
 
+export const resolveSettingsSiteUrl = (responseData: unknown): string | undefined => {
+    const payload = extractPayload(responseData);
+    if (!payload) return undefined;
+
+    const general = normalizeObject(payload.general);
+    return normalizeAbsoluteHttpUrl(general.frontend_url);
+};
+
 export const buildHomeMetadata = (
     seo: ProjectSettingsSeoData | undefined,
     locale: string,
@@ -313,17 +347,20 @@ export const buildHomeMetadata = (
     const title = seo?.meta_title || seo?.title || config.project.projectName;
     const description = seo?.meta_description || seo?.description || config.project.projectDescription;
     const keywords = normalizeKeywords(seo?.meta_keywords ?? seo?.keywords);
-    const siteUrl = getUrlOrigin(seo?.canonical || config.project.url);
-    const canonical = resolveUrl(siteUrl, options.canonicalPath ?? locale);
+    const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
+    const siteUrl = getUrlOrigin(options.siteUrl ?? canonicalFromSeo);
+    const canonical = canonicalFromSeo ?? resolveUrl(siteUrl, options.canonicalPath ?? locale);
     const locales = options.locales?.length ? options.locales : ["az", "en", "ru"];
     const defaultLocale = options.defaultLocale ?? config.project.defLang;
-    const automaticLanguages = buildLanguageAlternates(siteUrl, locales, defaultLocale, options.alternatePathByLocale);
+    const automaticLanguages = siteUrl
+        ? buildLanguageAlternates(siteUrl, locales, defaultLocale, options.alternatePathByLocale)
+        : {};
     const apiLanguages = seo?.alternates?.reduce<Record<string, string>>((acc, alternate) => {
         const hrefLang = alternate.hreflang;
         const href = alternate.href ?? alternate.url;
         if (hrefLang && href) acc[hrefLang] = href;
         return acc;
-    }, {});
+    }, {}) ?? {};
 
     return {
         title,

@@ -2,7 +2,13 @@ import type { Language, FooterMenusData, ProjectSettingsData, ProjectSettingsRes
 import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
-import { buildHomeMetadata, resolveProjectSettings, resolveSettingsApiLocale, resolveSettingsSeo } from "@/lib/settings";
+import {
+    buildHomeMetadata,
+    resolveProjectSettings,
+    resolveSettingsApiLocale,
+    resolveSettingsSeo,
+    resolveSettingsSiteUrl,
+} from "@/lib/settings";
 import { config } from "@/config";
 import { NavbarWrapper } from "./components/Navbar/navbar-wrapper";
 import { Footer } from "./components/Footer/footer";
@@ -32,7 +38,10 @@ export async function generateMetadata(): Promise<Metadata> {
                 ? langResponse.data.map((language) => language.code)
                 : undefined,
             defaultLocale: siteDefaultLocale,
-        },
+            siteUrl: settingsResponse.success
+                ? resolveSettingsSiteUrl(settingsResponse.data)
+                : undefined,
+        }
     );
 }
 
