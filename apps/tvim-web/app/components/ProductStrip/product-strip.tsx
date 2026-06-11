@@ -1596,87 +1596,9 @@ const ProductStrip: React.FC<Props> = ({
 
             >
 
-                <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
-
-                    <button
-
-                        type="button"
-
-                        disabled={isFavoritePending || !product.productVariationId}
-
-                        suppressHydrationWarning
-
-                        onClick={(event) => {
-
-                            event.preventDefault();
-
-                            event.stopPropagation();
-
-                            void handleFavoriteToggle(product);
-
-                        }}
-
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
-
-                            isFavorite
-
-                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-
-                                : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-
-                        } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-
-                        aria-label="Seçilmişlər"
-
-                    >
-
-                        <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
-
-                    </button>
-
-                    <button
-
-                        type="button"
-
-                        disabled={isComparePending || !product.productVariationId}
-
-                        suppressHydrationWarning
-
-                        onClick={(event) => {
-
-                            event.preventDefault();
-
-                            event.stopPropagation();
-
-                            void handleCompareToggle(product);
-
-                        }}
-
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
-
-                            isCompared
-
-                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-
-                                : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-
-                        } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-
-                        aria-label="Müqayisə"
-
-                    >
-
-                        <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
-
-                    </button>
-
-                </div>
-
-
-
                 {product.discount ? (
 
-                    <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+                    <span className="absolute top-3 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
 
                         {product.discount}
 
@@ -1686,11 +1608,89 @@ const ProductStrip: React.FC<Props> = ({
 
 
 
-                <div className="pt-3 text-center w-full flex flex-col items-center">
+                    <Link href={product.href} className="block w-full pt-3 text-center">
 
-                    <Link href={product.href} className="block w-full">
+                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-visible rounded-[10px]`}>
 
-                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-hidden rounded-[10px]`}>
+                    <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
+        
+                        <button    
+        
+                            type="button"    
+        
+                            disabled={isFavoritePending || !product.productVariationId}    
+        
+                            suppressHydrationWarning    
+        
+                            onClick={(event) => {    
+        
+                                event.preventDefault();    
+        
+                                event.stopPropagation();    
+        
+                                void handleFavoriteToggle(product);    
+        
+                            }}    
+        
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${    
+        
+                                isFavorite    
+        
+                                    ? "border-[#0f57d6] bg-[#0f57d6] text-white"    
+        
+                                    : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"    
+        
+                            } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}    
+        
+                            aria-label="Seçilmişlər"    
+        
+                        >    
+        
+                            <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />    
+        
+                        </button>    
+        
+                        <button    
+        
+                            type="button"    
+        
+                            disabled={isComparePending || !product.productVariationId}    
+        
+                            suppressHydrationWarning    
+        
+                            onClick={(event) => {    
+        
+                                event.preventDefault();    
+        
+                                event.stopPropagation();    
+        
+                                void handleCompareToggle(product);    
+        
+                            }}    
+        
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${    
+        
+                                isCompared    
+        
+                                    ? "border-[#0f57d6] bg-[#0f57d6] text-white"    
+        
+                                    : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"    
+        
+                            } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}    
+        
+                            aria-label="Müqayisə"    
+        
+                        >    
+        
+                            <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />    
+        
+                        </button>    
+        
+                    </div>    
+        
+        
+        
+    
 
                             {product.imageUrl ? (
 
@@ -1779,8 +1779,6 @@ const ProductStrip: React.FC<Props> = ({
                         )}
 
                     </button>
-
-                </div>
 
             </article>
 
