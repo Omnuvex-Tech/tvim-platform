@@ -1,14 +1,49 @@
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { FooterMenusData, Language, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
+import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
+
+type NavItem = {
+    label: string;
+    href: string;
+    icon: ComponentType<{ className?: string }>;
+};
+
+const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
+    <i
+        className={`account-index__icon fa fa-reply ${className ?? ""}`}
+        style={{
+            MozOsxFontSmoothing: "grayscale",
+            WebkitFontSmoothing: "antialiased",
+            display: "inline-block",
+            fontStyle: "normal",
+            fontVariant: "normal",
+            textRendering: "auto",
+            lineHeight: 1,
+        }}
+        aria-hidden="true"
+    />
+);
+
+const navItems: NavItem[] = [
+    { label: "Hesabım", href: "/account", icon: UserRound },
+    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Package },
+    { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
+    { label: "Şifrə", href: "/account/password", icon: Lock },
+    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
+    { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
+    { label: "Geri qaytarma", href: "/account/returns", icon: FontAwesomeReplyIcon },
+    { label: "Çıxış", href: "/logout", icon: LogOut },
+];
 
 type OrderStatus = {
     code?: string | null;
@@ -255,8 +290,19 @@ export default async function OrderDetailPage({
         }),
     ]);
 
+    if (!orderResponse.success && orderResponse.status === 404) {
+        notFound();
+    }
+
+    const orderLoadError = !orderResponse.success
+        ? {
+            status: orderResponse.status ?? 500,
+            message: orderResponse.message || "Server Error",
+        }
+        : null;
+
     const rawOrder = orderResponse.success ? orderResponse.data : null;
-    if (!rawOrder) {
+    if (!rawOrder && !orderLoadError) {
         notFound();
     }
 
@@ -325,6 +371,48 @@ export default async function OrderDetailPage({
         (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
     )?.number;
 
+    if (orderLoadError || !rawOrder) {
+        return (
+            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
+                <NavbarWrapper
+                    logo={navbarLogo}
+                    phone={navbarPhone}
+                    locale={locale}
+                    languages={langResponse.data}
+                    menuItems={headerMenuItems}
+                    initialCatalogItems={headerCategoryItems}
+                />
+
+                <Breadcrumb
+                    items={[
+                        { label: "Ana səhifə", href: `/${locale}` },
+                        { label: "Sifariş tarixçəsi", href: `/${locale}/account/orders` },
+                        { label: "Sifariş detalı", isCurrent: true },
+                    ]}
+                    className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
+                    showTitle
+                    pageTitle="Sifariş detalı"
+                    titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
+                />
+
+                <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
+                    <div className="rounded-[20px] bg-[#fff5f5] p-6 text-[#7f1d1d]">
+                        <p className="text-[18px] font-semibold">
+                            {orderLoadError?.status === 500 ? "Server Error" : orderLoadError?.message || "Sifariş detalı yüklənmədi."}
+                        </p>
+                        <p className="mt-2 text-[14px]">
+                            Status kodu: {orderLoadError?.status ?? 500}
+                        </p>
+                    </div>
+                </section>
+
+                <div className="mt-auto w-full pt-12 lg:pt-20">
+                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
+                </div>
+            </div>
+        );
+    }
+
     const order = rawOrder;
     const items = Array.isArray(order.items) ? order.items : [];
     const history = Array.isArray(order.status_histories) ? order.status_histories : [];
@@ -333,6 +421,7 @@ export default async function OrderDetailPage({
     const selectedInstallment = order.payment_method?.selected_installment ?? firstPayment?.payment_installment ?? null;
     const promoDiscount = Number(order.totals?.promo_discount ?? order.promo?.discount ?? 0);
     const hourDiscount = Number(order.totals?.discount_hour_discount ?? 0);
+    const activeHref = "/account/orders";
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
@@ -358,8 +447,39 @@ export default async function OrderDetailPage({
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
-                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
-                    <div className="space-y-6">
+                <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
+                    <aside className="hidden w-full max-w-[260px] lg:block">
+                        <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
+                        <div className="mt-5 border-t border-[#D2D9E4]" />
+
+                        <ul className="mt-0.5 space-y-0.5">
+                            {navItems.map(({ label, href, icon: Icon }) => {
+                                const isActive = href === activeHref;
+                                return (
+                                    <li key={label}>
+                                        <Link
+                                            href={`/${locale}${href}`}
+                                            className={`group inline-flex min-h-0 w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
+                                                isActive
+                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
+                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
+                                            }`}
+                                        >
+                                            <Icon
+                                                className={`size-4 transition-colors ${
+                                                    isActive ? "text-[#0D47FF]" : "text-[#707887] group-hover:text-[#0D47FF]"
+                                                }`}
+                                            />
+                                            <span>{label}</span>
+                                        </Link>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </aside>
+
+                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
+                        <div className="space-y-6">
                         <div className="rounded-[20px] bg-white p-5">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div>
@@ -556,6 +676,7 @@ export default async function OrderDetailPage({
                             </div>
                         ) : null}
                     </aside>
+                </div>
                 </div>
             </section>
 

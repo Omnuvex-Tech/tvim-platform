@@ -475,7 +475,11 @@ export default async function OrdersPage({
                                                 {items.length > 0 ? (
                                                     <div className="space-y-6">
                                                         {items.map((item, itemIndex) => (
-                                                            <div key={item.id ?? `${order.id}-${itemIndex}`} className="flex items-start justify-between gap-4 sm:gap-6">
+                                                            <Link
+                                                                key={item.id ?? `${order.id}-${itemIndex}`}
+                                                                href={`${ordersPageUrl}/${encodeURIComponent(order.uuid || String(order.id))}`}
+                                                                className="flex items-start justify-between gap-4 transition-opacity hover:opacity-90 sm:gap-6"
+                                                            >
                                                                 <div className="flex min-w-0 items-start gap-4">
                                                                     <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
                                                                         {itemImage(item) ? (
@@ -498,7 +502,7 @@ export default async function OrdersPage({
                                                                         {currency === "AZN" ? "₼" : currency}
                                                                     </span>
                                                                 </div>
-                                                            </div>
+                                                            </Link>
                                                         ))}
                                                     </div>
                                                 ) : mainItem ? (

@@ -5,12 +5,14 @@ export class ApiResponse<T = unknown> {
     readonly message: string;
     readonly data: T | null;
     readonly errors: ErrorDetail[];
+    readonly status?: number;
 
     constructor(body: ApiResponseBody<T>) {
         this.success = body.success;
         this.message = body.message;
         this.data = body.data;
         this.errors = body.errors;
+        this.status = body.status;
     }
 
     getFieldError = (field: string): string | undefined => {

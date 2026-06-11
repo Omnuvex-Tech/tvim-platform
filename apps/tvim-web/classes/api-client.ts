@@ -78,13 +78,17 @@ export class ApiClient {
             const parsedBody = text ? (JSON.parse(text) as ApiResponseBody<T>) : null;
 
             if (parsedBody && typeof parsedBody.success === "boolean") {
-                return new ApiResponse<T>(parsedBody);
+                return new ApiResponse<T>({
+                    ...parsedBody,
+                    status: response.status,
+                });
             }
 
             return new ApiResponse<T>({
                 success: false,
                 message: "API-dan gözlənilməz cavab gəldi",
                 data: null,
+                status: response.status,
                 errors: [
                     {
                         code: response.status ? `HTTP_${response.status}` : "INVALID_RESPONSE",
@@ -133,6 +137,7 @@ export class ApiClient {
                 success: false,
                 message: isTimeout ? "API sorğusunun vaxtı bitdi" : "API sorğusu alınmadı",
                 data: null,
+                status: isTimeout ? 408 : 0,
                 errors: [
                     {
                         code: isTimeout ? "TIMEOUT" : "NETWORK_ERROR",
