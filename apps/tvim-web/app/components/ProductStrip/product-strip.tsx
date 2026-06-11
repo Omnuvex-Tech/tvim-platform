@@ -1596,21 +1596,23 @@ const ProductStrip: React.FC<Props> = ({
 
             >
 
-                {product.discount ? (
-
-                    <span className="absolute top-3 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
-
-                        {product.discount}
-
-                    </span>
-
-                ) : null}
-
-
-
                     <Link href={product.href} className="block w-full pt-3 text-center">
 
-                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full max-w-[150px] overflow-visible rounded-[10px]`}>
+                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full overflow-visible rounded-[10px]`}>
+
+                    {product.discount ? (    
+        
+                        <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+        
+                            {product.discount}    
+        
+                        </span>    
+        
+                    ) : null}    
+        
+        
+        
+    
 
                     <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
         
@@ -1694,7 +1696,7 @@ const ProductStrip: React.FC<Props> = ({
 
                             {product.imageUrl ? (
 
-                                <img draggable={false} src={product.imageUrl} alt={product.title} className={`${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
+                                <img draggable={false} src={product.imageUrl} alt={product.title} className={`relative z-[2] mx-auto max-w-[150px] ${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
 
                             ) : null}
 
