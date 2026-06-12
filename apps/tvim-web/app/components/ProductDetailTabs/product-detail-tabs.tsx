@@ -4,6 +4,7 @@ import Script from "next/script";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNotify } from "@repo/ui";
 import { createProductComment, type ProductComment } from "@/lib/product-comments/client";
+import { TermsDialog } from "@/app/components/TermsDialog/terms-dialog";
 
 type SpecRow = {
     label: string;
@@ -107,6 +108,7 @@ const ProductDetailTabs = ({
     const [commentRating, setCommentRating] = useState(0);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [termsError, setTermsError] = useState("");
+    const [isTermsOpen, setIsTermsOpen] = useState(false);
     const [captchaToken, setCaptchaToken] = useState("");
     const [captchaError, setCaptchaError] = useState("");
     const [isRecaptchaScriptReady, setIsRecaptchaScriptReady] = useState(false);
@@ -572,7 +574,19 @@ const ProductDetailTabs = ({
                                     className="mt-[1px] size-[20px] cursor-pointer rounded-[2px] border-[#c7ccd5] accent-[#2050f5]"
                                 />
                                 <span>
-                                    Mən <span className="font-bold">istifadə şərtləri</span>-ni oxudum və razıyam
+                                    Mən{" "}
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            setIsTermsOpen(true);
+                                        }}
+                                        className="cursor-pointer border-0 bg-transparent p-0 font-bold text-[#111318] transition-colors hover:text-[#4a4a4a]"
+                                    >
+                                        istifadə şərtləri
+                                    </button>
+                                    -ni oxudum və razıyam
                                 </span>
                             </label>
 
@@ -640,6 +654,7 @@ const ProductDetailTabs = ({
             ) : null}
 
             <div className="mt-6" />
+            <TermsDialog open={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
         </section>
     );
 };
