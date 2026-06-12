@@ -175,6 +175,14 @@ export default async function AccountReturnsPage({
     )?.number;
 
     const activeHref = "/account/returns";
+    const pageTitle = normalizedLocale === "en" ? "Returns" : normalizedLocale === "ru" ? "Возвраты" : "Geri qaytarma";
+    const emptyMessage =
+        normalizedLocale === "en"
+            ? "You don't have any return requests yet!"
+            : normalizedLocale === "ru"
+              ? "У вас пока нет запросов на возврат!"
+              : "Sizin hər hansı geri qaytarma sorğunuz mövcud deyil!";
+    const continueLabel = normalizedLocale === "en" ? "Continue" : normalizedLocale === "ru" ? "Продолжить" : "Davam et";
 
     return (
         <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
@@ -191,13 +199,16 @@ export default async function AccountReturnsPage({
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
                     { label: accountPageMeta.name, href: `/${locale}/account` },
-                    { label: "Geri qaytar", isCurrent: true },
+                    { label: pageTitle, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
+                showTitle
+                pageTitle={pageTitle}
+                titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
-                <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
+                <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
                     <aside className="hidden w-full max-w-[260px] lg:block">
                         <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
                         <div className="mt-5 border-t border-[#D2D9E4]" />
@@ -230,25 +241,16 @@ export default async function AccountReturnsPage({
                         </ul>
                     </aside>
 
-                    <section className="grid min-h-[260px] w-full grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-                        <div className="pt-0 lg:pt-0">
-                            <h1 className="m-0 mb-[25px] text-[1.8em] leading-tight font-bold text-[var(--h1-c)]">
-                                Geri qaytar
-                            </h1>
-                            <p
-                                className="text-[14px] leading-[1.45]"
-                                style={{ color: "#000000", fontWeight: 475 }}
-                            >
-                                Sizin hər hansı geri qaytarma sorğunuz mövcud deyil!
+                    <section className="w-full rounded-[20px] bg-white px-5 py-6 sm:px-7 sm:py-8">
+                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-[14px] leading-[1.5] font-medium text-[#202938] sm:text-[15px]">
+                                {emptyMessage}
                             </p>
-                        </div>
-
-                        <div className="flex justify-start lg:min-w-[180px] lg:justify-end lg:pt-[84px]">
                             <Link
                                 href={`/${locale}`}
-                                className="inline-flex items-center justify-center rounded-[16px] bg-[#0D47FF] px-[50px] py-[25px] text-[20px] leading-[1px] font-[480] text-white transition-opacity hover:opacity-95"
+                                className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-[#0f57d6] px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#0c4fc6]"
                             >
-                                Davam et
+                                {continueLabel}
                             </Link>
                         </div>
                     </section>

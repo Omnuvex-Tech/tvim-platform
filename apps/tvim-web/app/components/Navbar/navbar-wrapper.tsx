@@ -145,6 +145,13 @@ type LiveSearchResponseData = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value);
 
+const getBrandsMenuLabel = (locale: string) => {
+    const normalizedLocale = locale.trim().toLowerCase();
+    if (normalizedLocale === "ru") return "Бренды";
+    if (normalizedLocale === "en") return "Brands";
+    return "Brendlər";
+};
+
 const NavbarWrapper = ({
     logo,
     phone,
@@ -337,9 +344,8 @@ const NavbarWrapper = ({
     }, [hydrateCartAsync]);
 
     const localizedMenuItems = useMemo(() => {
-        if (!Array.isArray(menuItems)) return menuItems;
-
-        return menuItems.map((item) => {
+        const normalizedItems = Array.isArray(menuItems)
+            ? menuItems.map((item) => {
             const href = typeof item?.href === "string" ? item.href : "";
             if (!href || href === "#") return item;
 
@@ -361,7 +367,26 @@ const NavbarWrapper = ({
 
             segments[0] = effectiveLocale;
             return { ...item, href: `/${segments.join("/")}` };
+            })
+            : [];
+
+        const brandsHref = "/product/brands";
+        const hasBrandsItem = normalizedItems.some((item) => {
+            const href = String(item?.href ?? "").trim().toLowerCase();
+            return href === brandsHref || href.endsWith("/product/brands");
         });
+
+        if (hasBrandsItem) {
+            return normalizedItems;
+        }
+
+        return [
+            ...normalizedItems,
+            {
+                label: getBrandsMenuLabel(effectiveLocale),
+                href: brandsHref,
+            },
+        ];
     }, [effectiveLocale, menuItems, supportedLocales]);
 
     const resolveLocalePath = useCallback((nextLocale: string) => {

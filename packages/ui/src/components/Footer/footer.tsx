@@ -91,8 +91,8 @@ const Footer = ({
                         <div>
                             <h3 className="text-[16px] font-bold leading-none lg:text-[21px]">{customerTitle}</h3>
                             <ul className="mt-4 space-y-3 text-[13px] font-medium text-[#272a30] lg:space-y-2.5 lg:text-[14px]">
-                                {customerLinks.map((item) => (
-                                    <li key={item.label}>
+                                {customerLinks.map((item, index) => (
+                                    <li key={`${item.href ?? ""}-${item.label}-${index}`}>
                                         <a href={item.href} className="transition-colors hover:text-black">
                                             {item.label}
                                         </a>

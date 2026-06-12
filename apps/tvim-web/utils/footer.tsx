@@ -60,6 +60,13 @@ const mapCategoriesToLinks = (menus: MenuItem[], locale?: string): FooterLinkIte
     return links;
 };
 
+const getBrandsFooterLabel = (locale?: string) => {
+    const normalizedLocale = locale?.trim().toLowerCase();
+    if (normalizedLocale === "ru") return "Бренды";
+    if (normalizedLocale === "en") return "Brands";
+    return "Brendlər";
+};
+
 const getFooterSections = (menus: MenuItem[], locale?: string) => {
     const sectionMenus = menus.filter((menu) => menu.children.length > 0);
     let companySection: MenuItem | undefined;
@@ -120,6 +127,18 @@ const getFooterSections = (menus: MenuItem[], locale?: string) => {
     if (customerSection) {
         customerTitle = customerSection.name;
         customerLinks = mapChildrenToLinks(customerSection.children, locale);
+    }
+
+    const brandsHref = "/product/brands";
+    const brandsLink = {
+        label: getBrandsFooterLabel(locale),
+        href: brandsHref,
+    };
+    const hasBrandsInCustomer = customerLinks.some((item) => String(item.href ?? "").trim().toLowerCase() === brandsHref);
+    const hasBrandsInCompany = companyLinks.some((item) => String(item.href ?? "").trim().toLowerCase() === brandsHref);
+
+    if (!hasBrandsInCustomer && !hasBrandsInCompany && companyTitle) {
+        companyLinks = [...companyLinks, brandsLink];
     }
 
     // Static category section: only top-level categories (parent_id === null)
