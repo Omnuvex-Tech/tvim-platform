@@ -43,6 +43,8 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   const pausedRef = useRef(false);
   const draggingRef = useRef(false);
   const pointerDownRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const suppressClickRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragDxRef = useRef(0);
   const [, setDragTick] = useState(0);
@@ -113,35 +115,42 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (companies.length <= visibleCount) return;
+    if (e.button !== 0) return;
     pausedRef.current = true;
     pointerDownRef.current = true;
+    activePointerIdRef.current = e.pointerId;
+    suppressClickRef.current = false;
     draggingRef.current = false;
     dragStartXRef.current = e.clientX;
     dragDxRef.current = 0;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {
+      // Pointer capture is best-effort; dragging still works without it.
+    }
     setDragTick((t) => t + 1);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!pointerDownRef.current) return;
+    if (activePointerIdRef.current !== e.pointerId) return;
     dragDxRef.current = e.clientX - dragStartXRef.current;
 
     if (!draggingRef.current && Math.abs(dragDxRef.current) > 6) {
       draggingRef.current = true;
       setIsAnimating(false);
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch (err) {
-        // ignore
-      }
     }
 
     if (!draggingRef.current) return;
+    e.preventDefault();
     setDragTick((t) => t + 1);
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!pointerDownRef.current) return;
+    if (activePointerIdRef.current !== e.pointerId) return;
     pointerDownRef.current = false;
+    activePointerIdRef.current = null;
 
     if (!draggingRef.current) {
       pausedRef.current = false;
@@ -151,10 +160,11 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     }
 
     draggingRef.current = false;
+    suppressClickRef.current = Math.abs(dragDxRef.current) > 6;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch (err) {
-      // ignore
+      // Pointer capture may already be released by the browser.
     }
 
     const dx = dragDxRef.current;
@@ -173,6 +183,15 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     pausedRef.current = false;
     dragDxRef.current = 0;
     setDragTick((t) => t + 1);
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
+  };
+
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!suppressClickRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const [tooltip, setTooltip] = useState<{ text: string; left: number } | null>(null);
@@ -211,6 +230,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
+          onClickCapture={onClickCapture}
         >
           <div
             className={cn(styles.track, !draggingRef.current && isAnimating ? styles.animating : styles.noTransition)}

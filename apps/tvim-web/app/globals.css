@@ -110,6 +110,22 @@
 	line-height: 1;
 }
 
+.icon-account {
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-font-smoothing: antialiased;
+	display: inline-block;
+	font-family: "Font Awesome 6 Free";
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 400;
+	line-height: 1;
+	text-rendering: auto;
+}
+
+.icon-account::before {
+	content: "\f007";
+}
+
 .compare-breadcrumb-sm .breadcrumb li {
 	font-size: 13px !important;
 }

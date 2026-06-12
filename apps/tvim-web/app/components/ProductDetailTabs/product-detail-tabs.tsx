@@ -488,9 +488,9 @@ const ProductDetailTabs = ({
 
             {activeTab === "comments" ? (
                 <div className="mt-6">
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[20px] leading-[1.2] font-normal text-[#111318]">
-                        <span className="text-[#111318]">Şərh: {resolvedCommentsCount}</span>
-                        <span className="text-[#111318]">Orta qiymət: {averageRating.toFixed(1)}</span>
+                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[20px] leading-[1.40] font-[450] !text-[#000000]">
+                        <span className="!text-[#000000]">Şərh: {resolvedCommentsCount}</span>
+                        <span className="!text-[#000000]">Orta qiymət: {averageRating.toFixed(1)}</span>
                         <div className="flex items-center gap-1 text-[#c7cdd9] text-[20px] leading-none">
                             {Array.from({ length: 5 }).map((_, idx) => (
                                 <i
@@ -503,7 +503,7 @@ const ProductDetailTabs = ({
                         <button
                             type="button"
                             onClick={() => setShowCommentForm((prev) => !prev)}
-                            className="inline-flex items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-4 !py-[14px] !text-[14px] !leading-[1px] !font-[650] text-white transition-opacity hover:opacity-95"
+                            className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-4 !py-[14px] !text-[14px] !leading-[1px] !font-[650] text-white transition-opacity hover:opacity-95"
                             style={{ fontFamily: "var(--font-inter), sans-serif" }}
                         >
                             Şərh yaz
@@ -513,19 +513,19 @@ const ProductDetailTabs = ({
                     {showCommentForm ? (
                         <form onSubmit={handleSubmitComment} className="mt-8 w-[73.9%] max-w-full space-y-4 max-lg:w-full">
                             <label className="relative block overflow-hidden rounded-[20px] bg-[rgba(236,244,252,1)]">
-                                <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[18px] text-[#1f57ff]">
-                                    <i className="fa-regular fa-user" aria-hidden="true" />
+                                <span className="pointer-events-none absolute top-1/2 left-[22px] -translate-y-1/2 text-[16px] text-[#1f57ff]">
+                                    <i className="icon-account" aria-hidden="true" />
                                 </span>
                                 <input
                                     value={commentName}
                                     onChange={(event) => setCommentName(event.target.value)}
                                     placeholder="Adınız"
-                                    className="h-[64px] w-full border-none bg-transparent pl-[50px] pr-5 text-[18px] leading-[1] font-medium text-[#131722] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
+                                    className="h-[64px] w-full border-none bg-transparent pl-[43px] pr-5 text-[14px] leading-[1] font-medium text-[#131722] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
                                 />
                             </label>
 
                             <label className="relative block overflow-hidden rounded-[20px] bg-[rgba(236,244,252,1)]">
-                                <span className="pointer-events-none absolute top-8 left-4 text-[18px] text-[#1f57ff]">
+                                <span className="pointer-events-none absolute top-6 left-[22px] text-[16px] text-[#1f57ff]">
                                     <i className="fa-regular fa-pen-to-square" aria-hidden="true" />
                                 </span>
                                 <textarea
@@ -533,15 +533,15 @@ const ProductDetailTabs = ({
                                     onChange={(event) => setCommentText(event.target.value)}
                                     placeholder="Şərh yazın"
                                     rows={5}
-                                    className="h-[128px] w-full resize-y border-none bg-transparent pl-[50px] pr-5 pt-7 pb-4 text-[18px] leading-[1.1] font-medium text-[#131722] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
+                                    className="h-[128px] w-full resize-y border-none bg-transparent pl-[43px] pr-5 pt-[27px] pb-4 text-[14px] leading-[1.1] font-medium text-[#131722] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
                                 />
                             </label>
 
-                            <div className="flex flex-wrap items-center gap-4">
-                                <span className="text-[24px] font-medium text-[#1b202b]">
-                                    <span className="mr-1 text-[#e01010]">*</span> Reytinq
+                            <div className="grid grid-cols-[150px_auto] items-center gap-y-2 max-sm:grid-cols-[120px_auto]">
+                                <span className="text-[16px] font-normal text-[#1b202b]">
+                                    <span className="mr-0 text-[#e01010]">*</span> <span className="-ml-[2px]">Reytinq</span>
                                 </span>
-                                <div className="flex items-center gap-2 text-[30px] leading-none">
+                                <div className="flex items-center gap-1 text-[20px] leading-none">
                                     {Array.from({ length: 5 }).map((_, idx) => {
                                         const value = idx + 1;
                                         return (

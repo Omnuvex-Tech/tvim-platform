@@ -84,6 +84,8 @@
     height: 100%;
     align-items: center;
     justify-content: center;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 .companyLogo {
@@ -100,6 +102,8 @@
     height: 80%;
     margin: 0 auto;
     display: block;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 @media (max-width: 1024px) {
