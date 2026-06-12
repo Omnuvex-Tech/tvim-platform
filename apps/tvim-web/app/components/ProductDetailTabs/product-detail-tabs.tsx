@@ -601,7 +601,7 @@ const ProductDetailTabs = ({
                                 <button
                                     type="submit"
                                     disabled={isSubmittingComment}
-                                    className="inline-flex items-center justify-center rounded-full bg-[#003dff] px-6 py-3 text-[16px] font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[#003dff] px-6 py-3 text-[16px] font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isSubmittingComment ? "Göndərilir..." : "Göndər"}
                                 </button>
