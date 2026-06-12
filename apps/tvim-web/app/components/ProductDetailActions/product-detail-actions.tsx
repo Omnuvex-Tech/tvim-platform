@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNotify } from "@repo/ui";
 import { Minus, Plus } from "lucide-react";
-import { addCartItem, hydrateCart, useCart } from "@/lib/cart/client";
+import { addCartItem, hydrateCart, removeCartItem, updateCartItemQuantity, useCart } from "@/lib/cart/client";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "../ProductStrip/quick-order-popup";
@@ -28,6 +28,7 @@ const ProductDetailActions = ({
 
     const [quantity, setQuantity] = useState(1);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [isUpdatingQuantity, setIsUpdatingQuantity] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [isCompared, setIsCompared] = useState(false);
     const [favoritePending, setFavoritePending] = useState(false);
@@ -38,6 +39,35 @@ const ProductDetailActions = ({
         if (!productVariationId) return false;
         return items.some((item) => Number(item.product.productVariationId) === productVariationId);
     }, [items, productVariationId]);
+    const cartItem = useMemo(() => {
+        if (!productVariationId) return null;
+        return items.find((item) => Number(item.product.productVariationId) === productVariationId) ?? null;
+    }, [items, productVariationId]);
+
+    useEffect(() => {
+        if (!cartItem) return;
+        setQuantity(Math.max(1, cartItem.quantity));
+    }, [cartItem]);
+
+    const handleQuantityChange = async (nextQuantity: number) => {
+        const normalizedQuantity = Math.max(1, nextQuantity);
+        setQuantity(normalizedQuantity);
+
+        if (!productVariationId || !inCart || isUpdatingQuantity) return;
+
+        setIsUpdatingQuantity(true);
+        try {
+            await updateCartItemQuantity(productVariationId, normalizedQuantity);
+            await hydrateCart(true);
+        } catch (error) {
+            const fallbackQuantity = Math.max(1, cartItem?.quantity ?? 1);
+            setQuantity(fallbackQuantity);
+            const message = error instanceof Error ? error.message : "Səbət yenilənərkən xəta baş verdi.";
+            notify.error(message);
+        } finally {
+            setIsUpdatingQuantity(false);
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -90,6 +120,13 @@ const ProductDetailActions = ({
 
         setIsAddingToCart(true);
         try {
+            if (inCart) {
+                await removeCartItem(productVariationId);
+                await hydrateCart(true);
+                notify.success("Məhsul səbətdən silindi.");
+                return;
+            }
+
             await addCartItem(productVariationId, quantity);
             await hydrateCart(true);
             notify.success("Məhsul səbətə əlavə edildi.");
@@ -152,8 +189,9 @@ const ProductDetailActions = ({
                     <div className="grid h-[64px] w-[172px] shrink-0 grid-cols-[1fr_auto_1fr] items-center rounded-[20px] border border-[rgba(217,228,238,1)] bg-white px-[12px] max-lg:col-span-1 max-lg:h-[48px] max-lg:w-[112px] max-lg:rounded-[14px] max-lg:px-2">
                         <button
                             type="button"
-                            onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                            className="inline-flex h-10 w-8 cursor-pointer items-center justify-center justify-self-start text-[#8a94a7] max-lg:w-6"
+                            onClick={() => void handleQuantityChange(quantity - 1)}
+                            disabled={isUpdatingQuantity}
+                            className={`inline-flex h-10 w-8 items-center justify-center justify-self-start text-[#8a94a7] max-lg:w-6 ${isUpdatingQuantity ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                             aria-label="Azalt"
                         >
                             <Minus className="size-[20px] max-lg:size-[16px]" strokeWidth={3.2} aria-hidden="true" />
@@ -161,8 +199,9 @@ const ProductDetailActions = ({
                         <span className="min-w-[32px] border-none text-center text-[20px] font-normal leading-none text-[#000] max-lg:min-w-[24px] max-lg:text-[15px]">{quantity}</span>
                         <button
                             type="button"
-                            onClick={() => setQuantity((prev) => prev + 1)}
-                            className="inline-flex h-10 w-8 cursor-pointer items-center justify-center justify-self-end text-[#8a94a7] max-lg:w-6"
+                            onClick={() => void handleQuantityChange(quantity + 1)}
+                            disabled={isUpdatingQuantity}
+                            className={`inline-flex h-10 w-8 items-center justify-center justify-self-end text-[#8a94a7] max-lg:w-6 ${isUpdatingQuantity ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                             aria-label="Artır"
                         >
                             <Plus className="size-[20px] max-lg:size-[16px]" strokeWidth={3.2} aria-hidden="true" />
