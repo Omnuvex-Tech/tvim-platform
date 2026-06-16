@@ -57,8 +57,9 @@ function slugifyTitle(value: string) {
         .replace(/-+/g, "-");
 }
 
-function toServiceLink(rawLink: string | undefined, title: string) {
+function toServiceLink(rawLink: string | undefined, title: string, locale?: string) {
     const source = String(rawLink ?? "").trim();
+    const normalizedLocale = String(locale ?? "az").trim().toLowerCase() || "az";
 
     if (source.startsWith("http://") || source.startsWith("https://")) {
         return source;
@@ -72,17 +73,22 @@ function toServiceLink(rawLink: string | undefined, title: string) {
             : parts[parts.length - 1];
 
         if (slug) {
-            return `/services/${slug}`;
+            return `/${normalizedLocale}/services/${slug}`;
         }
     }
 
     const titleSlug = slugifyTitle(title);
-    return titleSlug ? `/services/${titleSlug}` : "/services";
+    return titleSlug ? `/${normalizedLocale}/services/${titleSlug}` : `/${normalizedLocale}/services`;
 }
 // Descriptions are clamped via CSS to a fixed number of lines (3).
 
-function mapRawToBenefits(rawItems?: any[]): BenefitItem[] {
-    if (!rawItems || !Array.isArray(rawItems) || rawItems.length === 0) return defaultBenefitItems;
+function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
+    if (!rawItems || !Array.isArray(rawItems) || rawItems.length === 0) {
+        return defaultBenefitItems.map((item) => ({
+            ...item,
+            link: toServiceLink(item.link, item.title, locale),
+        }));
+    }
 
     const mapped = rawItems.map((it: any) => {
         const title = (it?.menu?.title ?? it?.data?.title ?? it?.menu?.name ?? "").toString();
@@ -97,7 +103,7 @@ function mapRawToBenefits(rawItems?: any[]): BenefitItem[] {
         else if (t.includes("çatdır") || t.includes("catdir") || t.includes("çatdiril")) icon = <BlueHexIcon />;
 
         const rawLink = it?.menu?.link ?? it?.data?.link ?? it?.menu?.url ?? it?.data?.url ?? it?.menu?.href ?? it?.data?.href ?? it?.menu?.path ?? it?.data?.path ?? "";
-        const link = toServiceLink(rawLink ? String(rawLink) : undefined, title);
+        const link = toServiceLink(rawLink ? String(rawLink) : undefined, title, locale);
 
         return { title, description, icon, link } as BenefitItem;
     }).filter((item) => item.title.trim().length > 0);
@@ -112,8 +118,8 @@ function mapRawToBenefits(rawItems?: any[]): BenefitItem[] {
     return [...mapped, ...missingDefaults].slice(0, 4);
 }
 
-const BenefitsStrip = ({ items }: { items?: any[] }) => {
-    const list = mapRawToBenefits(items);
+const BenefitsStrip = ({ items, locale }: { items?: any[]; locale?: string }) => {
+    const list = mapRawToBenefits(items, locale);
 
     return (
         <section className="w-full" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' }}>

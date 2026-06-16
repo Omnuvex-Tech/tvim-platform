@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import type {
     FooterMenusData,
     HeaderCategoriesResponseData,
@@ -20,6 +20,8 @@ import {
     resolveHeaderMenuHref,
     resolveHeaderMenuLabel,
 } from "@/lib/header-navigation";
+import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
@@ -64,13 +66,6 @@ type MenuDetailData = {
         main_photo?: string | null;
         related_products?: NewsRelatedProduct[];
     };
-};
-
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
-
-const normalizeLocale = (locale: string) => {
-    const normalized = locale.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
 };
 
 const normalizeSlug = (value: string) => decodeURIComponent(String(value ?? "")).trim().toLowerCase().replace(/^\/+|\/+$/g, "");
@@ -212,17 +207,55 @@ const resolveMainItem = (detail: MenuDetailData, slug: string, locale: string): 
     return found ?? (items[0] ?? null);
 };
 
-export default async function BrandNewsSlugPage({
-    params,
-}: {
-    params: Promise<{ slug: string }>;
-}) {
-    const { slug } = await params;
-    const normalizedSlug = normalizeSlug(slug);
+type BrandNewsPageProps = {
+    slug: string;
+    locale: string;
+};
 
-    const cookieStore = await cookies();
-    const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
-    const locale = normalizeLocale(cookieLocale || config.project.defLang);
+export async function generateBrandNewsMetadata({
+    slug,
+    locale: incomingLocale,
+}: BrandNewsPageProps): Promise<Metadata> {
+    const normalizedSlug = normalizeSlug(slug);
+    const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const [menuDetail, requestOrigin] = await Promise.all([
+        getMenuDetail(normalizedSlug, locale),
+        resolveRequestOrigin(),
+    ]);
+
+    if (!menuDetail?.menu) {
+        return {};
+    }
+
+    const mainItem = resolveMainItem(menuDetail, normalizedSlug, locale);
+    const pageTitle = String(mainItem?.name ?? menuDetail.menu.title ?? menuDetail.menu.name ?? normalizeSlugText(normalizedSlug)).trim() || "Brand News";
+    const pageDescriptionHtml = String(mainItem?.content ?? menuDetail.menu.description ?? menuDetail.data?.content ?? "");
+    const pageDescription = pageDescriptionHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 170);
+    const bannerImage =
+        String(mainItem?.banner ?? mainItem?.main_photo ?? menuDetail.data?.banner ?? menuDetail.data?.main_photo ?? "").trim() ||
+        String(mainItem?.files?.find((f) => f?.is_main)?.url ?? mainItem?.files?.[0]?.url ?? "").trim() ||
+        extractFirstImageFromHtml(pageDescriptionHtml);
+
+    return buildSeoMetadata({
+        title: `${pageTitle} | TVIM`,
+        description: pageDescription || `${pageTitle} haqqinda yenilikleri TVIM daxilinde oxuyun.`,
+        keywords: [pageTitle, "brand news", "tvim"],
+        locale,
+        canonicalPath: `${locale}/brands/news/${normalizedSlug}`,
+        siteUrl: requestOrigin ?? config.project.url,
+        locales: [locale],
+        defaultLocale: locale,
+        image: bannerImage || undefined,
+        imageAlt: pageTitle,
+    });
+}
+
+export async function renderBrandNewsSlugPage({
+    slug,
+    locale: incomingLocale,
+}: BrandNewsPageProps) {
+    const normalizedSlug = normalizeSlug(slug);
+    const locale = normalizeLocale(incomingLocale || config.project.defLang);
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -401,4 +434,12 @@ export default async function BrandNewsSlugPage({
     );
 }
 
+export default async function BrandNewsSlugPage({
+    params,
+}: {
+    params: Promise<{ slug: string }>;
+}) {
+    const { slug } = await params;
+    redirect(`/${defaultLocale}/brands/news/${encodeURIComponent(slug)}`);
+}
 

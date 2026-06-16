@@ -12,6 +12,7 @@ import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
 import {
     extractHeaderCategories,
     extractHeaderItems,
@@ -305,12 +306,21 @@ export async function generateMetadata({
             String(product?.meta_description ?? "").trim() ||
             stripHtml(product?.description).slice(0, 170) ||
             undefined;
+        const requestOrigin = await resolveRequestOrigin();
+        const canonicalSlug = String(active?.slug ?? product?.slug ?? itemSlug).trim() || itemSlug;
 
-        return {
+        return buildSeoMetadata({
             title,
             description,
             keywords: active?.meta_keywords ?? product?.meta_keywords ?? undefined,
-        };
+            locale: normalizedLocale,
+            canonicalPath: `${normalizedLocale}/products/${canonicalSlug}`,
+            siteUrl: requestOrigin ?? config.project.url,
+            locales: [normalizedLocale],
+            defaultLocale: normalizedLocale,
+            image: resolveAssetUrl(active?.main_image_path),
+            imageAlt: title,
+        });
     }
 
     const menuDetail = await getMenuDetail(slug, normalizedLocale);
@@ -320,12 +330,22 @@ export async function generateMetadata({
     if (!item) return {};
 
     const fallbackDescription = stripHtml(item.content).slice(0, 170);
+    const title = item.seo?.meta_title || item.name || menuDetail.menu.title || menuDetail.menu.name;
+    const description = item.seo?.meta_description || fallbackDescription;
+    const requestOrigin = await resolveRequestOrigin();
 
-    return {
-        title: item.seo?.meta_title || item.name || menuDetail.menu.title || menuDetail.menu.name,
-        description: item.seo?.meta_description || fallbackDescription,
+    return buildSeoMetadata({
+        title,
+        description,
         keywords: item.seo?.meta_keywords,
-    };
+        locale: normalizedLocale,
+        canonicalPath: `${normalizedLocale}/${slug}/${itemSlug}`,
+        siteUrl: requestOrigin ?? config.project.url,
+        locales: [normalizedLocale],
+        defaultLocale: normalizedLocale,
+        image: resolveAssetUrl(item.banner || item.main_photo),
+        imageAlt: title,
+    });
 }
 
 export default async function GridDetailPage({
@@ -340,10 +360,10 @@ export default async function GridDetailPage({
     const sourceParamRaw = resolvedSearchParams?.source;
     const sourceParam = Array.isArray(sourceParamRaw) ? sourceParamRaw[0] : sourceParamRaw;
     const isDiscountSource = String(sourceParam ?? "").trim().toLowerCase() === "discount";
-    if (slug.trim().toLowerCase() === "brand-news") {
-        redirect(`/brands/news/${itemSlug}`);
-    }
     const normalizedLocale = locale.toLowerCase();
+    if (slug.trim().toLowerCase() === "brand-news") {
+        redirect(`/${normalizedLocale}/brands/news/${itemSlug}`);
+    }
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value ?? undefined);

@@ -8,6 +8,7 @@ import type {
 } from "@repo/types/types";
 import { api } from "@/lib/api";
 import { config } from "@/config";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { Breadcrumb } from "@repo/ui";
@@ -15,6 +16,8 @@ import CheckoutClient from "@/app/checkout/checkout-client";
 import type { CheckoutData } from "@/app/checkout/checkout-client";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
+
+export const metadata = buildNoIndexMetadata();
 
 type LocaleCode = "az" | "ru" | "en";
 const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];

@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import type { Metadata } from "next";
 import type {
     FooterMenusData,
     HeaderCategoriesResponseData,
@@ -19,6 +19,8 @@ import {
     resolveHeaderMenuHref,
     resolveHeaderMenuLabel,
 } from "@/lib/header-navigation";
+import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { normalizeLocale } from "@/lib/site-locales";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
@@ -81,13 +83,6 @@ type LiveSearchResponseData = {
     products?: unknown;
 };
 
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
-
-const normalizeLocale = (locale: string) => {
-    const normalized = locale.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
-};
-
 const normalizeSlugText = (value: string) => {
     const decoded = decodeURIComponent(String(value ?? "")).trim();
     return decoded.replace(/[-_]+/g, " ").trim();
@@ -121,6 +116,70 @@ type RenderBrandSlugPageProps = {
     locale: string;
     searchParams?: Promise<BrandSlugPageSearchParams>;
 };
+
+const buildBrandBasePath = (locale: string, slug: string) =>
+    `${locale}/brands/${String(slug ?? "").trim().replace(/^\/+|\/+$/g, "")}`;
+
+const hasListingQuery = (searchParams: BrandSlugPageSearchParams | undefined) => {
+    const page = parsePageNumber(searchParams?.page);
+    const perPage = String(Array.isArray(searchParams?.per_page) ? searchParams?.per_page[0] : searchParams?.per_page ?? "")
+        .trim();
+    const sort = String(Array.isArray(searchParams?.sort) ? searchParams?.sort[0] : searchParams?.sort ?? "").trim();
+
+    return {
+        page,
+        hasCustomPage: page > 1,
+        hasRefinement: Boolean(perPage || sort),
+    };
+};
+
+export async function generateBrandSlugMetadata({
+    slug,
+    locale: incomingLocale,
+    searchParams,
+}: RenderBrandSlugPageProps): Promise<Metadata> {
+    const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    const requestOrigin = await resolveRequestOrigin();
+
+    const brandLookupResponse = await api.get<LiveSearchResponseData>("/product/live-search", {
+        params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
+        locale,
+        cache: "no-store",
+    });
+
+    const brandItems = Array.isArray(brandLookupResponse.data?.brands?.items)
+        ? brandLookupResponse.data?.brands?.items
+        : [];
+    const desiredSlug = slugify(slug);
+    const matchedBrand = brandItems.find((item) => slugify(String(item?.slug ?? "")) === desiredSlug)
+        ?? brandItems.find((item) => slugify(String(item?.name ?? "")) === desiredSlug)
+        ?? brandItems[0];
+
+    const pageName = String(matchedBrand?.name ?? normalizeSlugText(slug) ?? slug).trim() || "Brand";
+    const seoState = hasListingQuery(resolvedSearchParams);
+    const canonicalPath = buildBrandBasePath(locale, slug);
+
+    return buildSeoMetadata({
+        title: `${pageName} | TVIM`,
+        description: `${pageName} brandina aid mehsullar ve teklifleri TVIM daxilinde kesf edin.`,
+        keywords: [pageName, "brand", "brands", "tvim"],
+        locale,
+        canonicalPath,
+        siteUrl: requestOrigin ?? config.project.url,
+        locales: [locale],
+        defaultLocale: locale,
+        robots: seoState.hasCustomPage || seoState.hasRefinement
+            ? {
+                index: false,
+                follow: true,
+            }
+            : {
+                index: true,
+                follow: true,
+            },
+    });
+}
 
 const buildPaginationTokens = (currentPage: number, lastPage: number) => {
     if (lastPage <= 1) return [1] as Array<number | "ellipsis">;

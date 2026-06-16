@@ -9,9 +9,12 @@ import type {
 import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { ForgotPasswordForm } from "./forgot-password-form";
+
+export const metadata = buildNoIndexMetadata();
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 
 export default async function ForgotPasswordPage({

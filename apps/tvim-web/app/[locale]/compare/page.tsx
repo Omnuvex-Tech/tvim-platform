@@ -9,6 +9,7 @@ import type {
 import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
@@ -16,6 +17,8 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { COMPARE_GUEST_TOKEN_COOKIE, decodeCompareTokenFromCookie } from "@/lib/compare/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
 import { CompareProductsGrid } from "./compare-products-grid";
+
+export const metadata = buildNoIndexMetadata();
 
 type LocaleCode = "az" | "ru" | "en";
 

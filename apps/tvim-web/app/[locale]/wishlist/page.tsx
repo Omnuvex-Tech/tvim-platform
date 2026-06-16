@@ -11,6 +11,7 @@ import type {
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import {
     extractHeaderCategories,
     extractHeaderItems,
@@ -26,6 +27,8 @@ import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
 import { WishlistProductsGrid } from "./wishlist-products-grid";
+
+export const metadata = buildNoIndexMetadata();
 
 type FavoriteListItem = {
     id: number;

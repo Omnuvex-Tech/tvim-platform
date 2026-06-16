@@ -183,7 +183,7 @@ function mapCategoryItems(block: MainPageBlock, locale?: string): CategoryStripI
         .filter(Boolean) as CategoryStripItem[];
 }
 
-function mapPartnerCompanies(block: MainPageBlock) {
+function mapPartnerCompanies(block: MainPageBlock, locale: string) {
     const rawItems = (Array.isArray(block?.data?.items) ? block.data.items : []) as MainPageBrandRawItem[];
 
     const toSlug = (value: string) => value
@@ -199,7 +199,7 @@ function mapPartnerCompanies(block: MainPageBlock) {
     const resolveBrandHref = (item: MainPageBrandRawItem) => {
         const rawSlug = String(item?.slug ?? "").trim();
         if (rawSlug) {
-            return `/brands/${rawSlug.replace(/^\/+/, "")}`;
+            return `/${locale}/brands/${rawSlug.replace(/^\/+/, "")}`;
         }
 
         const rawLink = String(item?.link ?? item?.url ?? "").trim();
@@ -219,7 +219,7 @@ function mapPartnerCompanies(block: MainPageBlock) {
             if (cleanedPath) {
                 const candidateSlug = cleanedPath.split("/").filter(Boolean).pop() ?? "";
                 if (candidateSlug) {
-                    return `/brands/${candidateSlug}`;
+                    return `/${locale}/brands/${candidateSlug}`;
                 }
             }
         }
@@ -227,12 +227,12 @@ function mapPartnerCompanies(block: MainPageBlock) {
         const rawName = String(item?.name ?? item?.title ?? "").trim();
         const normalizedNameSlug = toSlug(rawName);
         if (normalizedNameSlug) {
-            return `/brands/${normalizedNameSlug}`;
+            return `/${locale}/brands/${normalizedNameSlug}`;
         }
 
         const rawId = String(item?.value_id ?? item?.id ?? "").trim();
         if (rawId) {
-            return `/brands/${rawId.replace(/\s+/g, "-")}`;
+            return `/${locale}/brands/${rawId.replace(/\s+/g, "-")}`;
         }
 
         const website = String(item?.website ?? "").trim();
@@ -351,7 +351,10 @@ export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
                 if (block?.source_type === "show_on_main_page_services") {
                     return (
                         <Fragment key={key}>
-                            <BenefitsStrip items={Array.isArray(block?.data?.items) ? block.data.items : undefined} />
+                            <BenefitsStrip
+                                items={Array.isArray(block?.data?.items) ? block.data.items : undefined}
+                                locale={locale}
+                            />
                         </Fragment>
                     );
                 }
@@ -380,7 +383,7 @@ export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
                 if (block?.source_type === "brand") {
                     return (
                         <Fragment key={key}>
-                            <CompanyCarousel companies={mapPartnerCompanies(block)} />
+                            <CompanyCarousel companies={mapPartnerCompanies(block, locale || "az")} />
                         </Fragment>
                     );
                 }

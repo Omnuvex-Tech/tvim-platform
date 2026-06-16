@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import type {
     FooterMenusData,
     HeaderCategoriesResponseData,
@@ -25,9 +25,9 @@ import {
     resolveHeaderMenuHref,
     resolveHeaderMenuLabel,
 } from "@/lib/header-navigation";
+import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
 import type { RequestFormSubmitConfig } from "@repo/types/types";
-
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
 
 type MenuDetailData = {
     menu?: {
@@ -165,13 +165,6 @@ function normalizeSubmitConfig(value: any): RequestFormSubmitConfig | undefined 
     };
 }
 
-const normalizeLocale = (locale: string) => {
-    const normalized = locale.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number])
-        ? normalized
-        : config.project.defLang;
-};
-
 async function getMenuDetail(slug: string, locale: string) {
     try {
         const response = await api.get<any>(config.endpoints.menus.detail(slug), { locale });
@@ -192,7 +185,7 @@ async function getMenuDetail(slug: string, locale: string) {
     }
 }
 
-function mapIncludedValuesToCompanies(values: any[]) {
+function mapIncludedValuesToCompanies(values: any[], locale: string) {
     const arr = Array.isArray(values) ? values : [];
     return arr
         .map((v: any, i: number): Company => ({
@@ -200,26 +193,64 @@ function mapIncludedValuesToCompanies(values: any[]) {
             name: v?.name ?? v?.title ?? "",
             logo: v?.image ?? v?.image_url ?? v?.logo ?? null,
             url: v?.slug
-                ? `/brands/news/${String(v.slug)}`
+                ? `/${locale}/brands/news/${String(v.slug)}`
                 : (v?.url ?? v?.link ?? v?.website ?? "").toString().trim() || undefined,
         }))
         .filter((c) => Boolean(c.name));
 }
 
-export default async function ServiceSlugPage({
-    params,
-}: {
-    params: Promise<{ slug: string }>;
-}) {
-    const { slug } = await params;
+type ServicePageProps = {
+    slug: string;
+    locale: string;
+};
+
+export async function generateServiceMetadata({
+    slug,
+    locale: incomingLocale,
+}: ServicePageProps): Promise<Metadata> {
     const normalizedSlug = decodeURIComponent(String(slug ?? ""))
         .trim()
         .toLowerCase()
         .replace(/^\/+|\/+$/g, "");
+    const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const [menuDetail, requestOrigin] = await Promise.all([
+        getMenuDetail(normalizedSlug, locale),
+        resolveRequestOrigin(),
+    ]);
+    const staticContent = resolveStaticServiceContent(normalizedSlug);
+    const menu = menuDetail?.menu;
+    const title = staticContent?.pageTitle || staticContent?.title || menu?.title || menu?.name || "Service";
+    const description = staticContent?.introText || menu?.description || `${title} xidmeti ile bagli melumatlar TVIM daxilinde.`;
+    const keywordsRaw = menu?.seo?.meta_keywords;
+    const keywords = Array.isArray(keywordsRaw)
+        ? keywordsRaw.filter(Boolean).map(String)
+        : typeof keywordsRaw === "string"
+            ? keywordsRaw.split(",").map((item) => item.trim()).filter(Boolean)
+            : [title, "service", "tvim"];
 
-    const cookieStore = await cookies();
-    const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
-    const locale = normalizeLocale(cookieLocale || config.project.defLang);
+    return buildSeoMetadata({
+        title,
+        description,
+        keywords,
+        locale,
+        canonicalPath: `${locale}/services/${normalizedSlug}`,
+        siteUrl: requestOrigin ?? config.project.url,
+        locales: [locale],
+        defaultLocale: locale,
+        image: staticContent?.bannerImage,
+        imageAlt: title,
+    });
+}
+
+export async function renderServiceSlugPage({
+    slug,
+    locale: incomingLocale,
+}: ServicePageProps) {
+    const normalizedSlug = decodeURIComponent(String(slug ?? ""))
+        .trim()
+        .toLowerCase()
+        .replace(/^\/+|\/+$/g, "");
+    const locale = normalizeLocale(incomingLocale || config.project.defLang);
 
     const [
         menuDetail,
@@ -407,7 +438,7 @@ export default async function ServiceSlugPage({
                             }
 
                             if (inc.included_type === "brand" && inc.data?.values) {
-                                const companies = mapIncludedValuesToCompanies(inc.data.values);
+                                const companies = mapIncludedValuesToCompanies(inc.data.values, locale);
                                 if (companies.length === 0) return null;
                                 return (
                                     <div key={idx} className="mt-4 lg:mt-6">
@@ -447,4 +478,13 @@ export default async function ServiceSlugPage({
             </div>
         </div>
     );
+}
+
+export default async function ServiceSlugPage({
+    params,
+}: {
+    params: Promise<{ slug: string }>;
+}) {
+    const { slug } = await params;
+    redirect(`/${defaultLocale}/services/${encodeURIComponent(slug)}`);
 }

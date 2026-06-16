@@ -10,6 +10,7 @@ import type {
 } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import { config } from "@/config";
 import {
   extractHeaderCategories,
@@ -24,6 +25,8 @@ import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { LoginForm } from "./login-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+
+export const metadata = buildNoIndexMetadata();
 
 export default async function LoginPage({
   params,

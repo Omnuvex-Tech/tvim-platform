@@ -206,8 +206,26 @@ const getCanonicalPath = (canonical: unknown) => {
     }
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+const readSearchParamValue = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+
+const hasListingSeoRefinement = (searchParams: Record<string, string | string[] | undefined>) => {
+    const page = Number(readSearchParamValue(searchParams.page) ?? 1);
+    const normalizedPage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const q = String(readSearchParamValue(searchParams.q) ?? "").trim();
+    const sort = String(readSearchParamValue(searchParams.sort) ?? "").trim();
+    const perPage = String(readSearchParamValue(searchParams.per_page) ?? "").trim();
+    const hasFilter = Object.keys(searchParams).some((key) => key.startsWith("filters["));
+
+    return {
+        page: normalizedPage,
+        hasRefinement: Boolean(q || sort || perPage || hasFilter || normalizedPage > 1),
+    };
+};
+
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
     const { slug, locale } = await params;
+    const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.trim().toLowerCase();
     const detail = await getMenuDetail(slug, normalizedLocale);
 
@@ -238,7 +256,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         }
     })();
 
-    return buildHomeMetadata(
+    const menuType = String(detail.menu.type ?? "").trim().toLowerCase();
+    const viewType = String(detail.menu.view_type ?? "").trim().toLowerCase();
+    const isListingPage =
+        menuType === "categories" ||
+        viewType === "categories" ||
+        viewType === "catalog" ||
+        viewType === "product-list";
+    const listingSeoState = hasListingSeoRefinement(resolvedSearchParams || {});
+
+    const metadata = buildHomeMetadata(
         {
             meta_title: seo?.meta_title || detail.menu.title || detail.menu.name,
             meta_description: seo?.meta_description || detail.menu.description || detail.data?.description,
@@ -257,6 +284,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             useProjectFallbacks: false,
         },
     );
+
+    return isListingPage && listingSeoState.hasRefinement
+        ? {
+            ...metadata,
+            robots: {
+                index: false,
+                follow: true,
+            },
+        }
+        : metadata;
 }
 
 export default async function DynamicMenuPage({ params, searchParams }: Props) {
@@ -373,7 +410,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 url: v?.slug
                     ? (isGridView
                         ? `/${normalizedLocale}/${slug}/${String(v.slug)}`
-                        : `/brands/news/${String(v.slug)}`)
+                        : `/${normalizedLocale}/brands/news/${String(v.slug)}`)
                     : (v?.url ?? v?.link ?? v?.website ?? "").toString().trim() || undefined,
             }))
             .filter((c) => Boolean(c.name));

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { renderBrandSlugPage } from "@/app/brands/brand-slug-page";
-
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
+import {
+    generateBrandSlugMetadata,
+    renderBrandSlugPage,
+} from "@/app/brands/brand-slug-page";
+import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandLocalePageSearchParams = {
     page?: string | string[];
@@ -19,13 +21,33 @@ export default async function BrandLocaleSlugPage({
     const { locale, slug } = await params;
     const normalizedLocale = locale.trim().toLowerCase();
 
-    if (!SUPPORTED_LOCALES.includes(normalizedLocale as (typeof SUPPORTED_LOCALES)[number])) {
+    if (!isSupportedLocale(normalizedLocale)) {
         notFound();
     }
 
     return renderBrandSlugPage({
         slug,
         locale: normalizedLocale,
+        searchParams,
+    });
+}
+
+export async function generateMetadata({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ locale: string; slug: string }>;
+    searchParams?: Promise<BrandLocalePageSearchParams>;
+}) {
+    const { locale, slug } = await params;
+
+    if (!isSupportedLocale(locale.trim().toLowerCase())) {
+        return {};
+    }
+
+    return generateBrandSlugMetadata({
+        slug,
+        locale,
         searchParams,
     });
 }

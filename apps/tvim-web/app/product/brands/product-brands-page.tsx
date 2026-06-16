@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { Metadata } from "next";
 import type {
     FooterMenusData,
     HeaderCategoriesResponseData,
@@ -10,6 +11,7 @@ import type {
 import { Breadcrumb, type Company } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
 import { resolveProjectSettings, resolveSettingsApiLocale } from "@/lib/settings";
 import {
     extractHeaderCategories,
@@ -20,6 +22,7 @@ import {
     resolveHeaderMenuHref,
     resolveHeaderMenuLabel,
 } from "@/lib/header-navigation";
+import { normalizeLocale } from "@/lib/site-locales";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { Footer } from "@/app/components/Footer/footer";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
@@ -63,13 +66,6 @@ type RenderProductBrandsPageProps = {
 
 type ProductBrandsPageSearchParams = {
     page?: string | string[];
-};
-
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
-
-const normalizeLocale = (locale: string) => {
-    const normalized = locale.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
 };
 
 const copyByLocale = (locale: string) => {
@@ -377,4 +373,35 @@ export async function renderProductBrandsPage({
             </div>
         </div>
     );
+}
+
+export async function generateProductBrandsMetadata({
+    locale: incomingLocale,
+    searchParams,
+}: RenderProductBrandsPageProps): Promise<Metadata> {
+    const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    const requestedPage = parsePageNumber(resolvedSearchParams?.page);
+    const requestOrigin = await resolveRequestOrigin();
+    const t = copyByLocale(locale);
+
+    return buildSeoMetadata({
+        title: `${t.pageTitle} | TVIM`,
+        description: `${t.pageTitle} uzre secilmis brendleri ve mehsullari TVIM daxilinde kesf edin.`,
+        keywords: [t.pageTitle, "brands", "tvim"],
+        locale,
+        canonicalPath: `${locale}/product/brands`,
+        siteUrl: requestOrigin ?? config.project.url,
+        locales: [locale],
+        defaultLocale: locale,
+        robots: requestedPage > 1
+            ? {
+                index: false,
+                follow: true,
+            }
+            : {
+                index: true,
+                follow: true,
+            },
+    });
 }

@@ -8,9 +8,12 @@ import type {
 import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { Footer } from "@/app/components/Footer/footer";
 import { ResetPasswordForm } from "./reset-password-form";
+
+export const metadata = buildNoIndexMetadata();
 
 export default async function ResetPasswordPage({
   params,

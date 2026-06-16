@@ -1,13 +1,5 @@
-import { cookies } from "next/headers";
-import { config } from "@/config";
-import { renderBrandSlugPage } from "@/app/brands/brand-slug-page";
-
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
-
-const normalizeLocale = (locale: string) => {
-    const normalized = locale.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
-};
+import { redirect } from "next/navigation";
+import { defaultLocale } from "@/lib/site-locales";
 
 type BrandSlugPageSearchParams = {
     page?: string | string[];
@@ -17,19 +9,10 @@ type BrandSlugPageSearchParams = {
 
 export default async function BrandSlugPage({
     params,
-    searchParams,
 }: {
     params: Promise<{ slug: string }>;
     searchParams?: Promise<BrandSlugPageSearchParams>;
 }) {
     const { slug } = await params;
-    const cookieStore = await cookies();
-    const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
-    const locale = normalizeLocale(cookieLocale || config.project.defLang);
-
-    return renderBrandSlugPage({
-        slug,
-        locale,
-        searchParams,
-    });
+    redirect(`/${defaultLocale}/brands/${encodeURIComponent(slug)}`);
 }
