@@ -292,7 +292,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                         </div>
                                     )}
 
-                                    <div className="mt-2 flex items-center justify-start gap-1">
+                                    <div className="mt-2 flex w-full items-center justify-center gap-1">
                                         <i className="far fa-star text-[18px] text-[#d2d7e2]" aria-hidden="true" />
                                         <i className="far fa-star text-[18px] text-[#d2d7e2]" aria-hidden="true" />
                                         <i className="far fa-star text-[18px] text-[#d2d7e2]" aria-hidden="true" />

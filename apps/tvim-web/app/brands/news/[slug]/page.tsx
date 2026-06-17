@@ -387,7 +387,7 @@ export async function renderBrandNewsSlugPage({
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
-                <div className="relative w-full overflow-hidden rounded-[16px] bg-[#1f2937]">
+                <div className="relative w-full overflow-hidden rounded-[16px] bg-[#e0e3e8] skeleton-loader">
                     {bannerImage ? (
                         <img src={bannerImage} alt={pageTitle} className="h-[clamp(120px,25vw,300px)] w-full object-cover" />
                     ) : (

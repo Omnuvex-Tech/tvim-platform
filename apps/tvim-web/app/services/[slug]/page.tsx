@@ -373,14 +373,14 @@ export async function renderServiceSlugPage({
             <section className="mx-auto w-full max-w-[1280px] !px-1 pt-2 pb-10 lg:!px-2 lg:pt-3 lg:pb-12">
                 {staticContent ? (
                     <div className="space-y-7">
-                        <div className="overflow-hidden rounded-[8px] bg-[#1236d6]">
+                        <div className="overflow-hidden rounded-[8px] bg-[#f0f2f5] skeleton-loader">
                             {staticContent.bannerImage ? (
-                                <img src={staticContent.bannerImage} alt={staticContent.title} className="h-[260px] w-full object-cover lg:h-[520px]" />
+                                <img src={staticContent.bannerImage} alt={staticContent.title} className="h-[clamp(180px,40vw,300px)] w-full object-cover" loading="lazy" />
                             ) : (
-                                <div className="flex h-[260px] w-full items-center bg-gradient-to-r from-[#1432c9] via-[#1a41ef] to-[#2944c6] px-8 lg:h-[520px]">
+                                <div className="flex h-[clamp(180px,40vw,300px)] w-full items-center bg-gradient-to-r from-[#1432c9] via-[#1a41ef] to-[#2944c6] px-8">
                                     <div>
-                                        <p className="text-[24px] leading-none font-bold text-white lg:text-[42px]">tvim.</p>
-                                        <p className="mt-3 text-[30px] leading-tight font-extrabold text-[#ffe044] uppercase lg:text-[68px]">{staticContent.title}</p>
+                                        <p className="text-[24px] leading-none font-bold text-white lg:text-[36px]">tvim.</p>
+                                        <p className="mt-3 text-[24px] leading-tight font-extrabold text-[#ffe044] uppercase lg:text-[48px]">{staticContent.title}</p>
                                     </div>
                                 </div>
                             )}

@@ -564,7 +564,6 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 return;
             }
 
-            notify.success(json.message || "Sifariş uğurla yaradıldı.");
             try {
                 await hydrateCart(true);
             } catch {

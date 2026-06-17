@@ -219,3 +219,20 @@
 		height: 180px;
 	}
 }
+
+/* Loading skeleton animation */
+@keyframes skeleton-loading {
+	0% {
+		background-color: #f0f2f5;
+	}
+	50% {
+		background-color: #e0e3e8;
+	}
+	100% {
+		background-color: #f0f2f5;
+	}
+}
+
+.skeleton-loader {
+	animation: skeleton-loading 1.5s ease-in-out infinite;
+}

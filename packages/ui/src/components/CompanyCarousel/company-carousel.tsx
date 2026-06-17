@@ -20,6 +20,7 @@ type Props = {
 const SLIDE_DURATION = 3000;
 const ANIMATION_DURATION = 600;
 const DEFAULT_VISIBLE_COUNT = 6;
+const DRAG_CLICK_THRESHOLD = 24;
 
 const getVisibleCount = (width: number) => {
   if (width >= 1024) return 6;
@@ -123,11 +124,6 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     draggingRef.current = false;
     dragStartXRef.current = e.clientX;
     dragDxRef.current = 0;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (err) {
-      // Pointer capture is best-effort; dragging still works without it.
-    }
     setDragTick((t) => t + 1);
   };
 
@@ -136,7 +132,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     if (activePointerIdRef.current !== e.pointerId) return;
     dragDxRef.current = e.clientX - dragStartXRef.current;
 
-    if (!draggingRef.current && Math.abs(dragDxRef.current) > 6) {
+    if (!draggingRef.current && Math.abs(dragDxRef.current) > DRAG_CLICK_THRESHOLD) {
       draggingRef.current = true;
       setIsAnimating(false);
     }
@@ -152,6 +148,12 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     pointerDownRef.current = false;
     activePointerIdRef.current = null;
 
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (err) {
+      // Pointer capture may already be released by the browser.
+    }
+
     if (!draggingRef.current) {
       pausedRef.current = false;
       dragDxRef.current = 0;
@@ -160,12 +162,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     }
 
     draggingRef.current = false;
-    suppressClickRef.current = Math.abs(dragDxRef.current) > 6;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (err) {
-      // Pointer capture may already be released by the browser.
-    }
+    suppressClickRef.current = Math.abs(dragDxRef.current) > DRAG_CLICK_THRESHOLD;
 
     const dx = dragDxRef.current;
     if (itemWidth > 0) {
@@ -190,8 +187,36 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
 
   const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!suppressClickRef.current) return;
+
+    const target = e.target as HTMLElement | null;
+    const hasLink = target?.closest("a") || false;
+    if (hasLink) {
+      suppressClickRef.current = false;
+      return;
+    }
+
+    const path = (e.nativeEvent as MouseEvent).composedPath?.() ?? [];
+    const hasLinkInPath = path.some((node) => node instanceof Element && node.closest("a") !== null);
+    if (hasLinkInPath) {
+      suppressClickRef.current = false;
+      return;
+    }
+
+    suppressClickRef.current = false;
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  const onPointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointerDownRef.current) return;
+    if (activePointerIdRef.current !== e.pointerId) return;
+    pointerDownRef.current = false;
+    activePointerIdRef.current = null;
+    draggingRef.current = false;
+    suppressClickRef.current = false;
+    dragDxRef.current = 0;
+    pausedRef.current = false;
+    setDragTick((t) => t + 1);
   };
 
   const [tooltip, setTooltip] = useState<{ text: string; left: number } | null>(null);
@@ -229,7 +254,8 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          onLostPointerCapture={onPointerCancel}
           onClickCapture={onClickCapture}
         >
           <div
@@ -279,6 +305,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                         className={styles.companyLink}
                         target="_blank"
                         rel="noreferrer"
+                        onClickCapture={(event) => event.stopPropagation()}
                         aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}
                       >
                         {logoNode}
@@ -288,6 +315,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                         href={href}
                         className={styles.companyLink}
                         prefetch={false}
+                        onClickCapture={(event) => event.stopPropagation()}
                         aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}
                       >
                         {logoNode}
