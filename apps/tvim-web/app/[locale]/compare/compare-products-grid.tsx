@@ -308,7 +308,15 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                             >
                                                 {formatPrice(item.old_price)}
                                             </span>
-                                        ) : null}
+                                        ) : (
+                                            <span
+                                                className="price-old mb-1 block text-center opacity-0"
+                                                aria-hidden="true"
+                                                style={{ fontSize: "14px", fontWeight: 500, color: "#888888", textDecoration: "line-through", margin: 0, width: "100%", textAlign: "center" }}
+                                            >
+                                                0.00₼
+                                            </span>
+                                        )}
                                         <span
                                             className="price-new block text-[24px] font-bold"
                                             style={{ color: typeof item.old_price === "number" && item.old_price > item.price ? "#ff0000" : "#000000" }}
