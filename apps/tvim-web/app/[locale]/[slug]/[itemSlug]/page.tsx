@@ -63,6 +63,10 @@ type MenuDetailData = {
 type ProductDetailBreadcrumb = {
     id?: number;
     name?: string;
+    slug?: string;
+    link?: string;
+    url?: string;
+    href?: string;
     meta_title?: string | null;
     meta_description?: string | null;
     meta_keywords?: string | null;
@@ -274,6 +278,46 @@ async function getProductDetailBySlug(slug: string, locale: string, authToken: s
 
 function getHomeLabel(locale: string) {
     return locale === "en" ? "Home" : "Ana sehife";
+}
+
+function toBreadcrumbSlug(value: string) {
+    return value
+        .toLowerCase()
+        .trim()
+        .replace(/ə/g, "e")
+        .replace(/ö/g, "o")
+        .replace(/ü/g, "u")
+        .replace(/ı/g, "i")
+        .replace(/ğ/g, "g")
+        .replace(/ç/g, "c")
+        .replace(/ş/g, "s")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
+function resolveBreadcrumbHref(crumb: ProductDetailBreadcrumb, locale: string) {
+    const rawHref = String(crumb.href ?? crumb.link ?? crumb.url ?? "").trim();
+    const rawSlug = String(crumb.slug ?? "").trim();
+    const candidate = rawHref || rawSlug;
+
+    if (candidate) {
+        if (/^https?:\/\//i.test(candidate)) {
+            return candidate;
+        }
+
+        const cleanCandidate = candidate.replace(/^\/+/, "");
+        const firstSegment = cleanCandidate.split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
+        if (["az", "en", "ru"].includes(firstSegment)) {
+            return `/${cleanCandidate}`;
+        }
+
+        return `/${locale}/${cleanCandidate}`;
+    }
+
+    const nameSlug = toBreadcrumbSlug(String(crumb.name ?? ""));
+    return nameSlug ? `/${locale}/${nameSlug}` : undefined;
 }
 
 export async function generateMetadata({
@@ -626,6 +670,7 @@ export default async function GridDetailPage({
                 ? detail.breadcrumbs
                       .map((crumb) => ({
                           label: String(crumb?.name ?? "").trim(),
+                          href: resolveBreadcrumbHref(crumb, normalizedLocale),
                       }))
                       .filter((crumb) => crumb.label)
                 : []),
