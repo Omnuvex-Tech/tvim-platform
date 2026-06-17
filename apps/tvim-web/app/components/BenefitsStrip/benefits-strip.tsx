@@ -122,7 +122,8 @@ const BenefitsStrip = ({ items, locale }: { items?: any[]; locale?: string }) =>
     const list = mapRawToBenefits(items, locale);
 
     return (
-        <section className="w-full" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' }}>
+        // <section className="w-full" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' }}>
+        <section className="w-full font-sans">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {list.map((item, index) => (
                         <Link
