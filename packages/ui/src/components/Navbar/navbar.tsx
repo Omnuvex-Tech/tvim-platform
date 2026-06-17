@@ -363,6 +363,36 @@ const defaultLanguages: Language[] = [
     { id: 3, code: "ru", name: "Russian", native_name: "RU", is_rtl: false, is_default_admin: false, is_default_site: false, is_required: false, sort_order: 3 },
 ];
 
+const navbarCopy = {
+    az: {
+        tagline: "Tikinti və inşaat materialları",
+        searchPlaceholder: "Məhsul axtarışı",
+        catalog: "Kataloq",
+        login: "Daxil ol",
+    },
+    en: {
+        tagline: "Construction and building materials",
+        searchPlaceholder: "Search products",
+        catalog: "Catalog",
+        login: "Login",
+    },
+    ru: {
+        tagline: "Строительные материалы",
+        searchPlaceholder: "Поиск товаров",
+        catalog: "Каталог",
+        login: "Войти",
+    },
+} as const;
+
+function getNavbarCopy(locale?: string) {
+    const normalizedLocale = String(locale || "az").trim().toLowerCase();
+    if (normalizedLocale === "en" || normalizedLocale === "ru") {
+        return navbarCopy[normalizedLocale];
+    }
+
+    return navbarCopy.az;
+}
+
 function sanitizePhone(phone: string) {
     return phone.replace(/\s|\(|\)|-/g, "");
 }
@@ -474,14 +504,17 @@ function LocaleFlag({ country }: { country: string }) {
     );
 }
 
-function NavbarLogo({ logo, logoHref = "#" }: { logo?: ReactNode; logoHref?: string }) {
+function NavbarLogo({ logo, logoHref = "#", tagline }: { logo?: ReactNode; logoHref?: string; tagline: string }) {
     return (
         <SmartLink href={logoHref} className="flex min-w-0 flex-1 items-center gap-1 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-1">
             <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                 {logo ?? null}
             </span>
-            <span className="hidden text-[14px] leading-none font-normal whitespace-nowrap text-[#616672] sm:inline">
+            <span className="hidden">
                 Tikinti və inşaat materialları
+            </span>
+            <span className="hidden text-[14px] leading-none font-normal whitespace-nowrap text-[#616672] sm:inline">
+                {tagline}
             </span>
         </SmartLink>
     );
@@ -804,7 +837,7 @@ function NavbarContact({
     );
 }
 
-function CatalogButton({ open = false, onClick, toggleRef }: { open?: boolean; onClick?: () => void; toggleRef?: RefObject<HTMLButtonElement | null> }) {
+function CatalogButton({ open = false, onClick, toggleRef, label }: { open?: boolean; onClick?: () => void; toggleRef?: RefObject<HTMLButtonElement | null>; label: string }) {
     return (
         <button
             type="button"
@@ -824,7 +857,7 @@ function CatalogButton({ open = false, onClick, toggleRef }: { open?: boolean; o
             className="inline-flex cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
         >
             <Grid2X2 className="size-[15px] lg:size-4" />
-            Kataloq
+            {label}
                 <ChevronDown
                     className={cn(
                         "size-[16px] lg:size-5 transform transition-transform duration-200 text-[#000000] opacity-80",
@@ -856,6 +889,7 @@ function NavbarActions({
     compareCount,
     cartCount,
     onCartClick,
+    loginLabel,
 }: {
     locale: string;
     isAuthenticated: boolean;
@@ -864,6 +898,7 @@ function NavbarActions({
     compareCount: number;
     cartCount: number;
     onCartClick?: () => void;
+    loginLabel: string;
 }) {
     const displayName = getAuthDisplayName(authUser);
     const favoritesBadgeText = favoritesCount > 99 ? "99+" : String(favoritesCount);
@@ -887,7 +922,7 @@ function NavbarActions({
                     className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-[#1f4fff] px-11 text-[16px] font-medium text-white"
                 >
                     <UserRound className="size-[17px]" />
-                    Daxil ol
+                    {loginLabel}
                 </Link>
             )}
 
@@ -981,6 +1016,11 @@ export function Navbar({
     cartCount = 0,
     onCartClick,
 }: NavbarProps) {
+    const copy = getNavbarCopy(locale);
+    const effectiveSearchPlaceholder =
+        !searchPlaceholder || searchPlaceholder.includes("MÉ") || searchPlaceholder === "Məhsul axtarışı"
+            ? copy.searchPlaceholder
+            : searchPlaceholder;
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobileLocaleOpen, setIsMobileLocaleOpen] = useState(false);
     const mobileLocaleDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -1521,9 +1561,9 @@ export function Navbar({
         <header data-slot="navbar" className={cn(navbarClasses.root, className)} suppressHydrationWarning>
             <div className={navbarClasses.container} ref={containerRef}>
                 <div className={navbarClasses.topRow}>
-                    <NavbarLogo logo={logo} logoHref={logoHref} />
+                    <NavbarLogo logo={logo} logoHref={logoHref} tagline={copy.tagline} />
                     <div className="hidden lg:block">
-                        <NavbarSearch searchPlaceholder={searchPlaceholder} locale={locale} onSearchProducts={onSearchProducts} />
+                        <NavbarSearch searchPlaceholder={effectiveSearchPlaceholder} locale={locale} onSearchProducts={onSearchProducts} />
                     </div>
                     <div className="hidden lg:block">
                         <NavbarContact 
@@ -1626,7 +1666,7 @@ export function Navbar({
 
                 <div className={navbarClasses.bottomRow}>
                     <div className="relative">
-                        <CatalogButton open={isCatalogOpen} onClick={toggleCatalog} toggleRef={catalogToggleRef} />
+                        <CatalogButton open={isCatalogOpen} onClick={toggleCatalog} toggleRef={catalogToggleRef} label={copy.catalog} />
 
                         {isDesktopCatalogMounted && catalogOverlayTop !== null && typeof document !== "undefined"
                             ? createPortal(
@@ -1740,6 +1780,7 @@ export function Navbar({
                         compareCount={compareCount}
                         cartCount={cartCount}
                         onCartClick={onCartClick}
+                        loginLabel={copy.login}
                     />
                 </div>
 
@@ -1762,7 +1803,7 @@ export function Navbar({
                         className="inline-flex h-9 shrink-0 cursor-pointer touch-manipulation items-center gap-1 rounded-[10px] bg-[#ffd500] px-3 text-[13px] font-medium text-[#171717]"
                     >
                         <Grid2X2 className="size-[14px]" />
-                        Kataloq
+                        {copy.catalog}
                         <ChevronDown
                             className={cn(
                                 "size-5 shrink-0 transform transition-transform duration-200",
@@ -1771,7 +1812,7 @@ export function Navbar({
                             strokeWidth={2}
                         />
                     </button>
-                    <NavbarSearch searchPlaceholder={searchPlaceholder} compact locale={locale} onSearchProducts={onSearchProducts} />
+                    <NavbarSearch searchPlaceholder={effectiveSearchPlaceholder} compact locale={locale} onSearchProducts={onSearchProducts} />
                 </div>
             </div>
 
@@ -1857,7 +1898,7 @@ export function Navbar({
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 <UserRound className="size-[16px]" />
-                                Daxil ol
+                                {copy.login}
                             </Link>
                         )}
                     </div>
@@ -1923,7 +1964,7 @@ export function Navbar({
             >
                 <div className="flex h-[54px] items-center justify-between pl-2.5 pr-0 bg-[#003dff] text-white">
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[1.05em] font-semibold flex-auto">Kataloq</span>
+                        <span className="text-[1.05em] font-semibold flex-auto">{copy.catalog}</span>
                     </div>
                     <button
                         type="button"
