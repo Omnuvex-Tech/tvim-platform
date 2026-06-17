@@ -1275,7 +1275,6 @@ export function Navbar({
 
                 const json = await fetchNavbarApiJson("/menus", {
                     locale: currentLocale,
-                    params: { in_header: "1" },
                 });
 
                 // Extract array robustly from several possible response shapes
@@ -1283,17 +1282,18 @@ export function Navbar({
 
                 const filtered = (items as any[])
                     .filter((it) => !!it)
-                    .filter((it) => ((it.type ?? "") + "").toString().toLowerCase() !== "categories")
-                    .filter((it) => !it.parent_id || Number(it.parent_id) === 0);
+                    .filter((it) => ((it.type ?? "") + "").toString().toLowerCase() !== "categories");
 
                 const mapped = filtered
                     .map((it: any) => {
                         const label = it.title ?? it.name ?? it.label ?? it.link ?? "";
                         const hrefPart = (it.multi_links && it.multi_links[currentLocale]) || it.link || "";
-                        const href = hrefPart ? `/${currentLocale}/${hrefPart}` : "#";
+                        const cleanedHrefPart = String(hrefPart ?? "").replace(/^\/+/, "");
+                        if (!cleanedHrefPart || cleanedHrefPart === "#") return null;
+                        const href = `/${currentLocale}/${cleanedHrefPart}`;
                         return { label: String(label), href } as NavbarMenuItem;
                     })
-                    .filter((m: NavbarMenuItem) => m.label && m.href);
+                    .filter((m: NavbarMenuItem | null): m is NavbarMenuItem => Boolean(m && m.label && m.href));
 
                 if (mounted) setFetchedMenuItems(mapped);
             } catch (err: any) {

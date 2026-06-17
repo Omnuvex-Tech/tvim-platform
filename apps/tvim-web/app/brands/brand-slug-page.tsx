@@ -1,31 +1,13 @@
 import type { Metadata } from "next";
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
 import { normalizeLocale } from "@/lib/site-locales";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
-import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
+import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 type ProductListApiResponse = {
     menu?: {
@@ -236,43 +218,16 @@ export async function renderBrandSlugPage({
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
-
-    if (!langResponse.success || !langResponse.data) {
-        return (
-            <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
-            </div>
-        );
-    }
-
     const [
         brandLookupResponse,
-        headerMenuResponse,
-        footerMenuResponse,
-        settingsResponse,
-        categoriesResponse,
+        chrome,
     ] = await Promise.all([
         api.get<LiveSearchResponseData>("/product/live-search", {
             params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
             locale,
             cache: "no-store",
         }),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale,
-        }),
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale,
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale,
-        }),
+        getSiteChromeData(locale),
     ]);
 
     const brandLookupPayload = brandLookupResponse.success && brandLookupResponse.data ? brandLookupResponse.data : null;
@@ -300,52 +255,6 @@ export async function renderBrandSlugPage({
         locale,
         cache: "no-store",
     });
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, locale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data
-        ? footerMenuResponse.data.footer
-        : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
 
     const detailData = productListResponse.success && productListResponse.data ? productListResponse.data : null;
     const fallbackPageName = normalizeSlugText(slug) || slug;
@@ -383,16 +292,7 @@ export async function renderBrandSlugPage({
     const perPageOptions = [20, 40, 60];
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
@@ -541,11 +441,6 @@ export async function renderBrandSlugPage({
                 </PendingNavProvider>
             </section>
 
-            <LogoutToast />
-
-            <div className="mt-16 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }

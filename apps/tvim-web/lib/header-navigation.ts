@@ -53,9 +53,10 @@ export const resolveHeaderMenuHref = (item: HeaderMenuItem, locale: string): str
     const normalizedLocale = locale.trim().toLowerCase();
     const multiLinks = item.multi_links;
     const localizedLink = isObjectRecord(multiLinks) ? multiLinks[normalizedLocale] : undefined;
-    const hrefPart = toTruthyString(localizedLink ?? item.link);
+    const hrefPart = toTruthyString(localizedLink ?? item.link).replace(/^\/+/, "");
 
-    return hrefPart ? `/${normalizedLocale}/${hrefPart.replace(/^\/+/, "")}` : "#";
+    if (!hrefPart || hrefPart === "#") return "#";
+    return `/${normalizedLocale}/${hrefPart}`;
 };
 
 export const resolveHeaderMenuLabel = (item: HeaderMenuItem): string =>

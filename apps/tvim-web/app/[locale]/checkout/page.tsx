@@ -1,21 +1,16 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import type {
-    FooterMenusData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
+import type { Language } from "@repo/types/types";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { buildNoIndexMetadata } from "@/lib/seo";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { Footer } from "@/app/components/Footer/footer";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Breadcrumb } from "@repo/ui";
 import CheckoutClient from "@/app/checkout/checkout-client";
 import type { CheckoutData } from "@/app/checkout/checkout-client";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 export const metadata = buildNoIndexMetadata();
 
@@ -91,51 +86,13 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
         notFound();
     }
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale,
-    });
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
-
-    const checkoutData = await fetchCheckoutData(locale, authToken, guestToken);
+    const [chrome, checkoutData] = await Promise.all([
+        getSiteChromeData(locale),
+        fetchCheckoutData(locale, authToken, guestToken),
+    ]);
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={[]}
-                initialCatalogItems={[]}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
                     { label: "Ana səhifə", href: `/${locale}` },
@@ -150,10 +107,6 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
             <div className="mx-auto mt-3 w-full max-w-[1280px] px-3 lg:mt-4 lg:px-0">
                 <CheckoutClient locale={locale} initialCheckout={checkoutData} isAuthenticated={Boolean(authToken)} />
             </div>
-
-            <div className="mt-16 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }

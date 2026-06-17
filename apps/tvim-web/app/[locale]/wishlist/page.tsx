@@ -1,31 +1,15 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
+import type { Language } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildNoIndexMetadata } from "@/lib/seo";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
+import { getSiteChromeData } from "@/lib/site-chrome";
 import { WishlistProductsGrid } from "./wishlist-products-grid";
 
 export const metadata = buildNoIndexMetadata();
@@ -282,84 +266,12 @@ export default async function WishlistPage({
     const homePageMeta = config.pages.home[locale as "az" | "ru" | "en"];
     const wishlistPageMeta = config.pages.wishlist[locale as "az" | "ru" | "en"];
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale,
-    });
-
-    const headerMenuResponse = await api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale,
-    });
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, locale),
-        }))
-        .filter((item) => item.label);
-
-    const categoriesResponse = await api.get<HeaderCategoriesResponseData>("/product/categories", {
-        params: { in_header: "1" },
-        locale,
-    });
-
-    let headerCategoryItems = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data
-        ? footerMenuResponse.data.footer
-        : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
+    const chrome = await getSiteChromeData(locale);
 
     const favoriteProducts = await fetchFavoriteProducts(locale, authToken, guestToken);
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
@@ -380,10 +292,6 @@ export default async function WishlistPage({
             <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
                 <RequestForm />
             </div>
-
-            <div className="mt-24 w-full lg:mt-28">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }

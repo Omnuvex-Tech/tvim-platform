@@ -1,31 +1,15 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
 } from "@repo/types/types";
 import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { getSiteChromeData } from "@/lib/site-chrome";
 import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
 import type { RequestFormSubmitConfig } from "@repo/types/types";
 
@@ -252,36 +236,14 @@ export async function renderServiceSlugPage({
         .replace(/^\/+|\/+$/g, "");
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
 
-    const [
-        menuDetail,
-        langResponse,
-        headerMenuResponse,
-        footerMenuResponse,
-        settingsResponse,
-        categoriesResponse,
-    ] = await Promise.all([
+    const [menuDetail, chrome] = await Promise.all([
         getMenuDetail(normalizedSlug, locale),
-        api.get<Language[]>(config.endpoints.languages.list),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale,
-        }),
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale,
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale,
-        }),
+        getSiteChromeData(locale),
     ]);
 
     const staticContent = resolveStaticServiceContent(normalizedSlug);
 
-    if ((!menuDetail?.menu && !staticContent) || !langResponse.success || !langResponse.data) {
+    if ((!menuDetail?.menu && !staticContent) || chrome.languages.length === 0) {
         notFound();
     }
 
@@ -289,52 +251,6 @@ export async function renderServiceSlugPage({
     const pageData = menuDetail?.data;
     const includedItems = Array.isArray(menuDetail?.included_items) ? menuDetail.included_items : [];
     const pageSubmitConfig = normalizeSubmitConfig(pageData?.submit);
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, locale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data
-        ? footerMenuResponse.data.footer
-        : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
 
     const pageTitle = staticContent?.pageTitle || staticContent?.title || menu?.title || menu?.name || "Service";
     const keywordsRaw = menu?.seo?.meta_keywords;
@@ -348,16 +264,7 @@ export async function renderServiceSlugPage({
     const currentTitle = staticContent?.title || menu?.name || fallbackTitle;
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
                     { label: locale === "en" ? "Home" : "Ana səhifə", href: `/${locale}` },
@@ -453,8 +360,6 @@ export async function renderServiceSlugPage({
                 </div>
             ) : null}
 
-            <LogoutToast />
-
             {keywords.length > 0 ? (
                 <div className="mx-auto mt-40 w-full max-w-[1280px]">
                     <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
@@ -473,10 +378,7 @@ export async function renderServiceSlugPage({
                 </div>
             ) : null}
 
-            <div className="mt-12 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }
 

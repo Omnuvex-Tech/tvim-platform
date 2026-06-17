@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Spinner } from "@repo/ui";
 import { useCart } from "@/lib/cart/client";
+import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 
 type CartPreviewModalProduct = {
     key: string;
@@ -34,7 +35,10 @@ const CartPreviewModal = ({
 }: CartPreviewModalProps) => {
     const { isAdding, addingProductTitle, pendingCount } = useCart();
     const router = useRouter();
+    const pathname = usePathname();
     const isBusy = isAdding || pendingCount > 0;
+    const localeSegment = pathname?.split("/").filter(Boolean)[0] ?? "";
+    const locale = isSupportedLocale(localeSegment) ? localeSegment : defaultLocale;
 
     return (
         <div
@@ -207,7 +211,7 @@ const CartPreviewModal = ({
                                 try {
                                     onClose();
                                 } catch {}
-                                router.push("/checkout");
+                                router.push(`/${locale}/checkout`);
                             }}
                             className="inline-flex h-[40px] min-w-[176px] items-center justify-center self-end rounded-full bg-[#1f4fff] px-5 text-[16px] leading-none font-semibold text-white cursor-pointer"
                         >

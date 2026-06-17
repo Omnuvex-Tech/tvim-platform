@@ -3,34 +3,17 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
 import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import { buildHomeMetadata, resolveProjectSettings, resolveSettingsApiLocale } from "@/lib/settings";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
+import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 type MenuDetailData = {
     type: string;
@@ -301,80 +284,17 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.toLowerCase();
 
-    const [
-        menuDetail,
-        langResponse,
-        headerMenuResponse,
-        footerMenuResponse,
-        settingsResponse,
-        categoriesResponse,
-    ] = await Promise.all([
+    const [menuDetail, chrome] = await Promise.all([
         getMenuDetail(slug, normalizedLocale),
-        api.get<{ data: Language[] }>(config.endpoints.languages.list),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale: normalizedLocale,
-        }),
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale: normalizedLocale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            params: { lang: normalizedLocale },
-            locale: resolveSettingsApiLocale(normalizedLocale),
-            cache: "no-store",
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale: normalizedLocale,
-        }),
+        getSiteChromeData(normalizedLocale),
     ]);
 
     if (!menuDetail) {
         notFound();
     }
 
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, normalizedLocale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-    const projectSettings = settingsResponse.success ? resolveProjectSettings(settingsResponse.data) : undefined;
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
-
-    const languages = langResponse.success && Array.isArray(langResponse.data) ? langResponse.data : [];
+    const projectSettings = chrome.projectSettings;
+    const headerCategoryItems = chrome.initialCatalogItems;
 
     const { menu, data: pageData } = menuDetail;
     const localizedLinks = menu.multi_links ?? {};
@@ -798,17 +718,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         );
 
         return (
-            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-                <NavbarWrapper
-                    logo={navbarLogo}
-                    phone={navbarPhone}
-                    locale={normalizedLocale}
-                    languages={languages}
-                    menuItems={headerMenuItems}
-                    initialCatalogItems={headerCategoryItems}
-                    localizedLinks={localizedLinks}
-                />
-
+            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
                     items={[
                         { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
@@ -1042,29 +952,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                 {includedItemsSection}
-
-                <LogoutToast />
-
-                <div className="mt-auto w-full pt-12 lg:pt-20">
-                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-                </div>
-            </div>
+            </SitePageShell>
         );
     }
 
     if (isGridView) {
         return (
-            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-                <NavbarWrapper
-                    logo={navbarLogo}
-                    phone={navbarPhone}
-                    locale={normalizedLocale}
-                    languages={languages}
-                    menuItems={headerMenuItems}
-                    initialCatalogItems={headerCategoryItems}
-                    localizedLinks={localizedLinks}
-                />
-
+            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
                     items={[
                         { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
@@ -1125,13 +1019,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                 {includedItemsSection}
-
-                <LogoutToast />
-
-                <div className="mt-auto w-full pt-12 lg:pt-20">
-                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-                </div>
-            </div>
+            </SitePageShell>
         );
     }
 
@@ -1141,17 +1029,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         const address = projectSettings?.general.address || "Bakı, Süleyman Sani Axundov 225b";
 
         return (
-            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-                <NavbarWrapper
-                    logo={navbarLogo}
-                    phone={navbarPhone}
-                    locale={normalizedLocale}
-                    languages={languages}
-                    menuItems={headerMenuItems}
-                    initialCatalogItems={headerCategoryItems}
-                    localizedLinks={localizedLinks}
-                />
-
+            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
                 items={[
                     { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
@@ -1253,10 +1131,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         </div>
                     )}
 
-                    
-
-                <LogoutToast />
-
                 {keywordsArr.length > 0 && (
                     <div className="mx-auto mt-40 w-full max-w-[1280px]">
                         <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
@@ -1274,27 +1148,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         </div>
                     </div>
                 )}
-
-                <div className="mt-auto w-full pt-12 lg:pt-20">
-                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-                </div>
-            </div>
+            </SitePageShell>
         );
     }
 
     // Default view type (fallback for content and others)
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={normalizedLocale}
-                languages={languages}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-                localizedLinks={localizedLinks}
-            />
-
+        <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
             <Breadcrumb
                 items={[
                     { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
@@ -1326,10 +1186,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
             {includedItemsSection}
 
-            
-
-            <LogoutToast />
-
             {keywordsArr.length > 0 && (
                 <div className="mx-auto mt-40 w-full max-w-[1280px]">
                     <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
@@ -1347,10 +1203,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     </div>
                 </div>
             )}
-
-            <div className="mt-auto w-full pt-12 lg:pt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }

@@ -1,35 +1,16 @@
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
 import { Breadcrumb, type Company } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
-import { resolveProjectSettings, resolveSettingsApiLocale } from "@/lib/settings";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
 import { normalizeLocale } from "@/lib/site-locales";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Pagination } from "@/app/components/Pagination/pagination";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 type ProductBrandsResponseData = {
     filter_id?: number;
@@ -171,32 +152,8 @@ export async function renderProductBrandsPage({
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
 
-    const [
-        langResponse,
-        headerMenuResponse,
-        footerMenuResponse,
-        settingsResponse,
-        categoriesResponse,
-        brandsResponse,
-    ] = await Promise.all([
-        api.get<Language[]>(config.endpoints.languages.list),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale,
-        }),
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            params: { lang: locale },
-            locale: resolveSettingsApiLocale(locale),
-            cache: "no-store",
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale,
-        }),
+    const [chrome, brandsResponse] = await Promise.all([
+        getSiteChromeData(locale),
         api.get<ProductBrandsResponseData>("/product/brands", {
             locale,
             cache: "no-store",
@@ -204,84 +161,13 @@ export async function renderProductBrandsPage({
         }),
     ]);
 
-    if (!langResponse.success || !langResponse.data) {
+    if (chrome.languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Dil melumatlari yuklenmedi.</p>
             </div>
         );
     }
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, locale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = resolveProjectSettings(settingsResponse.data);
-    }
-
-    const fallbackLocale = normalizeLocale(config.project.defLang);
-    if ((footerMenus.length === 0 || !projectSettings) && fallbackLocale !== locale) {
-        const [fallbackFooterMenuResponse, fallbackSettingsResponse] = await Promise.all([
-            footerMenus.length === 0
-                ? api.get<FooterMenusData>(config.endpoints.menus.list, {
-                    params: { in_footer: "1" },
-                    locale: fallbackLocale,
-                })
-                : Promise.resolve(null),
-            !projectSettings
-                ? api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-                    params: { lang: fallbackLocale },
-                    locale: resolveSettingsApiLocale(fallbackLocale),
-                    cache: "no-store",
-                })
-                : Promise.resolve(null),
-        ]);
-
-        if (footerMenus.length === 0 && fallbackFooterMenuResponse?.success && fallbackFooterMenuResponse.data) {
-            footerMenus.push(...fallbackFooterMenuResponse.data.footer);
-        }
-
-        if (!projectSettings && fallbackSettingsResponse?.success && fallbackSettingsResponse.data) {
-            projectSettings = resolveProjectSettings(fallbackSettingsResponse.data);
-        }
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
 
     const brandsPayload = brandsResponse.success && brandsResponse.data ? brandsResponse.data : null;
     const brandItems = Array.isArray(brandsPayload?.values) ? brandsPayload.values : [];
@@ -323,16 +209,7 @@ export async function renderProductBrandsPage({
     };
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
                     { label: t.home, href: `/${locale}` },
@@ -366,12 +243,7 @@ export async function renderProductBrandsPage({
                 </PendingNavProvider>
             </section>
 
-            <LogoutToast />
-
-            <div className="mt-16 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }
 

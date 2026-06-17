@@ -38,7 +38,11 @@ export class ApiClient {
         try {
             const url = new URL(`${this.baseUrl}${endpoint}`);
             if (params) {
+                const shouldStripMenuFilters = endpoint === config.endpoints.menus.list;
                 Object.entries(params).forEach(([key, value]) => {
+                    if (shouldStripMenuFilters && (key === "in_footer" || key === "in_header")) {
+                        return;
+                    }
                     url.searchParams.append(key, value);
                 });
             }

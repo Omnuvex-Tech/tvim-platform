@@ -2,15 +2,15 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import type { FooterMenusData, Language, ProjectSettingsData, ProjectSettingsResponseData } from "@repo/types/types";
+import type { Language } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { config } from "@/config";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { Footer } from "@/app/components/Footer/footer";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 type NavItem = {
     label: string;
@@ -263,22 +263,8 @@ export default async function OrderDetailPage({
         notFound();
     }
 
-    const [footerMenuResponse, settingsResponse, headerMenuResponse, categoriesResponse, orderResponse] = await Promise.all([
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale,
-        }),
-        api.get<any>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale,
-        }),
-        api.get<any>("/product/categories", {
-            params: { in_header: "1" },
-            locale,
-        }),
+    const [chrome, orderResponse] = await Promise.all([
+        getSiteChromeData(locale),
         api.get<OrderDetailResponse>(`/order/orders/${encodeURIComponent(id)}`, {
             locale,
             cache: "no-store",
@@ -306,83 +292,9 @@ export default async function OrderDetailPage({
         notFound();
     }
 
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = Array.isArray(rawHeaderData)
-        ? rawHeaderData
-        : rawHeaderData && typeof rawHeaderData === "object"
-            ? (Array.isArray((rawHeaderData as any).header)
-                ? (rawHeaderData as any).header
-                : Array.isArray((rawHeaderData as any).menus)
-                    ? (rawHeaderData as any).menus
-                    : Array.isArray((rawHeaderData as any).items)
-                        ? (rawHeaderData as any).items
-                        : Array.isArray((rawHeaderData as any).data)
-                            ? (rawHeaderData as any).data
-                            : Array.isArray((rawHeaderData as any).footer)
-                                ? (rawHeaderData as any).footer
-                                : [])
-            : [];
-
-    const headerTopLevel = headerItems.filter((item: any) => !item || !item.parent_id || Number(item.parent_id) === 0).filter(Boolean);
-    const headerMenuItems = headerTopLevel
-        .filter((item: any) => (((item.type ?? "") + "").toString().toLowerCase() !== "categories"))
-        .map((item: any) => {
-            const hrefPart = (item.multi_links && item.multi_links[locale]) || item.link || "";
-            const path = hrefPart ? `/${locale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
-            return { label: item.name ?? item.title ?? item.link ?? "", href: path };
-        });
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const raw = categoriesResponse.data;
-        let items: any[] = [];
-        if (Array.isArray(raw)) items = raw;
-        else if (Array.isArray(raw.data)) items = raw.data;
-        else if (Array.isArray(raw.items)) items = raw.items;
-        else if (raw && typeof raw === "object") {
-            const arr = Object.values(raw).find((value) => Array.isArray(value));
-            if (Array.isArray(arr)) items = arr as any[];
-        }
-
-        const filtered = items.filter(
-            (item) => !!item && (item.in_header === true || item.in_header === 1 || item.in_header === "1" || item.in_header === "true")
-        );
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter((item: any) => (((item.type ?? "") + "").toLowerCase() === "categories"));
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-    const projectSettings = settingsResponse.success ? settingsResponse.data?.data : undefined;
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
-
     if (orderLoadError || !rawOrder) {
         return (
-            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-                <NavbarWrapper
-                    logo={navbarLogo}
-                    phone={navbarPhone}
-                    locale={locale}
-                    languages={langResponse.data}
-                    menuItems={headerMenuItems}
-                    initialCatalogItems={headerCategoryItems}
-                />
-
+            <SitePageShell chrome={chrome}>
                 <Breadcrumb
                     items={[
                         { label: "Ana səhifə", href: `/${locale}` },
@@ -405,11 +317,7 @@ export default async function OrderDetailPage({
                         </p>
                     </div>
                 </section>
-
-                <div className="mt-auto w-full pt-12 lg:pt-20">
-                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-                </div>
-            </div>
+            </SitePageShell>
         );
     }
 
@@ -424,16 +332,7 @@ export default async function OrderDetailPage({
     const activeHref = "/account/orders";
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
                     { label: "Ana s\u0259hif\u0259", href: `/${locale}` },
@@ -679,10 +578,6 @@ export default async function OrderDetailPage({
                 </div>
                 </div>
             </section>
-
-            <div className="mt-auto w-full pt-12 lg:pt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }

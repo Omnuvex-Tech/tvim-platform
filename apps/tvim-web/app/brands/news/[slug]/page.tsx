@@ -1,30 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { getSiteChromeData } from "@/lib/site-chrome";
 import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 
 type NewsVariation = {
@@ -257,86 +239,16 @@ export async function renderBrandNewsSlugPage({
     const normalizedSlug = normalizeSlug(slug);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
-
-    if (!langResponse.success || !langResponse.data) {
-        return (
-            <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
-            </div>
-        );
-    }
-
-    const [menuDetail, headerMenuResponse, footerMenuResponse, settingsResponse, categoriesResponse] = await Promise.all([
+    const [menuDetail, chrome] = await Promise.all([
         getMenuDetail(normalizedSlug, locale),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale,
-        }),
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale,
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale,
-        }),
+        getSiteChromeData(locale),
     ]);
 
-    if (!menuDetail?.menu) {
+    if (!menuDetail?.menu || chrome.languages.length === 0) {
         notFound();
     }
 
     const mainItem = resolveMainItem(menuDetail, normalizedSlug, locale);
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, locale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data
-        ? footerMenuResponse.data.footer
-        : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
 
     const fallbackTitle = normalizeSlugText(normalizedSlug) || "Brand";
     const pageTitle = String(mainItem?.name ?? menuDetail.menu.title ?? menuDetail.menu.name ?? fallbackTitle).trim() || fallbackTitle;
@@ -376,16 +288,7 @@ export async function renderBrandNewsSlugPage({
         .filter(Boolean);
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-stretch justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
                 <div className="relative w-full overflow-hidden rounded-[16px] bg-[#e0e3e8] skeleton-loader">
                     {bannerImage ? (
@@ -425,12 +328,7 @@ export async function renderBrandNewsSlugPage({
                 ) : null}
             </section>
 
-            <LogoutToast />
-
-            <div className="mt-16 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }
 
@@ -442,4 +340,3 @@ export default async function BrandNewsSlugPage({
     const { slug } = await params;
     redirect(`/${defaultLocale}/brands/news/${encodeURIComponent(slug)}`);
 }
-

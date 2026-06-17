@@ -1,18 +1,6 @@
-import type { FooterMenusData, HeaderCategoriesResponseData, HeaderMenuResponseData, Language, ProjectSettingsResponseData } from "@repo/types/types";
-import { config } from "@/config";
-import { api } from "@/lib/api";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
-import { Footer } from "@/app/components/Footer/footer";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
 import { NotFoundPage } from "@/app/components/NotFoundPage/not-found-page";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 type NotFoundRouteProps = {
     locale: string;
@@ -20,82 +8,13 @@ type NotFoundRouteProps = {
 
 export async function NotFoundRoute({ locale }: NotFoundRouteProps) {
     const normalizedLocale = locale.trim().toLowerCase();
-
-    const [langResponse, headerMenuResponse, footerMenuResponse, settingsResponse, categoriesResponse] = await Promise.all([
-        api.get<Language[]>(config.endpoints.languages.list),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale: normalizedLocale,
-        }),
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale: normalizedLocale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            locale: normalizedLocale,
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale: normalizedLocale,
-        }),
-    ]);
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, normalizedLocale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-    const projectSettings = settingsResponse.success ? settingsResponse.data?.data : undefined;
-    const languages = langResponse.success && langResponse.data ? langResponse.data : [];
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
+    const chrome = await getSiteChromeData(normalizedLocale);
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={normalizedLocale}
-                languages={languages}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome} contentClassName="gap-6">
             <div className="flex-1 flex w-full items-center justify-center">
                 <NotFoundPage locale={normalizedLocale} />
             </div>
-
-            <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-        </div>
+        </SitePageShell>
     );
 }

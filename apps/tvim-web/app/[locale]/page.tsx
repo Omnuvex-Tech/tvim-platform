@@ -1,11 +1,4 @@
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
+import type { Language, ProjectSettingsResponseData } from "@repo/types/types";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -13,25 +6,14 @@ import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
 import {
     buildHomeMetadata,
-    resolveProjectSettings,
     resolveSettingsApiLocale,
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
 } from "@/lib/settings";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
 import { config } from "@/config";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { Footer } from "@/app/components/Footer/footer";
 import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 export const dynamic = "force-dynamic";
 
@@ -100,90 +82,19 @@ export default async function HomePage({
         notFound();
     }
 
-    const [footerMenuResponse, settingsResponse, mainPageBlocks, headerMenuResponse, categoriesResponse] = await Promise.all([
-        api.get<FooterMenusData>(config.endpoints.menus.list, {
-            params: { in_footer: "1" },
-            locale: normalizedLocale,
-        }),
+    const [settingsResponse, mainPageBlocks, chrome] = await Promise.all([
         api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
             params: { lang: normalizedLocale },
             locale: resolveSettingsApiLocale(normalizedLocale),
             cache: "no-store",
         }),
         getMainPageBlocks(normalizedLocale),
-        api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-            params: { in_header: "1" },
-            locale: normalizedLocale,
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale: normalizedLocale,
-        }),
+        getSiteChromeData(normalizedLocale),
     ]);
 
-    const footerMenus =
-        footerMenuResponse.success && footerMenuResponse.data
-            ? footerMenuResponse.data.footer
-            : [];
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item) => !isCategoriesMenuType(item))
-        .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
-            href: resolveHeaderMenuHref(item, normalizedLocale),
-        }))
-        .filter((item) => item.label);
-
-    let headerCategoryItems = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
-        const filtered = items.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    let projectSettings: ProjectSettingsData | undefined;
-
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = resolveProjectSettings(settingsResponse.data);
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
-
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-6 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={normalizedLocale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome} contentClassName="gap-6" includeLogoutToast>
             <MainPageBlocks blocks={mainPageBlocks} locale={normalizedLocale} />
-            <LogoutToast />
-
-            <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-        </div>
+        </SitePageShell>
     );
 }

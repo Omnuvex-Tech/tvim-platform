@@ -1,36 +1,19 @@
 import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
-import type {
-    FooterMenusData,
-    HeaderCategoriesResponseData,
-    HeaderMenuResponseData,
-    Language,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
-import {
-    extractHeaderCategories,
-    extractHeaderItems,
-    isCategoriesMenuType,
-    isHeaderEnabledItem,
-    isTopLevelHeaderItem,
-    resolveHeaderMenuHref,
-    resolveHeaderMenuLabel,
-} from "@/lib/header-navigation";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { Footer } from "@/app/components/Footer/footer";
-import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
-import type { ProductComment } from "@/lib/product-comments/client";
 import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-link";
+import type { ProductComment } from "@/lib/product-comments/client";
+import { getSiteChromeData } from "@/lib/site-chrome";
 
 type GridItem = {
     id?: number | string;
@@ -412,49 +395,8 @@ export default async function GridDetailPage({
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value ?? undefined);
 
-    const [langResponse, headerMenuResponse, footerMenuResponse, settingsResponse, categoriesResponse] =
-        await Promise.all([
-            api.get<Language[]>(config.endpoints.languages.list),
-            api.get<HeaderMenuResponseData>(config.endpoints.menus.list, {
-                params: { in_header: "1" },
-                locale: normalizedLocale,
-            }),
-            api.get<FooterMenusData>(config.endpoints.menus.list, {
-                params: { in_footer: "1" },
-                locale: normalizedLocale,
-            }),
-            api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-                locale: normalizedLocale,
-            }),
-            api.get<HeaderCategoriesResponseData>("/product/categories", {
-                params: { in_header: "1" },
-                locale: normalizedLocale,
-            }),
-        ]);
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems.filter(isTopLevelHeaderItem);
-
-    const headerMenuItems = headerTopLevel
-        .filter((menuItem) => !isCategoriesMenuType(menuItem))
-        .map((menuItem) => ({
-            label: resolveHeaderMenuLabel(menuItem),
-            href: resolveHeaderMenuHref(menuItem, normalizedLocale),
-        }))
-        .filter((menuItem) => menuItem.label);
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const categoryItems = extractHeaderCategories(categoriesResponse.data);
-        const filtered = categoryItems.filter(isHeaderEnabledItem);
-        headerCategoryItems = filtered.length > 0 ? filtered : categoryItems;
-    } else {
-        headerCategoryItems = headerTopLevel.filter(isCategoriesMenuType);
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data ? footerMenuResponse.data.footer : [];
-    const projectSettings = settingsResponse.success ? settingsResponse.data?.data : undefined;
+    const chrome = await getSiteChromeData(normalizedLocale);
+    const projectSettings = chrome.projectSettings;
     const generalSettings = projectSettings?.general;
     const navbarLogoSrc = generalSettings?.images?.logo ?? null;
     const navbarSiteTitle = String(generalSettings?.site_title ?? "").trim();
@@ -678,16 +620,7 @@ export default async function GridDetailPage({
         ];
 
         return (
-            <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-                <NavbarWrapper
-                    logo={navbarLogo}
-                    phone={navbarPhone}
-                    locale={normalizedLocale}
-                    languages={langResponse.success && langResponse.data ? langResponse.data : []}
-                    menuItems={headerMenuItems}
-                    initialCatalogItems={headerCategoryItems}
-                />
-
+            <SitePageShell chrome={chrome} includeLogoutToast>
                 <Breadcrumb
                     items={breadcrumbItems as any}
                     className="mx-auto w-full max-w-[1280px] !px-4 lg:!px-2"
@@ -888,13 +821,7 @@ export default async function GridDetailPage({
                 <div className="mx-auto mt-12 w-full max-w-[1280px] px-4 lg:mt-14 lg:px-0">
                     <RequestForm />
                 </div>
-
-                <LogoutToast />
-
-                <div className="mt-auto w-full pt-12 lg:pt-20">
-                    <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-                </div>
-            </div>
+            </SitePageShell>
         );
     }
 
@@ -908,16 +835,7 @@ export default async function GridDetailPage({
     const image = item.banner || item.main_photo || null;
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={normalizedLocale}
-                languages={langResponse.success && langResponse.data ? langResponse.data : []}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome} includeLogoutToast>
             <Breadcrumb
                 items={[
                     { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
@@ -963,12 +881,6 @@ export default async function GridDetailPage({
 
                 </div>
             </article>
-
-            <LogoutToast />
-
-            <div className="mt-auto w-full pt-12 lg:pt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={normalizedLocale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }

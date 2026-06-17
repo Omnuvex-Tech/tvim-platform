@@ -1,21 +1,16 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import type {
-    FooterMenusData,
-    Language,
-    ProjectSettingsData,
-    ProjectSettingsResponseData,
-} from "@repo/types/types";
+import type { Language } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { buildNoIndexMetadata } from "@/lib/seo";
-import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
-import { Footer } from "@/app/components/Footer/footer";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { COMPARE_GUEST_TOKEN_COOKIE, decodeCompareTokenFromCookie } from "@/lib/compare/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
+import { getSiteChromeData } from "@/lib/site-chrome";
 import { CompareProductsGrid } from "./compare-products-grid";
 
 export const metadata = buildNoIndexMetadata();
@@ -570,86 +565,7 @@ export default async function ComparePage({
     }
     const copy = COMPARE_PAGE_COPY[DISPLAY_LOCALE];
 
-    const footerMenuResponse = await api.get<FooterMenusData>(config.endpoints.menus.list, {
-        params: { in_footer: "1" },
-        locale,
-    });
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        locale,
-    });
-
-    const headerMenuResponse = await api.get<any>(config.endpoints.menus.list, {
-        params: { in_header: "1" },
-        locale,
-    });
-
-    const rawHeaderData = headerMenuResponse.success && headerMenuResponse.data ? headerMenuResponse.data : null;
-    const headerItems = extractHeaderItems(rawHeaderData);
-    const headerTopLevel = headerItems
-        .filter((item: any) => !item || !item.parent_id || Number(item.parent_id) === 0)
-        .filter(Boolean);
-
-    const headerMenuItems = headerTopLevel
-        .filter((item: any) => (((item.type ?? "") + "").toLowerCase() !== "categories"))
-        .map((item: any) => {
-            const hrefPart = (item.multi_links && item.multi_links[locale]) || item.link || "";
-            const path = hrefPart ? `/${locale}/${String(hrefPart).replace(/^\/+/, "")}` : "#";
-            return { label: item.name ?? item.title ?? item.link ?? "", href: path };
-        });
-
-    const categoriesResponse = await api.get<any>("/product/categories", {
-        params: { in_header: "1" },
-        locale,
-    });
-
-    let headerCategoryItems: any[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const raw = categoriesResponse.data;
-        let items: any[] = [];
-
-        if (Array.isArray(raw)) items = raw;
-        else if (Array.isArray(raw.data)) items = raw.data;
-        else if (Array.isArray(raw.items)) items = raw.items;
-        else if (raw && typeof raw === "object") {
-            const arr = Object.values(raw).find((value) => Array.isArray(value));
-            if (Array.isArray(arr)) items = arr as any[];
-        }
-
-        const filtered = items.filter(
-            (item) =>
-                !!item &&
-                (item.in_header === true || item.in_header === 1 || item.in_header === "1" || item.in_header === "true")
-        );
-        headerCategoryItems = filtered.length > 0 ? filtered : items;
-    } else {
-        headerCategoryItems = headerTopLevel.filter((item: any) => (((item.type ?? "") + "").toLowerCase() === "categories"));
-    }
-
-    const footerMenus = footerMenuResponse.success && footerMenuResponse.data
-        ? footerMenuResponse.data.footer
-        : [];
-
-    let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = settingsResponse.data.data;
-    }
-
-    const navbarLogo = projectSettings?.general.images.logo ? (
-        <img
-            src={projectSettings.general.images.logo}
-            alt={projectSettings.general.site_title}
-            className="h-10 w-auto object-contain sm:h-12 lg:h-14"
-        />
-    ) : projectSettings?.general.site_title ? (
-        <div className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#111318]">
-            {projectSettings.general.site_title}
-        </div>
-    ) : undefined;
-
-    const navbarPhone = projectSettings?.general.phones.find(
-        (phone) => phone.is_whatsapp && phone.number.trim().startsWith("+994")
-    )?.number;
+    const chrome = await getSiteChromeData(locale);
     const [compareResponse, favoriteVariationIds] = await Promise.all([
         fetchCompareProducts(locale, authToken, compareGuestToken),
         fetchFavoriteVariationIds(locale, authToken, favoritesGuestToken),
@@ -660,16 +576,7 @@ export default async function ComparePage({
     }));
 
     return (
-        <div className="flex min-h-svh w-full flex-col items-center justify-start gap-0 pt-0 pb-8">
-            <NavbarWrapper
-                logo={navbarLogo}
-                phone={navbarPhone}
-                locale={locale}
-                languages={langResponse.data}
-                menuItems={headerMenuItems}
-                initialCatalogItems={headerCategoryItems}
-            />
-
+        <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
                     { label: copy.homeLabel, href: `/${locale}` },
@@ -699,10 +606,6 @@ export default async function ComparePage({
             <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
                 <RequestForm />
             </div>
-
-            <div className="mt-16 w-full lg:mt-20">
-                <Footer footerMenus={footerMenus} footerSettings={projectSettings} locale={locale} />
-            </div>
-        </div>
+        </SitePageShell>
     );
 }
