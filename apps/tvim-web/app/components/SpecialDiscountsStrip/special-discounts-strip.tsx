@@ -11,9 +11,10 @@ type Props = {
     only_discount_products?: boolean;
     viewAllHref?: string;
     viewAllText?: string;
+     locale?: string;
 };
 
-const SpecialDiscountsStrip: React.FC<Props> = ({ items, onlyDiscountProducts = false, only_discount_products = false, viewAllHref, viewAllText }) => {
+const SpecialDiscountsStrip: React.FC<Props> = ({ items, onlyDiscountProducts = false, only_discount_products = false, viewAllHref, viewAllText, locale }) => {
     return (
         <ProductStrip
             variant="special"
@@ -23,6 +24,7 @@ const SpecialDiscountsStrip: React.FC<Props> = ({ items, onlyDiscountProducts = 
             only_discount_products={only_discount_products}
             viewAllHref={viewAllHref}
             viewAllText={viewAllText}
+            locale={locale}
         />
     );
 };

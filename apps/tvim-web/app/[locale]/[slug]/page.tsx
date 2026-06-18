@@ -847,7 +847,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
                             <div className="relative min-h-[360px]">
                                 {listItems.length > 0 ? (
-                                    <ProductStrip items={listItems} variant="selected" layout="grid" showHeader={false} />
+                                    <ProductStrip  items={listItems} variant="selected" layout="grid" showHeader={false} />
                                 ) : (
                                     <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
                                         Məhsul tapılmadı.

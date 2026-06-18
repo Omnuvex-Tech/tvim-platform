@@ -374,8 +374,8 @@ export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
                                 items={Array.isArray(block?.data?.items) ? block.data.items : []}
                                 only_discount_products={Boolean(block?.data?.block?.only_discount_products)}
                                 viewAllHref="/discounts"
-                                viewAllText="Bütün məhsullara bax"
-                            />
+                              
+                  />
                         </Fragment>
                     );
                 }

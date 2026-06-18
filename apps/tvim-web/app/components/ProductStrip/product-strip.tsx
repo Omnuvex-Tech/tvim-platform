@@ -6,7 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { usePathname } from "next/navigation";
+import { usePathname, } from "next/navigation";
 
 import { useNotify } from "@repo/ui";
 
@@ -55,6 +55,8 @@ type Product = {
 
 
 type Props = {
+    
+    locale?: string;
 
     items?: ApiItem[];
 
@@ -82,6 +84,24 @@ type Props = {
 
 
 
+const stripCopy = {
+    az: { viewAllText: "Bütün məhsullara bax" },
+    en: { viewAllText: "View all products" },
+    ru: { viewAllText: "Смотреть все товары" },
+} as const;
+
+function getStripCopy(locale?: string) {
+    const l = String(locale || "az").trim().toLowerCase();
+    if (l === "en" || l === "ru") return stripCopy[l];
+    return stripCopy.az;
+}
+
+console.log("copy test:", getStripCopy("ru"));
+
+
+
+
+
 const formatPrice = (v: number | string | undefined) => {
 
     const n = typeof v === "number" ? v : Number(v ?? 0);
@@ -101,6 +121,8 @@ const parsePriceValue = (value: string) => {
     return Number.isFinite(parsed) ? parsed : 0;
 
 };
+
+
 
 
 
@@ -170,6 +192,8 @@ const defaultProducts: Product[] = [
 
 const ProductStrip: React.FC<Props> = ({
 
+    locale,
+
     items,
 
     variant = "latest",
@@ -182,7 +206,7 @@ const ProductStrip: React.FC<Props> = ({
 
     viewAllHref = "/discounts",
 
-    viewAllText = "Bütün məhsullara bax",
+    viewAllText,
 
     layout = "carousel",
 
@@ -200,17 +224,19 @@ const ProductStrip: React.FC<Props> = ({
 
     const pathname = usePathname();
 
-    const localePrefix = useMemo(() => {
+const localePrefix = useMemo(() => {
+    const firstSegment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+    const normalized = firstSegment.trim().toLowerCase();
+    const looksLikeLocale = normalized.length > 0 && normalized.length <= 5 && /^[a-z]{2}(-[a-z]{2})?$/.test(normalized);
+    return looksLikeLocale ? normalized : "az";
+}, [pathname]);
 
-        const firstSegment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+    const copy = getStripCopy(localePrefix);
+const effectiveViewAllText = viewAllText ?? copy.viewAllText;
+console.log("viewAllText prop:", viewAllText);
 
-        const normalized = firstSegment.trim().toLowerCase();
 
-        const looksLikeLocale = normalized.length > 0 && normalized.length <= 5 && /^[a-z]{2}(-[a-z]{2})?$/.test(normalized);
-
-        return looksLikeLocale ? normalized : "az";
-
-    }, [pathname]);
+ console.log("locale prop:", locale, "pathname:", pathname, "localePrefix:", localePrefix, "effectiveViewAllText:", effectiveViewAllText);
 
 
 
@@ -1600,98 +1626,186 @@ const ProductStrip: React.FC<Props> = ({
 
                         <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full overflow-visible rounded-[10px]`}>
 
-                    {product.discount ? (    
-        
+                    {product.discount ? (
+    
+    
+    
                         <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
-        
-                            {product.discount}    
-        
-                        </span>    
-        
-                    ) : null}    
-        
-        
-        
+    
+    
+                            {product.discount}
+    
+    
+    
+                        </span>
+    
+    
+    
+                    ) : null}
+    
+    
+    
+    
+    
+    
+    
     
 
                     <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
-        
-                        <button    
-        
-                            type="button"    
-        
-                            disabled={isFavoritePending || !product.productVariationId}    
-        
-                            suppressHydrationWarning    
-        
-                            onClick={(event) => {    
-        
-                                event.preventDefault();    
-        
-                                event.stopPropagation();    
-        
-                                void handleFavoriteToggle(product);    
-        
-                            }}    
-        
-                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${    
-        
-                                isFavorite    
-        
-                                    ? "border-[#0f57d6] bg-[#0f57d6] text-white"    
-        
-                                    : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"    
-        
-                            } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}    
-        
-                            aria-label="Seçilmişlər"    
-        
-                        >    
-        
-                            <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />    
-        
-                        </button>    
-        
-                        <button    
-        
-                            type="button"    
-        
-                            disabled={isComparePending || !product.productVariationId}    
-        
-                            suppressHydrationWarning    
-        
-                            onClick={(event) => {    
-        
-                                event.preventDefault();    
-        
-                                event.stopPropagation();    
-        
-                                void handleCompareToggle(product);    
-        
-                            }}    
-        
-                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${    
-        
-                                isCompared    
-        
-                                    ? "border-[#0f57d6] bg-[#0f57d6] text-white"    
-        
-                                    : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"    
-        
-                            } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}    
-        
-                            aria-label="Müqayisə"    
-        
-                        >    
-        
-                            <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />    
-        
-                        </button>    
-        
-                    </div>    
-        
-        
-        
+    
+    
+                        <button
+    
+    
+    
+                            type="button"
+    
+    
+    
+                            disabled={isFavoritePending || !product.productVariationId}
+    
+    
+    
+                            suppressHydrationWarning
+    
+    
+    
+                            onClick={(event) => {
+    
+    
+    
+                                event.preventDefault();
+    
+    
+    
+                                event.stopPropagation();
+    
+    
+    
+                                void handleFavoriteToggle(product);
+    
+    
+    
+                            }}
+    
+    
+    
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+    
+    
+    
+                                isFavorite
+    
+    
+    
+                                    ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+    
+    
+    
+                                    : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+    
+    
+    
+                            } ${isFavoritePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+    
+    
+    
+                            aria-label="Seçilmişlər"
+    
+    
+    
+                        >
+    
+    
+    
+                            <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
+    
+    
+    
+                        </button>
+    
+    
+    
+                        <button
+    
+    
+    
+                            type="button"
+    
+    
+    
+                            disabled={isComparePending || !product.productVariationId}
+    
+    
+    
+                            suppressHydrationWarning
+    
+    
+    
+                            onClick={(event) => {
+    
+    
+    
+                                event.preventDefault();
+    
+    
+    
+                                event.stopPropagation();
+    
+    
+    
+                                void handleCompareToggle(product);
+    
+    
+    
+                            }}
+    
+    
+    
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+    
+    
+    
+                                isCompared
+    
+    
+    
+                                    ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+    
+    
+    
+                                    : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+    
+    
+    
+                            } ${isComparePending || !product.productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+    
+    
+    
+                            aria-label="Müqayisə"
+    
+    
+    
+                        >
+    
+    
+    
+                            <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
+    
+    
+    
+                        </button>
+    
+    
+    
+                    </div>
+    
+    
+    
+    
+    
+    
+    
     
 
                             {product.imageUrl ? (
@@ -1856,7 +1970,7 @@ const ProductStrip: React.FC<Props> = ({
 
                                 <Link href={viewAllHref} className="text-base font-medium text-[#0f57d6] hover:underline mr-2">
 
-                                    {viewAllText}
+                                   {effectiveViewAllText}
 
                                 </Link>
 
