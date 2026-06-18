@@ -204,21 +204,20 @@ const readBooleanFlag = (sources: Record<string, any>[], keys: string[]) => {
     return false;
 };
 
-const toDisplayValue = (value: unknown) => {
+const toDisplayValue = (value: unknown, locale: LocaleCode) => {
     if (typeof value === "string" && value.trim()) return value.trim();
     if (typeof value === "number" && Number.isFinite(value)) return String(value);
-    if (typeof value === "boolean") return value ? COMPARE_PAGE_COPY[DISPLAY_LOCALE].boolYes : COMPARE_PAGE_COPY[DISPLAY_LOCALE].boolNo;
+    if (typeof value === "boolean") return value ? COMPARE_PAGE_COPY[locale].boolYes : COMPARE_PAGE_COPY[locale].boolNo;
     return "";
 };
 
-const readDisplayValue = (sources: Record<string, any>[], keys: string[]) => {
+const readDisplayValue = (sources: Record<string, any>[], keys: string[], locale: LocaleCode) => {
     for (const source of sources) {
         for (const key of keys) {
-            const value = toDisplayValue(source[key]);
+            const value = toDisplayValue(source[key], locale);
             if (value) return value;
         }
     }
-
     return "";
 };
 
@@ -276,7 +275,7 @@ const readImage = (sources: Record<string, any>[]) => {
     return "";
 };
 
-const normalizeCompareItem = (item: unknown): CompareListItem | null => {
+const normalizeCompareItem = (item: unknown, locale: LocaleCode): CompareListItem | null => {
     if (!isRecord(item)) return null;
 
     const compare = isRecord(item.compare) ? item.compare : null;
@@ -306,7 +305,7 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
     const resolvedId = id ?? resolvedVariationId;
 
     const name = readString(nestedSources, ["name", "title", "product_name", "product_title"])
-        || `${COMPARE_PAGE_COPY[DISPLAY_LOCALE].productFallbackPrefix} #${resolvedVariationId}`;
+        || `${COMPARE_PAGE_COPY[locale].productFallbackPrefix} #${resolvedVariationId}`;
     const price = readNumber(nestedSources, ["sale_price", "final_price", "special", "price"]) ?? 0;
     const oldPrice = readNumber(nestedSources, ["old_price", "compare_price", "regular_price"]);
     const slug = readString(nestedSources, ["slug", "uuid"]);
@@ -322,7 +321,7 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
         ? Math.round((1 - price / oldPrice) * 100)
         : undefined;
 
-    const labels = COMPARE_PAGE_COPY[DISPLAY_LOCALE].specLabels;
+    const labels = COMPARE_PAGE_COPY[locale].specLabels;
     const specDefinitions: Array<{ label: string; keys: string[] }> = [
         { label: labels.model, keys: ["model", "model_number"] },
         { label: labels.brand, keys: ["brand", "brand_name", "manufacturer", "vendor"] },
@@ -338,7 +337,7 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
     const specs = specDefinitions
         .map((definition) => ({
             label: definition.label,
-            value: readDisplayValue(nestedSources, definition.keys),
+            value: readDisplayValue(nestedSources, definition.keys, locale),
         }))
         .filter((spec) => !!spec.value);
 
@@ -350,7 +349,8 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
             if (!filter || typeof filter !== "object") return;
 
             const label = toDisplayValue(
-                filter.filter_name ?? filter.filterName ?? filter.name ?? filter.title ?? filter.key ?? filter.label
+                filter.filter_name ?? filter.filterName ?? filter.name ?? filter.title ?? filter.key ?? filter.label,
+                locale
             );
 
             // Support new API shape where a filter contains a `values` array
@@ -362,7 +362,7 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
                 for (const v of filter.values) {
                     if (!v || typeof v !== "object") continue;
                     const name = v.name ?? v.value_name ?? v.value ?? v.title ?? v.slug ?? "";
-                    const clean = toDisplayValue(name);
+                    const clean = toDisplayValue(name, locale);
                     if (clean) parts.push(clean);
                 }
 
@@ -372,7 +372,8 @@ const normalizeCompareItem = (item: unknown): CompareListItem | null => {
             // Fallback to legacy single-value fields
             if (!value) {
                 value = toDisplayValue(
-                    filter.value_name ?? filter.valueName ?? filter.value ?? filter.option ?? filter.option_name ?? filter.optionName
+                    filter.value_name ?? filter.valueName ?? filter.value ?? filter.option ?? filter.option_name ?? filter.optionName,
+                    locale
                 );
             }
 
@@ -446,9 +447,9 @@ const fetchCompareProducts = async (
 
         return {
             message,
-            items: rawItems
-                .map((rawItem) => normalizeCompareItem(rawItem))
-                .filter((normalizedItem): normalizedItem is CompareListItem => normalizedItem !== null),
+         items: rawItems
+    .map((rawItem) => normalizeCompareItem(rawItem, locale))
+    .filter((normalizedItem): normalizedItem is CompareListItem => normalizedItem !== null),
         };
     } catch {
         return {
@@ -563,7 +564,7 @@ export default async function ComparePage({
     if (!SUPPORTED_LOCALES.includes(locale) || !langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
         notFound();
     }
-    const copy = COMPARE_PAGE_COPY[DISPLAY_LOCALE];
+    const copy = COMPARE_PAGE_COPY[locale];
 
     const chrome = await getSiteChromeData(locale);
     const [compareResponse, favoriteVariationIds] = await Promise.all([
