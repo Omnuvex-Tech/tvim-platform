@@ -28,6 +28,7 @@ const Footer = ({ footerMenus, footerSettings, locale }: FooterComponentProps) =
 
     return (
         <FooterUI
+            locale={locale}
             logo={logo}
             description={description}
             rightsText={rightsText}

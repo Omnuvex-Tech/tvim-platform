@@ -1,5 +1,10 @@
-import type { FooterProps } from "@repo/types/types";
+import type { FooterProps as BaseFooterProps } from "@repo/types/types";
 import { cn } from "../../lib/utils";
+
+
+type FooterProps = BaseFooterProps & {
+    locale?: string;
+};
 
 const defaultSocialColorClasses: string[] = [
     "bg-[#4f8db8]",
@@ -8,6 +13,36 @@ const defaultSocialColorClasses: string[] = [
     "bg-[#eb675c]",
     "bg-[#4b8fc3]",
 ];
+
+const footerCopy = {
+    az: {
+        tagline: "Tikinti və inşaat materialları",
+        disclaimer:
+            "Diqqət! Monitorun rəng göstərmə xüsusiyyətlərinə görə məhsulun öz rəngi saytdakı rəngindən fərqli ola bilər.",
+        rightsText: "Bütün hüquqlar qorunur © 2016—2025",
+    },
+    en: {
+        tagline: "Construction and building materials",
+        disclaimer:
+            "Attention! Due to your monitor's color display settings, the actual color of the product may differ from the color shown on the website.",
+        rightsText: "All rights reserved © 2016—2025",
+    },
+    ru: {
+        tagline: "Строительные и отделочные материалы",
+        disclaimer:
+            "Внимание! Из-за особенностей цветопередачи монитора реальный цвет товара может отличаться от цвета на сайте.",
+        rightsText: "Все права защищены © 2016—2025",
+    },
+} as const;
+
+function getFooterCopy(locale?: string) {
+    const normalizedLocale = String(locale || "az").trim().toLowerCase();
+    if (normalizedLocale === "en" || normalizedLocale === "ru") {
+        return footerCopy[normalizedLocale];
+    }
+
+    return footerCopy.az;
+}
 
 const Footer = ({
     className,
@@ -23,7 +58,9 @@ const Footer = ({
     contacts = [],
     socials = [],
     socialColorClasses = defaultSocialColorClasses,
+    locale = "az",
 }: FooterProps) => {
+    const copy = getFooterCopy(locale);
     const hasCategory = categoryLinks && categoryLinks.length > 0;
     const lgColsClass = hasCategory
         ? "lg:grid-cols-[2.35fr_1.8fr_0.95fr_1.3fr_1.7fr]"
@@ -42,12 +79,12 @@ const Footer = ({
                                 {logo}
                             </span>
                             <span className="hidden text-[14px] leading-none font-normal whitespace-nowrap text-black sm:inline">
-                                Tikinti və inşaat materialları
+                                {copy.tagline}
                             </span>
                         </div>
 
                         <p className="mt-2 w-full max-w-none text-[13px] leading-[1.35] font-normal text-[rgba(119,119,119,1)] lg:max-w-[500px] lg:text-[14px] lg:leading-[20px]">
-                            Diqqət! Monitorun rəng göstərmə xüsusiyyətlərinə görə məhsulun öz rəngi saytdakı rəngindən fərqli ola bilər.
+                            {copy.disclaimer}
                         </p>
 
                         {description ? (
@@ -145,7 +182,7 @@ const Footer = ({
 
                 {rightsText ? <p className="mt-6 text-[13px] font-normal text-[#7a7e84] lg:mt-1 lg:text-[15px]">{rightsText}</p> : null}
                 {socials.length > 0 && !rightsText ? (
-                    <p className="mt-6 text-[13px] font-normal text-[#7a7e84] lg:hidden">Bütün hüquqlar qorunur © 2016—2025</p>
+                    <p className="mt-6 text-[13px] font-normal text-[#7a7e84] lg:hidden">{copy.rightsText}</p>
                 ) : null}
             </div>
 
@@ -169,7 +206,7 @@ const Footer = ({
                         </div>
 
                         <p className={cn("mt-2 text-left text-[14px] font-normal text-[#61656c] lg:mt-0 lg:text-right lg:justify-self-end", rightsColClass)}>
-                            Bütün hüquqlar qorunur © 2016—2025
+                            {copy.rightsText}
                         </p>
                     </div>
                 </div>

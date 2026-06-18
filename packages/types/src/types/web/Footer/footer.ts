@@ -18,6 +18,7 @@ export type FooterSocialItem = {
 };
 
 export type FooterProps = {
+     locale?: string;
     className?: string;
     logo?: ReactNode;
     description?: string;
