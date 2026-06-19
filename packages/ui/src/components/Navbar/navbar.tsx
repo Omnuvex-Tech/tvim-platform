@@ -369,18 +369,21 @@ const navbarCopy = {
         searchPlaceholder: "Məhsul axtarışı",
         catalog: "Kataloq",
         login: "Daxil ol",
+        noResults: "Nəticə tapılmadı",
     },
     en: {
         tagline: "Construction and building materials",
         searchPlaceholder: "Search products",
         catalog: "Catalog",
         login: "Login",
+        noResults: "No results found",
     },
     ru: {
         tagline: "Строительные материалы",
         searchPlaceholder: "Поиск товаров",
         catalog: "Каталог",
         login: "Войти",
+        noResults: "Ничего не найдено",
     },
 } as const;
 
@@ -539,6 +542,7 @@ function NavbarSearch({
     const searchRef = useRef<HTMLDivElement | null>(null);
     const activeQueryRef = useRef("");
     const localeCode = (locale || "az").toLowerCase();
+    const copy = getNavbarCopy(localeCode);
     const totalResults = results.reduce((sum, section) => sum + section.items.length, 0);
 
     const overlayVisible = value.length === 0;
@@ -660,7 +664,7 @@ function NavbarSearch({
                         ) : error ? (
                             <div className="px-4 py-4 text-[13px] text-[#d14343]">{error}</div>
                         ) : totalResults === 0 ? (
-                            <div className="px-4 py-4 text-[13px] text-[#7b8494]">Nəticə tapılmadı</div>
+                            <div className="px-4 py-4 text-[13px] text-[#7b8494]">{copy.noResults}</div>
                         ) : (
                             results.map((section, sectionIndex) => (
                                 <div

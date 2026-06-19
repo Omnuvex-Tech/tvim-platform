@@ -261,7 +261,7 @@ export async function renderBrandSlugPage({
     const pageName = String(matchedBrand?.name ?? detailData?.menu?.name ?? fallbackPageName).trim() || fallbackPageName;
     const breadcrumbItems = [
         { label: locale === "en" ? "Home" : "Ana s\u0259hif\u0259", href: `/${locale}` },
-        { label: "Brend" },
+        { label: locale === "ru" ? "Бренды" : locale === "en" ? "Brands" : "Brendlər", href: `/${locale}/product/brands` },
         { label: pageName, isCurrent: true as const },
     ];
 
@@ -289,7 +289,6 @@ export async function renderBrandSlugPage({
     ];
     const effectiveSortOptions = sortOptions.length > 0 ? sortOptions : sortOptionsFallback;
     const activeSort = String(sort || "newest").trim() || "newest";
-    const perPageOptions = [20, 40, 60];
 
     return (
         <SitePageShell chrome={chrome}>
@@ -305,7 +304,7 @@ export async function renderBrandSlugPage({
                 <PendingNavProvider>
                     <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
 
-                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-wrap items-center gap-3 rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {effectiveSortOptions.map((opt) => {
                             const key = String(opt?.key ?? "").trim();
                             if (!key) return null;
@@ -317,7 +316,7 @@ export async function renderBrandSlugPage({
                                 <PendingLink
                                     key={key}
                                     href={buildHrefWithParams(next)}
-                                    className={`rounded-[9px] px-4 py-2 text-[14px] transition-colors ${
+                                    className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${
                                         isActive
                                             ? "bg-[#0f57d6] font-semibold text-white"
                                             : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
@@ -328,31 +327,6 @@ export async function renderBrandSlugPage({
                             );
                         })}
 
-                        <details className="relative ml-auto z-40">
-                            <summary className="list-none cursor-pointer rounded-[10px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#111318]">
-                                {perPage}
-                                <span className="ml-2 inline-block text-[#6b7280]">▾</span>
-                            </summary>
-                            <div className="absolute right-0 z-50 mt-2 w-[120px] overflow-hidden rounded-[16px] border border-[#eee] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-                                {perPageOptions.map((opt) => {
-                                    const next = new URLSearchParams(currentUiParams.toString());
-                                    next.set("page", "1");
-                                    next.set("per_page", String(opt));
-                                    const href = buildHrefWithParams(next);
-                                    return (
-                                        <PendingLink
-                                            key={opt}
-                                            href={href}
-                                            className={`block px-4 py-2 text-[14px] ${
-                                                opt === perPage ? "bg-[#e7efff] text-[#0f57d6]" : "text-[#111318] hover:bg-[#f5f7fb]"
-                                            }`}
-                                        >
-                                            {opt}
-                                        </PendingLink>
-                                    );
-                                })}
-                            </div>
-                        </details>
                     </div>
 
                     <div className="relative min-h-[360px]">

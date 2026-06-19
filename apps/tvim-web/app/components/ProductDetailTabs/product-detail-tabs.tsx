@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNotify } from "@repo/ui";
+import { Spinner, useNotify } from "@repo/ui";
 import { createProductComment, type ProductComment } from "@/lib/product-comments/client";
 import { TermsDialog } from "@/app/components/TermsDialog/terms-dialog";
 
@@ -113,7 +113,6 @@ const ProductDetailTabs = ({
     const [captchaError, setCaptchaError] = useState("");
     const [isRecaptchaScriptReady, setIsRecaptchaScriptReady] = useState(false);
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-    const [loadedComments, setLoadedComments] = useState<ProductComment[]>(comments);
     const recaptchaRef = useRef<HTMLDivElement | null>(null);
     const recaptchaWidgetIdRef = useRef<number | null>(null);
 
@@ -152,6 +151,7 @@ const ProductDetailTabs = ({
         if (envKey) return envKey;
         return RECAPTCHA_TEST_SITE_KEY;
     }, []);
+    const loadedComments = comments;
     const resolvedCommentsCount = Math.max(commentsCount, loadedComments.length);
     const averageRating =
         loadedComments.length > 0
@@ -324,17 +324,6 @@ const ProductDetailTabs = ({
             });
 
             notify.success(response.message || "Şərhiniz göndərildi.");
-            setLoadedComments((prev) => [
-                {
-                    id: String(response.data?.id ?? `${Date.now()}`),
-                    author: fullname,
-                    comment,
-                    rating: commentRating,
-                    status: String(response.data?.status ?? "Processing"),
-                    createdAt: new Date().toISOString(),
-                },
-                ...prev,
-            ]);
             setCommentName("");
             setCommentText("");
             setCommentRating(0);
@@ -490,10 +479,10 @@ const ProductDetailTabs = ({
 
             {activeTab === "comments" ? (
                 <div className="mt-6">
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[20px] leading-[1.40] font-[450] !text-[#000000]">
+                    <div className="flex flex-wrap items-center gap-x-7 gap-y-3 text-[16px] leading-[1.35] font-[450] !text-[#000000] sm:text-[17px]">
                         <span className="!text-[#000000]">Şərh: {resolvedCommentsCount}</span>
                         <span className="!text-[#000000]">Orta qiymət: {averageRating.toFixed(1)}</span>
-                        <div className="flex items-center gap-1 text-[#c7cdd9] text-[20px] leading-none">
+                        <div className="flex items-center gap-1 text-[18px] leading-none text-[#c7cdd9] sm:text-[19px]">
                             {Array.from({ length: 5 }).map((_, idx) => (
                                 <i
                                     key={`summary-star-${idx}`}
@@ -505,7 +494,7 @@ const ProductDetailTabs = ({
                         <button
                             type="button"
                             onClick={() => setShowCommentForm((prev) => !prev)}
-                            className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-4 !py-[14px] !text-[14px] !leading-[1px] !font-[650] text-white transition-opacity hover:opacity-95"
+                            className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-5 !py-4 !text-[15px] !leading-none !font-[650] text-white transition-opacity hover:opacity-95 sm:!px-6"
                             style={{ fontFamily: "var(--font-inter), sans-serif" }}
                         >
                             Şərh yaz
@@ -514,30 +503,26 @@ const ProductDetailTabs = ({
 
                     {showCommentForm ? (
                         <form onSubmit={handleSubmitComment} className="mt-8 w-[73.9%] max-w-full space-y-4 max-lg:w-full">
-                            <label className="relative block overflow-hidden rounded-[20px] bg-[rgba(236,244,252,1)]">
-                                <span className="pointer-events-none absolute top-1/2 left-[22px] -translate-y-1/2 text-[16px] text-[#1f57ff]">
-                                    <i className="icon-account" aria-hidden="true" />
-                                </span>
+                            <div className="space-y-2">
+                                <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Adınız</div>
                                 <input
                                     value={commentName}
                                     onChange={(event) => setCommentName(event.target.value)}
                                     placeholder="Adınız"
-                                    className="h-[64px] w-full border-none bg-transparent pl-[43px] pr-5 text-[14px] leading-[1] font-medium text-[#131722] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
+                                    className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
                                 />
-                            </label>
+                            </div>
 
-                            <label className="relative block overflow-hidden rounded-[20px] bg-[rgba(236,244,252,1)]">
-                                <span className="pointer-events-none absolute top-6 left-[22px] text-[16px] text-[#1f57ff]">
-                                    <i className="fa-regular fa-pen-to-square" aria-hidden="true" />
-                                </span>
+                            <div className="space-y-2">
+                                <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Şərh yazın</div>
                                 <textarea
                                     value={commentText}
                                     onChange={(event) => setCommentText(event.target.value)}
                                     placeholder="Şərh yazın"
                                     rows={5}
-                                    className="h-[128px] w-full resize-y border-none bg-transparent pl-[43px] pr-5 pt-[27px] pb-4 text-[14px] leading-[1.1] font-medium text-[#131722] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
+                                    className="min-h-[128px] w-full resize-y rounded-[18px] border border-[#d8dde6] bg-transparent px-4 py-4 text-[15px] leading-[1.45] text-[#161922] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
                                 />
-                            </label>
+                            </div>
 
                             <div className="grid grid-cols-[150px_auto] items-center gap-y-2 max-sm:grid-cols-[120px_auto]">
                                 <span className="text-[16px] font-normal text-[#1b202b]">
@@ -601,9 +586,9 @@ const ProductDetailTabs = ({
                                 <button
                                     type="submit"
                                     disabled={isSubmittingComment}
-                                    className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[#003dff] px-6 py-3 text-[16px] font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-[#003dff] px-6 py-3 text-[16px] font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    {isSubmittingComment ? "Göndərilir..." : "Göndər"}
+                                    {isSubmittingComment ? <Spinner size={18} /> : <span>Göndər</span>}
                                 </button>
                             </div>
                         </form>

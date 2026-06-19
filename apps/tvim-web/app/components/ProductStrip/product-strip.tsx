@@ -233,10 +233,6 @@ const localePrefix = useMemo(() => {
 
     const copy = getStripCopy(localePrefix);
 const effectiveViewAllText = viewAllText ?? copy.viewAllText;
-console.log("viewAllText prop:", viewAllText);
-
-
- console.log("locale prop:", locale, "pathname:", pathname, "localePrefix:", localePrefix, "effectiveViewAllText:", effectiveViewAllText);
 
 
 
@@ -1114,15 +1110,41 @@ console.log("viewAllText prop:", viewAllText);
 
     useEffect(() => {
 
-        const update = () => setVisibleCountState(getVisibleCount(window.innerWidth));
+        const resolveWidth = () => {
+            const viewportWidth = viewportRef.current?.clientWidth ?? 0;
+            return Math.max(viewportWidth, window.innerWidth, 0);
+        };
+
+        const update = () => {
+            setVisibleCountState(getVisibleCount(resolveWidth()));
+        };
 
         update();
 
+        let rafId = window.requestAnimationFrame(() => {
+            update();
+        });
+
+        const viewport = viewportRef.current;
+        const resizeObserver =
+            typeof ResizeObserver !== "undefined" && viewport
+                ? new ResizeObserver(() => {
+                      update();
+                  })
+                : null;
+
+        if (resizeObserver && viewport) {
+            resizeObserver.observe(viewport);
+        }
         window.addEventListener("resize", update);
 
-        return () => window.removeEventListener("resize", update);
+        return () => {
+            window.cancelAnimationFrame(rafId);
+            resizeObserver?.disconnect();
+            window.removeEventListener("resize", update);
+        };
 
-    }, []);
+    }, [pathname, products.length, layout]);
 
 
 
@@ -1176,7 +1198,7 @@ console.log("viewAllText prop:", viewAllText);
 
         };
 
-    }, []);
+    }, [pathname]);
 
 
 
@@ -1469,6 +1491,16 @@ console.log("viewAllText prop:", viewAllText);
 
 
     const maxIndex = Math.max(0, products.length - visibleCount);
+
+    useEffect(() => {
+
+        setIndex(0);
+        dragOffsetRef.current = 0;
+        isDraggingRef.current = false;
+        isPointerDownRef.current = false;
+        setIsDragging(false);
+
+    }, [pathname]);
 
 
 

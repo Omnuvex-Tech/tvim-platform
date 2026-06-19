@@ -623,13 +623,13 @@ export default async function GridDetailPage({
             <SitePageShell chrome={chrome} includeLogoutToast>
                 <Breadcrumb
                     items={breadcrumbItems as any}
-                    className="mx-auto w-full max-w-[1280px] !px-4 lg:!px-2"
+                    className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
                     showTitle={false}
                     pageTitle={resolvedName}
                     titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
                 />
 
-                <main className="mx-auto w-full max-w-[1280px] !px-4 pt-1 pb-10 lg:!px-2 lg:pb-12">
+                <main className="mx-auto w-full max-w-[1280px] !px-1 pt-1 pb-10 lg:!px-2 lg:pb-12">
                     <h1 className="mb-3 text-[34px] leading-tight font-bold tracking-[-0.02em] text-[#111318] max-lg:text-[22px] lg:mb-6">
                         {resolvedName}
                     </h1>
@@ -639,9 +639,14 @@ export default async function GridDetailPage({
                         <span className="font-semibold text-[#ff3030]">{stockText}</span>
                     </div>
 
-                    <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-12">
+                    <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-16">
                         <div className="w-full">
-                            <div className="flex min-h-[300px] items-center justify-center lg:min-h-[540px]">
+                            <div className="relative flex min-h-[300px] items-center justify-center lg:min-h-[540px]">
+                                {typeof discountPercent === "number" ? (
+                                    <span className="absolute top-3 right-3 z-10 inline-flex h-[64px] w-[64px] items-center justify-center rounded-full bg-[#ff2e43] text-[16px] font-bold leading-none text-white lg:top-5 lg:right-5 lg:h-[84px] lg:w-[84px] lg:text-[18px]">
+                                        <span className="-translate-y-[1px]">-{discountPercent}%</span>
+                                    </span>
+                                ) : null}
                                 {images[0] ? (
                                     <img
                                         src={images[0]}
@@ -667,16 +672,10 @@ export default async function GridDetailPage({
                             ) : null}
                         </div>
 
-                        <div className="w-full pt-0 lg:pt-2">
+                        <div className="w-full pt-0 lg:pt-2 lg:pl-6">
                             {isDiscountSource ? (
                                 <div className="flex items-start">
                                     <div className="relative ml-2 -mt-3 max-lg:ml-0 max-lg:mt-0">
-                                        {typeof discountPercent === "number" ? (
-                                            <span className="absolute top-[2.8rem] right-full mr-16 inline-flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#ff2e43] text-[18px] font-bold leading-none text-white max-lg:hidden">
-                                                -{discountPercent}%
-                                            </span>
-                                        ) : null}
-
                                         {hasDiscount && oldPrice ? (
                                             <div className="text-[1.05em] font-medium text-[#9aa3b4] line-through">
                                                 Qiymət: {oldPrice.toFixed(2)}₼
@@ -727,8 +726,8 @@ export default async function GridDetailPage({
                             {navbarPhone ? (
                                 <a
                                     href={`tel:${navbarPhone.replace(/\s|\(|\)|-/g, "")}`}
-                                    className={`hidden w-fit cursor-pointer items-center gap-2 font-[family-name:var(--font-inter)] text-[17px] leading-none font-bold text-[#12151d] lg:flex ${
-                                        isDiscountSource ? "mt-5" : "mt-6"
+                                    className={`hidden w-fit cursor-pointer items-center gap-2 py-2 font-[family-name:var(--font-inter)] text-[17px] leading-none font-bold text-[#12151d] lg:flex ${
+                                        isDiscountSource ? "mt-6" : "mt-7"
                                     }`}
                                 >
                                     <i className="fas fa-phone-volume size-[18px] text-[#12151D]" aria-hidden="true" />
@@ -811,14 +810,15 @@ export default async function GridDetailPage({
                         comments={initialComments}
                     />
 
-                    {related.length > 0 ? (
-                        <section className="mt-8 lg:mt-10">
-                            <ProductStrip items={related as any} variant="latest" title="Oxşar məhsullar" layout="carousel" cardsTopSpacingClassName="py-8 lg:py-16" />
-                        </section>
-                    ) : null}
                 </main>
 
-                <div className="mx-auto mt-12 w-full max-w-[1280px] px-4 lg:mt-14 lg:px-0">
+                {related.length > 0 ? (
+                    <section className="mx-auto mt-6 w-full max-w-[1280px] px-1 lg:mt-8 lg:px-2">
+                        <ProductStrip items={related as any} variant="latest" title="Oxşar məhsullar" layout="carousel" cardsTopSpacingClassName="pt-3 pb-4 lg:pt-3 lg:pb-6" />
+                    </section>
+                ) : null}
+
+                <div className="mx-auto mt-4 mb-10 w-full max-w-[1280px] px-1 lg:mt-6 lg:mb-14 lg:px-2">
                     <RequestForm />
                 </div>
             </SitePageShell>

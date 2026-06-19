@@ -29,6 +29,7 @@ type TranslationDictionary = {
         returns: string;
         favorites: string;
         noReturns: string;
+        continueShopping: string;
     };
     product: {
         productCode: string;
@@ -85,7 +86,8 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             addressBook: "Ünvan kitabçası",
             returns: "Geri qaytarma",
             favorites: "Bəyənilənlər",
-            noReturns: "Sizin hər hansı geri qaytarma sorğunuz mövcud deyil!",
+            noReturns: "Hələ heç bir geri qaytarma sorğunuz yoxdur.",
+            continueShopping: "Alış-verişə davam et",
         },
         product: {
             productCode: "Məhsul kodu",
@@ -140,7 +142,8 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             addressBook: "Address book",
             returns: "Returns",
             favorites: "Wishlist",
-            noReturns: "You do not have any return requests.",
+            noReturns: "You don't have any return requests yet.",
+            continueShopping: "Continue Shopping",
         },
         product: {
             productCode: "Product code",
@@ -195,7 +198,8 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             addressBook: "Адресная книга",
             returns: "Возвраты",
             favorites: "Избранное",
-            noReturns: "У вас нет запросов на возврат.",
+            noReturns: "У вас пока нет заявок на возврат.",
+            continueShopping: "Продолжить покупки",
         },
         product: {
             productCode: "Код товара",

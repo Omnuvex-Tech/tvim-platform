@@ -1,23 +1,15 @@
-import type { ComponentType } from "react";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Language } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
-import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { AccountNavigation } from "../account-navigation";
 import { AddressClient } from "./address-client";
-
-type NavItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string }>;
-};
 
 type Address = {
     id: number;
@@ -37,33 +29,6 @@ type Address = {
     is_default: boolean | null;
     status: boolean | null;
 };
-
-const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
-    <i
-        className={`account-index__icon fa fa-reply ${className ?? ""}`}
-        style={{
-            MozOsxFontSmoothing: "grayscale",
-            WebkitFontSmoothing: "antialiased",
-            display: "inline-block",
-            fontStyle: "normal",
-            fontVariant: "normal",
-            textRendering: "auto",
-            lineHeight: 1,
-        }}
-        aria-hidden="true"
-    />
-);
-
-const navItems: NavItem[] = [
-    { label: "Hesabım", href: "/account", icon: UserRound },
-    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Package },
-    { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrə", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
-    { label: "Geri qaytarma", href: "/account/returns", icon: FontAwesomeReplyIcon },
-    { label: "Çıxış", href: "/logout", icon: LogOut },
-];
 
 export default async function AccountAddressPage({
     params,
@@ -124,41 +89,13 @@ export default async function AccountAddressPage({
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
                 <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="hidden w-full max-w-[260px] lg:block">
-                        <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
-                        <div className="mt-5 border-t border-[#D2D9E4]" />
-
-                        <ul className="mt-0.5 space-y-0.5">
-                            {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = href === activeHref;
-                                return (
-                                    <li key={label}>
-                                        <Link
-                                            href={`/${locale}${href}`}
-                                            className={`group inline-flex w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
-                                                isActive
-                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
-                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
-                                            }`}
-                                        >
-                                            <Icon
-                                                className={`size-4 transition-colors ${
-                                                    isActive ? "text-[#0D47FF]" : "text-[#707887] group-hover:text-[#0D47FF]"
-                                                }`}
-                                            />
-                                            <span>{label}</span>
-                                        </Link>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </aside>
+                    <AccountNavigation locale={locale} activeHref={activeHref} />
 
                     <AddressClient locale={locale} initialAddresses={addresses} />
                 </div>
             </section>
 
-            <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
+            <div className="mx-auto mt-14 mb-10 w-full max-w-[1280px] px-0 lg:mt-16 lg:mb-14">
                 <RequestForm />
             </div>
         </SitePageShell>

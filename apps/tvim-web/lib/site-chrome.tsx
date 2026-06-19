@@ -2,6 +2,7 @@ import type {
     HeaderCategoriesResponseData,
     HeaderCategoryItem,
     Language,
+    MenuItem,
     ProjectSettingsData,
     ProjectSettingsResponseData,
 } from "@repo/types/types";
@@ -20,7 +21,7 @@ import {
 import { resolveProjectSettings, resolveSettingsApiLocale } from "@/lib/settings";
 
 export type SiteChromeData = {
-    footerMenus: unknown[];
+    footerMenus: MenuItem[];
     initialCatalogItems: HeaderCategoryItem[];
     languages: Language[];
     locale: string;
@@ -73,9 +74,9 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
         initialCatalogItems = headerItems.filter(isCategoriesMenuType);
     }
 
-    const footerMenus =
+    const footerMenus: MenuItem[] =
         rawMenusData && Array.isArray(rawMenusData.footer)
-            ? rawMenusData.footer
+            ? rawMenusData.footer as MenuItem[]
             : [];
 
     let projectSettings: ProjectSettingsData | undefined;

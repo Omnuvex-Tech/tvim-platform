@@ -337,7 +337,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                 />
             </div>
 
-            <RequestForm />
+            <div className="mt-2 mb-10 lg:mt-4 lg:mb-14"><RequestForm /></div>
         </div>
     );
 }

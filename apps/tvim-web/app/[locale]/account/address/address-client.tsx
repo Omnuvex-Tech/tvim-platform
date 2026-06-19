@@ -692,7 +692,7 @@ export function AddressClient({
                 </div>
 
                 {isFormOpen ? (
-                    <div className="rounded-[20px] bg-white p-5">
+                    <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                         <div className="flex flex-nowrap items-center justify-between gap-3">
                             <div className="min-w-0 truncate text-[15px] font-semibold text-[#0F131A]">
                                 {editingId ? "Ünvanı redaktə et" : "Ünvan əlavə et"}

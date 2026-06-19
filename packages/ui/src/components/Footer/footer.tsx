@@ -71,7 +71,7 @@ const Footer = ({
             data-slot="footer"
             className={cn("w-full font-[family-name:var(--font-inter)] text-[#24262b]", className)}
         >
-            <div className="mx-auto w-full max-w-[1280px] px-5 pt-10 pb-4 lg:px-0">
+            <div className="mx-auto w-full max-w-[1280px] px-1 pt-10 pb-2 sm:pb-4 lg:px-2">
                 <div className={cn("grid grid-cols-2 gap-x-8 gap-y-5 md:grid-cols-2 lg:gap-14", lgColsClass)}>
                     <div className="col-span-2 space-y-5 lg:col-span-1 lg:space-y-6">
                         <div className="flex items-end gap-0">
@@ -188,7 +188,7 @@ const Footer = ({
 
             {socials.length > 0 ? (
                 <div className="hidden w-full bg-black/5 [box-shadow:0_0_0_100vmax_rgba(0,0,0,0.05)] [clip-path:inset(0_-100vmax)] lg:block">
-                    <div className={cn("mx-auto w-full max-w-[1280px] px-0 py-3 lg:px-0 lg:grid lg:items-center", lgColsClass)}>
+                    <div className={cn("mx-auto w-full max-w-[1280px] px-1 py-3 lg:px-2 lg:grid lg:items-center", lgColsClass)}>
                         <div className="flex flex-wrap items-center justify-start gap-2.5 lg:col-start-1">
                             {socials.map((item, index) => (
                                 <a

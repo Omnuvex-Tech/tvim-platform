@@ -1,49 +1,15 @@
-import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Language } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
-import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
-
-type NavItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string }>;
-};
-
-const FontAwesomeReplyIcon = ({ className }: { className?: string }) => (
-    <i
-        className={`account-index__icon fa fa-reply ${className ?? ""}`}
-        style={{
-            MozOsxFontSmoothing: "grayscale",
-            WebkitFontSmoothing: "antialiased",
-            display: "inline-block",
-            fontStyle: "normal",
-            fontVariant: "normal",
-            textRendering: "auto",
-            lineHeight: 1,
-        }}
-        aria-hidden="true"
-    />
-);
-
-const navItems: NavItem[] = [
-    { label: "Hesabım", href: "/account", icon: UserRound },
-    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Package },
-    { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrə", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
-    { label: "Geri qaytarma", href: "/account/returns", icon: FontAwesomeReplyIcon },
-    { label: "Çıxış", href: "/logout", icon: LogOut },
-];
+import { AccountNavigation } from "../../account-navigation";
 
 type OrderStatus = {
     code?: string | null;
@@ -347,39 +313,11 @@ export default async function OrderDetailPage({
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
                 <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="hidden w-full max-w-[260px] lg:block">
-                        <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
-                        <div className="mt-5 border-t border-[#D2D9E4]" />
-
-                        <ul className="mt-0.5 space-y-0.5">
-                            {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = href === activeHref;
-                                return (
-                                    <li key={label}>
-                                        <Link
-                                            href={`/${locale}${href}`}
-                                            className={`group inline-flex min-h-0 w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
-                                                isActive
-                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
-                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
-                                            }`}
-                                        >
-                                            <Icon
-                                                className={`size-4 transition-colors ${
-                                                    isActive ? "text-[#0D47FF]" : "text-[#707887] group-hover:text-[#0D47FF]"
-                                                }`}
-                                            />
-                                            <span>{label}</span>
-                                        </Link>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </aside>
+                    <AccountNavigation locale={locale} activeHref={activeHref} />
 
                     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
                         <div className="space-y-6">
-                        <div className="rounded-[20px] bg-white p-5">
+                        <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div>
                                     <p className="text-[13px] font-medium text-[#6b7280]">Sifariş nömrəsi</p>
@@ -405,7 +343,7 @@ export default async function OrderDetailPage({
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
-                            <div className="rounded-[20px] bg-white p-5">
+                            <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                                 <h3 className="text-[18px] font-semibold text-[#111826]">Müştəri</h3>
                                 <div className="mt-4 space-y-2 text-[15px] text-[#344054]">
                                     <p><span className="font-medium text-[#111826]">Ad:</span> {order.customer?.name || "-"}</p>
@@ -414,7 +352,7 @@ export default async function OrderDetailPage({
                                 </div>
                             </div>
 
-                            <div className="rounded-[20px] bg-white p-5">
+                            <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                                 <h3 className="text-[18px] font-semibold text-[#111826]">Çatdırılma</h3>
                                 <div className="mt-4 space-y-2 text-[15px] text-[#344054]">
                                     <p><span className="font-medium text-[#111826]">Etiket:</span> {order.address?.label || order.address?.type || "-"}</p>
@@ -429,7 +367,7 @@ export default async function OrderDetailPage({
                             </div>
                         </div>
 
-                        <div className="rounded-[20px] bg-white p-5">
+                        <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                             <h3 className="text-[18px] font-semibold text-[#111826]">Məhsullar</h3>
                             <div className="mt-4 space-y-3">
                                 {items.map((item, index) => {
@@ -456,7 +394,7 @@ export default async function OrderDetailPage({
                             </div>
                         </div>
 
-                        <div className="rounded-[20px] bg-white p-5">
+                        <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                             <h3 className="text-[18px] font-semibold text-[#111826]">Ödəniş</h3>
                             <div className="mt-4 grid gap-2 text-[15px] text-[#344054]">
                                 <p><span className="font-medium text-[#111826]">Metod:</span> {order.payment_method?.name || "-"}</p>
@@ -492,7 +430,7 @@ export default async function OrderDetailPage({
                     </div>
 
                     <aside className="space-y-4">
-                        <div className="rounded-[20px] bg-white p-5">
+                        <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                             <h3 className="text-[18px] font-semibold text-[#111826]">Yekun</h3>
                             <div className="mt-4 space-y-3 text-[15px] text-[#344054]">
                                 <div className="flex items-center justify-between gap-4"><span>Aralıq cəm</span><span>{formatAmount(order.totals?.subtotal)} AZN</span></div>
@@ -509,7 +447,7 @@ export default async function OrderDetailPage({
                         </div>
 
                         {order.promo?.code ? (
-                            <div className="rounded-[20px] bg-white p-5">
+                            <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                                 <h3 className="text-[18px] font-semibold text-[#111826]">Promo</h3>
                                 <div className="mt-4 space-y-2 text-[15px] text-[#344054]">
                                     <p><span className="font-medium text-[#111826]">Kod:</span> {order.promo.code}</p>
@@ -519,7 +457,7 @@ export default async function OrderDetailPage({
                         ) : null}
 
                         {payments.length > 0 ? (
-                            <div className="rounded-[20px] bg-white p-5">
+                            <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                                 <h3 className="text-[18px] font-semibold text-[#111826]">Ödənişlər</h3>
                                 <div className="mt-4 space-y-3">
                                     {payments.map((payment) => (
@@ -559,7 +497,7 @@ export default async function OrderDetailPage({
                         ) : null}
 
                         {history.length > 0 ? (
-                            <div className="rounded-[20px] bg-white p-5">
+                            <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                                 <h3 className="text-[18px] font-semibold text-[#111826]">Status tarixçəsi</h3>
                                 <div className="mt-4 space-y-3">
                                     {history.map((entry, index) => (

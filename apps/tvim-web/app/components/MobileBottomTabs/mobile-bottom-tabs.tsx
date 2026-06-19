@@ -160,11 +160,11 @@ export const MobileBottomTabs = () => {
 
     return (
         <>
-            <div className="h-[86px] md:hidden" aria-hidden="true" />
+            <div className="h-[58px] md:hidden" aria-hidden="true" />
             <nav
                 className={cx(
                     "fixed left-1/2 z-50 grid grid-cols-5 bg-white transition-all duration-200 md:hidden",
-                    "pb-[calc(8px+env(safe-area-inset-bottom))] pt-2",
+                    "pb-[calc(6px+env(safe-area-inset-bottom))] pt-1.5",
                     isScrolled
                         ? "bottom-4 w-[calc(100%-28px)] max-w-[330px] -translate-x-1/2 rounded-[22px] border border-[#e8edf5] shadow-[0_8px_28px_rgba(15,37,76,0.16)]"
                         : "bottom-0 w-full max-w-[380px] -translate-x-1/2 border-t border-[#e8edf5] shadow-[0_-6px_18px_rgba(15,37,76,0.08)]"

@@ -357,12 +357,12 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     }
 
     const includedItemsSection = includedItems.length > 0 ? (
-        <div className="mt-4 w-full">
-            <div className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2">
+        <div className="mt-0 w-full">
+            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 px-1 lg:px-2">
                 {includedItems.map((inc: any, idx: number) => {
                     if (inc.included_type === "menu" && inc.type === "form") {
                         return (
-                            <div key={idx} className="mt-4 lg:mt-6">
+                            <div key={idx}>
                                 <RequestForm submitConfig={inc.data.submit} fields={inc.data?.fields ?? inc.data?.data?.fields} />
                             </div>
                         );
@@ -372,7 +372,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         const companies = mapIncludedValuesToCompanies(inc.data.values);
                         if (companies.length === 0) return null;
                         return (
-                            <div key={idx} className="mt-4 lg:mt-6">
+                            <div key={idx}>
                                 <BrandListSlider companies={companies} />
                             </div>
                         );
@@ -417,8 +417,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         if (companies.length === 0) return null;
 
                         return (
-                            <section key={idx} className="mt-6 lg:mt-8">
-                                <h2 className="mb-4 text-[24px] font-semibold text-[#111827] lg:mb-5 lg:text-[30px]">
+                            <section key={idx}>
+                                <h2 className="mb-1 text-[24px] font-semibold text-[#111827] lg:mb-2 lg:text-[30px]">
                                     {inc.menu?.title || inc.menu?.name || "Brand News"}
                                 </h2>
                                 <BrandListSlider companies={companies} />
@@ -431,6 +431,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             </div>
         </div>
     ) : null;
+
+    const footerSpacer = keywordsArr.length > 0 ? null : <div className="h-10 lg:h-14" />;
 
     const isCategoriesView = (() => {
         const t = String(menu.type ?? "").trim().toLowerCase();
@@ -724,13 +726,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
                         { label: menu.name, isCurrent: true },
                     ]}
-                    className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
+                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                     showTitle
                     pageTitle={menu.title || menu.name}
                     titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
                 />
 
-                <section className="mx-auto w-full max-w-[1280px] !px-1 pt-6 pb-10 lg:!px-2 lg:pb-12">
+                <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pb-12">
                     <PendingNavProvider>
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
@@ -778,10 +780,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 ) : null}
 
                             {(() => {
-                                const perPageRaw = Number(currentUiParams.get("per_page") ?? productList?.pagination?.per_page ?? 20);
-                                const perPage = Number.isFinite(perPageRaw) ? Math.min(60, Math.max(1, perPageRaw)) : 20;
-                                const perPageOptions = [20, 40, 60];
-
                                 const labelByKey: Record<string, string> = {
                                     newest: "Yenilər: üstdə",
                                     name_asc: "Ad (A-Z)",
@@ -793,7 +791,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 };
 
                                 return (
-                                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-wrap items-center gap-3 rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                         {sortOptions.map((opt) => {
                                             const key = String(opt?.key ?? "").trim();
                                             if (!key) return null;
@@ -805,7 +803,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                                 <PendingLink
                                                     key={key}
                                                     href={buildHrefWithParams(next)}
-                                                    className={`rounded-[9px] px-4 py-2 text-[14px] transition-colors ${
+                                                    className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${
                                                         isActive
                                                             ? "bg-[#0f57d6] font-semibold text-white"
                                                             : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
@@ -816,31 +814,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                             );
                                         })}
 
-                                        <details className="relative ml-auto z-40">
-                                            <summary className="list-none cursor-pointer rounded-[10px] bg-[#f7f8fa] px-4 py-2 text-[14px] font-medium text-[#111318]">
-                                                {perPage}
-                                                <span className="ml-2 inline-block text-[#6b7280]">▾</span>
-                                            </summary>
-                                            <div className="absolute right-0 z-50 mt-2 w-[120px] overflow-hidden rounded-[16px] border border-[#eee] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-                                                {perPageOptions.map((opt) => {
-                                                    const next = new URLSearchParams(currentUiParams.toString());
-                                                    next.set("page", "1");
-                                                    next.set("per_page", String(opt));
-                                                    const href = buildHrefWithParams(next);
-                                                    return (
-                                                        <PendingLink
-                                                            key={opt}
-                                                            href={href}
-                                                            className={`block px-4 py-2 text-[14px] ${
-                                                                opt === perPage ? "bg-[#e7efff] text-[#0f57d6]" : "text-[#111318] hover:bg-[#f5f7fb]"
-                                                            }`}
-                                                        >
-                                                            {opt}
-                                                        </PendingLink>
-                                                    );
-                                                })}
-                                            </div>
-                                        </details>
                                     </div>
                                 );
                             })()}
@@ -952,6 +925,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                 {includedItemsSection}
+                {footerSpacer}
             </SitePageShell>
         );
     }
@@ -964,13 +938,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
                         { label: menu.name, isCurrent: true },
                     ]}
-                    className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
+                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                     showTitle
                     pageTitle={menu.title || menu.name}
                     titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
                 />
 
-                <section className="mx-auto w-full max-w-[1280px] !px-1 pt-6 pb-10 lg:!px-2 lg:pt-7 lg:pb-12">
+                <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pt-7 lg:pb-12">
                     {gridItems.length > 0 ? (
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {gridItems.map((item, index) => {
@@ -1019,6 +993,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                 {includedItemsSection}
+                {footerSpacer}
             </SitePageShell>
         );
     }
@@ -1035,13 +1010,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
                     { label: menu.name, isCurrent: true },
                 ]}
-                className="!max-w-[1280px] mx-auto w-full !px-1 lg:!px-2"
+                className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                 showTitle
                 pageTitle={menu.title || menu.name}
                 titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
             />
 
-                <section className="mx-auto w-full max-w-[1280px] pt-6 pb-10 lg:pt-7 lg:pb-12">
+                <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pt-7 lg:pb-12">
                     <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <article className="group flex flex-1 items-center justify-start gap-4 rounded-[18px] border border-[#f3f5f8] bg-white p-[26px] shadow-[0_10px_14px_-14px_rgba(15,23,42,0.18)]">
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e6ebf3] bg-[#f5f8ff] text-[#1d6dff]">
@@ -1104,12 +1079,12 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                     {includedItems.length > 0 && (
-                        <div className="mt-4 w-full">
-                            <div className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2">
+                        <div className="mt-0 w-full">
+                            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 px-1 lg:px-2">
                                         {includedItems.map((inc: any, idx: number) => {
                                     if (inc.included_type === "menu" && inc.type === "form") {
                                         return (
-                                            <div key={idx} className="mt-4 lg:mt-6">
+                                            <div key={idx}>
                                                 <RequestForm submitConfig={inc.data.submit} fields={inc.data?.fields ?? inc.data?.data?.fields} />
                                             </div>
                                         );
@@ -1119,7 +1094,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                         const companies = mapIncludedValuesToCompanies(inc.data.values);
                                         if (companies.length === 0) return null;
                                         return (
-                                            <div key={idx} className="mt-4 lg:mt-6">
+                                            <div key={idx}>
                                                 <BrandListSlider companies={companies} />
                                             </div>
                                         );
@@ -1132,22 +1107,23 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     )}
 
                 {keywordsArr.length > 0 && (
-                    <div className="mx-auto mt-40 w-full max-w-[1280px]">
-                        <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
+                    <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
+                        <div className="w-full border-t border-[#e5e9ef]" />
                         <div className="pt-4">
                             <div className="flex flex-wrap justify-start gap-2">
-                            {keywordsArr.map((kw, i) => (
-                                <span
-                                    key={i}
-                                    className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
-                                >
-                                    {kw}
-                                </span>
-                            ))}
+                                {keywordsArr.map((kw, i) => (
+                                    <span
+                                        key={i}
+                                        className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
+                                    >
+                                        {kw}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     </div>
                 )}
+                {footerSpacer}
             </SitePageShell>
         );
     }
@@ -1160,7 +1136,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
                     { label: menu.name, isCurrent: true },
                 ]}
-                className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
+                className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                 showTitle
                 pageTitle={menu.title || menu.name}
                 titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
@@ -1170,7 +1146,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 null
             )}
 
-            <section className="mx-auto w-full max-w-[1280px] !px-1 pt-2 pb-10 lg:!px-2 lg:pt-3 lg:pb-12">
+            <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 pb-10 lg:px-2 lg:pt-3 lg:pb-12">
                 <div className="prose max-w-none">
                     {menu.description && (
                         <div dangerouslySetInnerHTML={{ __html: menu.description }} />
@@ -1187,8 +1163,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             {includedItemsSection}
 
             {keywordsArr.length > 0 && (
-                <div className="mx-auto mt-40 w-full max-w-[1280px]">
-                    <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
+                <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
+                    <div className="w-full border-t border-[#e5e9ef]" />
                     <div className="pt-4">
                         <div className="flex flex-wrap justify-start gap-2">
                             {keywordsArr.map((kw, i) => (
@@ -1203,6 +1179,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     </div>
                 </div>
             )}
+            {footerSpacer}
         </SitePageShell>
     );
 }

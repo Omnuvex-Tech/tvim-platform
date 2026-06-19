@@ -1,20 +1,15 @@
-import type { ComponentType } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Language } from "@repo/types/types";
-import { ChevronUp, Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
+import { Breadcrumb } from "@repo/ui";
+import { ChevronUp } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
-
-type NavItem = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string }>;
-};
+import { AccountNavigation } from "../account-navigation";
 
 type OrderStatus = {
     code?: string | null;
@@ -106,35 +101,6 @@ type OrdersApiPayload = {
     orders?: Order[] | null;
 };
 
-const navItems: NavItem[] = [
-    { label: "Hesabım", href: "/account", icon: UserRound },
-    { label: "Sifariş tarixçəsi", href: "/account/orders", icon: Package },
-    { label: "Hesabı redaktə et", href: "/account/edit", icon: UserRound },
-    { label: "Şifrə", href: "/account/password", icon: Lock },
-    { label: "Ünvan kitabçası", href: "/account/address", icon: MapPin },
-    { label: "Bəyənilənlər", href: "/wishlist", icon: Heart },
-    {
-        label: "Geri qaytarma",
-        href: "/account/returns",
-        icon: ({ className }: { className?: string }) => (
-            <i
-                className={`account-index__icon fa fa-reply ${className ?? ""}`}
-                style={{
-                    MozOsxFontSmoothing: "grayscale",
-                    WebkitFontSmoothing: "antialiased",
-                    display: "inline-block",
-                    fontStyle: "normal",
-                    fontVariant: "normal",
-                    textRendering: "auto",
-                    lineHeight: 1,
-                }}
-                aria-hidden="true"
-            />
-        ),
-    },
-    { label: "Çıxış", href: "/logout", icon: LogOut },
-];
-
 const getStatusTabs = (locale: "az" | "ru" | "en") => {
     if (locale === "en") {
         return [
@@ -212,6 +178,8 @@ export default async function OrdersPage({
 }) {
     const { locale: routeLocale } = await params;
     const locale = normalizeLocale(routeLocale);
+    const homePageMeta = config.pages.home[locale];
+    const accountPageMeta = config.pages.account[locale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
@@ -285,40 +253,23 @@ export default async function OrdersPage({
 
     return (
         <SitePageShell chrome={chrome}>
+            <Breadcrumb
+                items={[
+                    { label: homePageMeta.name, href: homePageMeta.url },
+                    { label: accountPageMeta.name, href: accountPageMeta.url },
+                    { label: "Sifariş tarixçəsi", isCurrent: true },
+                ]}
+                className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
+                showTitle
+                pageTitle="Sifariş tarixçəsi"
+                titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
+            />
+
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
                 <div className="mt-6 grid gap-8 lg:mt-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
-                    <aside className="hidden w-full max-w-[260px] lg:block">
-                        <h2 className="-mt-1 px-3 text-[13px] leading-none font-bold text-[#0F131A] sm:text-[16px]">Naviqasiya</h2>
-                        <div className="mt-5 border-t border-[#D2D9E4]" />
+                    <AccountNavigation locale={locale} activeHref={activeHref} />
 
-                        <ul className="mt-0.5 space-y-0.5">
-                            {navItems.map(({ label, href, icon: Icon }) => {
-                                const isActive = href === activeHref;
-
-                                return (
-                                    <li key={label}>
-                                        <Link
-                                            href={`/${locale}${href}`}
-                                            className={`group inline-flex min-h-0 w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
-                                                isActive
-                                                    ? "bg-[#F0F1F3] text-[#0D47FF]"
-                                                    : "text-[#0F131A] hover:bg-[#F0F1F3] hover:text-[#0D47FF]"
-                                            }`}
-                                        >
-                                            <Icon
-                                                className={`size-4 transition-colors ${
-                                                    isActive ? "text-[#0D47FF]" : "text-[#707887] group-hover:text-[#0D47FF]"
-                                                }`}
-                                            />
-                                            <span>{label}</span>
-                                        </Link>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </aside>
-
-                    <div className="w-full">
+                    <section className="w-full rounded-[20px] bg-white px-0 py-6 sm:px-7 sm:py-8">
                         <div className="flex items-center gap-4 overflow-x-auto text-[13px] font-medium text-[#8A97AB] sm:text-[14px]">
                             {tabs.map((tab) => {
                                 const active = tab.value === status;
@@ -464,7 +415,7 @@ export default async function OrdersPage({
                                 })
                             )}
                         </div>
-                    </div>
+                    </section>
                 </div>
             </section>
         </SitePageShell>

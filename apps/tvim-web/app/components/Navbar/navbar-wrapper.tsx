@@ -487,6 +487,15 @@ const NavbarWrapper = ({
             return `/${localeCode}${normalizedLink}`;
         };
 
+        const toLocalizedBrandHref = (slug: unknown, rawLink: unknown) => {
+            const normalizedSlug = String(slug ?? "").trim().replace(/^\/+|\/+$/g, "");
+            if (normalizedSlug) {
+                return `/${localeCode}/brands/${encodeURIComponent(normalizedSlug)}`;
+            }
+
+            return toLocalizedHref(rawLink);
+        };
+
         const mapSectionItems = (items: unknown, type: "brand" | "category" | "product") => {
             if (!Array.isArray(items)) return [];
 
@@ -513,7 +522,9 @@ const NavbarWrapper = ({
                             ? formatSearchPrice(typedItem.discount_price ?? typedItem.price ?? typedItem.old_price)
                             : "",
                         imageUrl: String(typedItem.image ?? ""),
-                        href: toLocalizedHref(typedItem.link),
+                        href: type === "brand"
+                            ? toLocalizedBrandHref(typedItem.slug, typedItem.link)
+                            : toLocalizedHref(typedItem.link),
                         type,
                     };
                 })

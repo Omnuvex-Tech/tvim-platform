@@ -604,7 +604,7 @@ export default async function ComparePage({
                 />
             </section>
 
-            <div className="mx-auto mt-12 w-full max-w-[1280px] px-0 lg:mt-14">
+            <div className="mx-auto mt-14 mb-10 w-full max-w-[1280px] px-0 lg:mt-16 lg:mb-14">
                 <RequestForm />
             </div>
         </SitePageShell>
