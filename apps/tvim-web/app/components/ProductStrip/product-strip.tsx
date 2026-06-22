@@ -1572,9 +1572,11 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
     const pageCount = Math.max(1, maxIndex + 1);
 
-
+    const itemFlexBasis = mobileSingleCard && visibleCount === 1 ? "calc(100% - 80px)" : `${100 / visibleCount}%`;
 
     const headingClass = "text-[30px] sm:text-[46px]";
+
+
 
 
 
@@ -1664,9 +1666,9 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
             >
 
-                <Link href={product.href} className="block w-full pt-3 text-center">
+                <Link href={product.href} className="block w-full text-center">
 
-                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? (compactMobileCard ? "h-[120px] sm:h-[145px] max-[512px]:h-[128px]" : "h-[120px] sm:h-[145px] max-[512px]:h-[160px]") : (compactMobileCard ? "h-[135px] sm:h-[150px] max-[512px]:h-[128px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]")} w-full overflow-visible rounded-[10px]`}>
+                        <div className={`product-thumb mx-auto mt-0 flex items-center justify-center ${variant === "special" ? (compactMobileCard ? "h-[120px] sm:h-[145px] max-[512px]:h-[128px]" : "h-[120px] sm:h-[145px] max-[512px]:h-[160px]") : (compactMobileCard ? "h-[135px] sm:h-[150px] max-[512px]:h-[128px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]")} w-full overflow-visible rounded-[10px]`}>
 
                     {product.discount ? (
     
@@ -1850,11 +1852,19 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
     
     
 
-                            {product.imageUrl ? (
+                            <div className="relative z-[1] h-full w-full overflow-hidden rounded-[10px] max-[512px]:h-auto max-[512px]:aspect-square">
+                                {product.imageUrl ? (
 
-                                <img draggable={false} src={product.imageUrl} alt={product.title} className={`relative z-[2] mx-auto max-w-[150px] ${variant === "special" ? "h-full w-full object-cover" : "h-full w-full object-contain"} transition-transform duration-200 ease-out`} loading="lazy" />
+                                    <img
+                                        draggable={false}
+                                        src={product.imageUrl}
+                                        alt={product.title}
+                                        className="h-full w-full object-cover transition-transform duration-200 ease-out"
+                                        loading="lazy"
+                                    />
 
-                            ) : null}
+                                ) : null}
+                            </div>
 
                         </div>
 
@@ -2105,8 +2115,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
                         >
 
                             {products.map((product) => (
-
-                                <div key={product.id} style={{ flex: `0 0 ${100 / visibleCount}%` }} className="box-border h-auto px-2 sm:px-3">
+                                <div key={product.id} style={{ flex: `0 0 ${itemFlexBasis}` }} className="box-border h-auto px-2 sm:px-3">
 
                                     {renderCard(product, { dragging: isDragging })}
 
