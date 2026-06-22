@@ -8,6 +8,7 @@ import { useCart } from "@/lib/cart/client";
 
 const SUPPORTED_LOCALES = new Set(["az", "en", "ru"]);
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
+const OPEN_CATALOG_EVENT = "tvim:open-catalog";
 
 const LABELS = {
     az: {
@@ -133,6 +134,7 @@ export const MobileBottomTabs = () => {
                 href: `/${locale}#catalog`,
                 icon: LayoutGrid,
                 active: false,
+                action: "catalog" as const,
             },
             {
                 label: LABELS[locale].cart,
@@ -171,26 +173,49 @@ export const MobileBottomTabs = () => {
                 )}
                 aria-label="Mobile navigation"
             >
-                {tabs.map(({ label, href, icon: Icon, active, count }) => (
-                    <Link
-                        key={href}
-                        href={href}
-                        className={cx(
-                            "flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium leading-tight no-underline transition-colors",
-                            active ? "text-[#0b57f0]" : "text-[#8c96a8] hover:text-[#0b57f0]"
-                        )}
-                    >
-                        <span className="relative inline-flex">
-                            <Icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.8 : 2.2} aria-hidden="true" />
-                            {typeof count === "number" && count > 0 ? (
-                                <span className="absolute -right-2.5 -top-2 inline-flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ffd500] px-1 text-[10px] font-bold leading-none text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.18)]">
-                                    {formatBadgeCount(count)}
-                                </span>
-                            ) : null}
-                        </span>
-                        <span className="max-w-full truncate">{label}</span>
-                    </Link>
-                ))}
+                {tabs.map(({ label, href, icon: Icon, active, count, action }) => {
+                    const className = cx(
+                        "flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-[10px] font-medium leading-tight no-underline transition-colors",
+                        active ? "text-[#0b57f0]" : "text-[#8c96a8] hover:text-[#0b57f0]"
+                    );
+
+                    const content = (
+                        <>
+                            <span className="relative inline-flex">
+                                <Icon className="h-[21px] w-[21px]" strokeWidth={active ? 2.8 : 2.2} aria-hidden="true" />
+                                {typeof count === "number" && count > 0 ? (
+                                    <span className="absolute -right-2.5 -top-2 inline-flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ffd500] px-1 text-[10px] font-bold leading-none text-[#111827] shadow-[0_1px_3px_rgba(15,23,42,0.18)]">
+                                        {formatBadgeCount(count)}
+                                    </span>
+                                ) : null}
+                            </span>
+                            <span className="max-w-full truncate">{label}</span>
+                        </>
+                    );
+
+                    if (action === "catalog") {
+                        return (
+                            <button
+                                key={href}
+                                type="button"
+                                className={`${className} cursor-pointer`}
+                                onClick={() => window.dispatchEvent(new Event(OPEN_CATALOG_EVENT))}
+                            >
+                                {content}
+                            </button>
+                        );
+                    }
+
+                    return (
+                        <Link
+                            key={href}
+                            href={href}
+                            className={className}
+                        >
+                            {content}
+                        </Link>
+                    );
+                })}
             </nav>
         </>
     );

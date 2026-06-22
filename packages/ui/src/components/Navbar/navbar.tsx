@@ -74,6 +74,7 @@ const NAVBAR_REQUEST_TIMEOUT_MS = 10000;
 const CONTENT_LOCALE = "az";
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
+const OPEN_CATALOG_EVENT = "tvim:open-catalog";
 
 let favoritesCountCache: number | null = null;
 let favoritesCountPromise: Promise<number> | null = null;
@@ -1163,6 +1164,17 @@ export function Navbar({
             document.removeEventListener("keydown", onKey);
         };
     }, [isMobileLocaleOpen]);
+
+    useEffect(() => {
+        const onOpenCatalog = () => {
+            setIsCatalogOpen(true);
+        };
+
+        window.addEventListener(OPEN_CATALOG_EVENT, onOpenCatalog);
+        return () => {
+            window.removeEventListener(OPEN_CATALOG_EVENT, onOpenCatalog);
+        };
+    }, []);
 
     // Header menus (fetched from admin API when parent doesn't provide `menuItems`)
     const [fetchedMenuItems, setFetchedMenuItems] = useState<NavbarMenuItem[] | null>(null);
