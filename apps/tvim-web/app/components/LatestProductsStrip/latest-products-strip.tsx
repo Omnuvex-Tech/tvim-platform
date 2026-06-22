@@ -10,7 +10,7 @@ type Props = {
 };
 
 const LatestProductsStrip: React.FC<Props> = ({ items }) => {
-    return <ProductStrip variant="latest" title="Son məhsullar" items={items} />;
+    return <ProductStrip variant="latest" title="Son məhsullar" items={items} mobileSingleCard compactMobileCard />;
 };
 
 export { LatestProductsStrip };

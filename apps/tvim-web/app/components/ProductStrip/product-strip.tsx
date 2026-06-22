@@ -80,6 +80,10 @@ type Props = {
 
     cardsTopSpacingClassName?: string;
 
+    mobileSingleCard?: boolean;
+
+    compactMobileCard?: boolean;
+
 };
 
 
@@ -126,13 +130,15 @@ const parsePriceValue = (value: string) => {
 
 
 
-const getVisibleCount = (width: number) => {
+const getVisibleCount = (width: number, mobileSingleCard: boolean = false) => {
 
     if (width >= 1280) return 5;
 
     if (width >= 1200) return 4;
 
     if (width >= 512) return 3; // 512-767 => 3 items
+
+    if (mobileSingleCard) return 1;
 
     if (width >= 368) return 2; // 368-511 => 2 items
 
@@ -215,6 +221,10 @@ const ProductStrip: React.FC<Props> = ({
     gridClassName,
 
     cardsTopSpacingClassName = "py-3",
+
+    mobileSingleCard = false,
+
+    compactMobileCard = false,
 
 }) => {
 
@@ -1116,7 +1126,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
         };
 
         const update = () => {
-            setVisibleCountState(getVisibleCount(resolveWidth()));
+            setVisibleCountState(getVisibleCount(resolveWidth(), mobileSingleCard));
         };
 
         update();
@@ -1630,7 +1640,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
         };
 
-    }, []);
+    }, [mobileSingleCard]);
 
 
 
@@ -1650,13 +1660,13 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
             <article
 
-                className={`group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 max-[512px]:pt-4 max-[512px]:pb-5 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
+                className={`group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 ${compactMobileCard ? "max-[512px]:px-2.5 max-[512px]:pt-2.5 max-[512px]:pb-3.5" : "max-[512px]:pt-4 max-[512px]:pb-5"} text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
 
             >
 
-                    <Link href={product.href} className="block w-full pt-3 text-center">
+                <Link href={product.href} className="block w-full pt-3 text-center">
 
-                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? "h-[120px] sm:h-[145px] max-[512px]:h-[160px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]"} w-full overflow-visible rounded-[10px]`}>
+                        <div className={`product-thumb mx-auto mt-2 flex items-center justify-center ${variant === "special" ? (compactMobileCard ? "h-[120px] sm:h-[145px] max-[512px]:h-[128px]" : "h-[120px] sm:h-[145px] max-[512px]:h-[160px]") : (compactMobileCard ? "h-[135px] sm:h-[150px] max-[512px]:h-[128px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]")} w-full overflow-visible rounded-[10px]`}>
 
                     {product.discount ? (
     

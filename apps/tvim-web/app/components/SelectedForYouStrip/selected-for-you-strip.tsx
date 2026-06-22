@@ -10,7 +10,7 @@ type Props = {
 };
 
 const SelectedForYouStrip: React.FC<Props> = ({ items }) => {
-    return <ProductStrip variant="selected" title="Sizin üçün seçdiklərimiz" items={items} />;
+    return <ProductStrip variant="selected" title="Sizin üçün seçdiklərimiz" items={items} mobileSingleCard compactMobileCard />;
 };
 
 export { SelectedForYouStrip };

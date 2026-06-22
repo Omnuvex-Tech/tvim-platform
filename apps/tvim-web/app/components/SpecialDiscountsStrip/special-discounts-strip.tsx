@@ -25,6 +25,8 @@ const SpecialDiscountsStrip: React.FC<Props> = ({ items, onlyDiscountProducts = 
             viewAllHref={viewAllHref}
             viewAllText={viewAllText}
             locale={locale}
+            mobileSingleCard
+            compactMobileCard
         />
     );
 };
