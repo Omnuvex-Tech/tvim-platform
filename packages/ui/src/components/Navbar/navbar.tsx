@@ -45,26 +45,25 @@ function SmartLink({
     href,
     className,
     style,
-    onClick,
     children,
-}: {
+    ...rest
+}: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "children"> & {
     href: string;
     className?: string;
     style?: React.CSSProperties;
-    onClick?: React.MouseEventHandler<HTMLAnchorElement>;
     children: ReactNode;
 }) {
     const safeHref = String(href ?? "");
     if (isInternalHref(safeHref)) {
         return (
-            <Link href={safeHref} className={className} style={style} onClick={onClick}>
+            <Link href={safeHref} className={className} style={style} {...rest}>
                 {children}
             </Link>
         );
     }
 
     return (
-        <a href={safeHref} className={className} style={style} onClick={onClick}>
+        <a href={safeHref} className={className} style={style} {...rest}>
             {children}
         </a>
     );
