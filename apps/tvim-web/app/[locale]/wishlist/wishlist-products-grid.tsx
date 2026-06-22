@@ -78,7 +78,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
     return (
         <div className="product-carousel">
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
                 {items.map((item) => {
                     const itemKey = `${item.id}-${item.product_variation_id ?? "no-variation"}`;
                     const href = item.slug
@@ -93,25 +93,9 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
                     const media = (
                         <>
-                            <div className="product-thumb mx-auto mt-2 flex h-[135px] w-full max-w-[150px] items-center justify-center overflow-hidden rounded-[10px] sm:h-[150px] max-[512px]:h-[160px]">
-                                {item.main_image ? (
-                                    <img
-                                        src={item.main_image}
-                                        alt={item.name}
-                                        className="h-full w-full object-contain transition-transform duration-200 ease-out"
-                                        loading="lazy"
-                                    />
-                                ) : null}
-                            </div>
-                            <h3 className="hoopz-thumb__name mt-3">{item.name}</h3>
-                        </>
-                    );
-
-                    return (
-                        <li key={itemKey}>
-                            <article className="group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none max-[512px]:pb-5 max-[512px]:pt-4">
+                            <div className="product-thumb mx-auto mt-0 flex aspect-square w-full max-w-[135px] items-center justify-center overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
                                 {typeof discountPercent === "number" ? (
-                                    <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+                                    <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
                                         -{discountPercent}%
                                     </span>
                                 ) : null}
@@ -149,13 +133,31 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                     </button>
                                 </div>
 
-                                <div className="flex w-full flex-col items-center pt-3 text-center">
+                                <div className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                    {item.main_image ? (
+                                        <img
+                                            src={item.main_image}
+                                            alt={item.name}
+                                            className="h-full w-full object-cover transition-transform duration-200 ease-out"
+                                            loading="lazy"
+                                        />
+                                    ) : null}
+                                </div>
+                            </div>
+                            <h3 className="hoopz-thumb__name mt-3">{item.name}</h3>
+                        </>
+                    );
+
+                    return (
+                        <li key={itemKey}>
+                            <article className="group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none max-[512px]:pb-5 max-[512px]:pt-4">
+                                <div className="flex w-full flex-col items-center text-center">
                                     {href ? (
-                                        <Link href={href} className="block w-full">
+                                        <Link href={href} className="block w-full text-center">
                                             {media}
                                         </Link>
                                     ) : (
-                                        <div className="block w-full">{media}</div>
+                                        <div className="block w-full text-center">{media}</div>
                                     )}
 
                                     <div className="mt-2 flex items-center justify-center gap-1">

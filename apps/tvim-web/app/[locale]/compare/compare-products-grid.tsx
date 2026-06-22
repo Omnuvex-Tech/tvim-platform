@@ -233,13 +233,13 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                 className={`group relative flex h-full flex-col rounded-none border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-left ${index > 0 ? "-ml-px" : ""}`}
                             >
                                 {typeof item.discount_percent === "number" && item.discount_percent > 0 ? (
-                                    <span className="absolute top-4 right-4 z-[2] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+                                    <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
                                         -{item.discount_percent}%
                                     </span>
                                 ) : null}
 
-                                <div className="relative px-1 pt-2 pb-1 text-center">
-                                    <div className="absolute left-2 top-2 z-[3] flex flex-col items-center gap-2">
+                                <div className="relative px-1 pb-1 text-center">
+                                    <div className="absolute left-3 top-3 z-[3] flex flex-col items-center gap-2">
                                         <button
                                             type="button"
                                             disabled={isComparePending}
@@ -274,19 +274,23 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
 
                                     {href ? (
                                         <Link href={href} className="block w-full">
-                                            <span className="mt-2 inline-flex h-[150px] w-full max-w-[165px] items-start justify-start overflow-hidden rounded-none">
-                                                {item.main_image ? (
-                                                    <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
-                                                ) : null}
+                                            <span className="mt-0 inline-flex aspect-square w-full max-w-[135px] items-start justify-start overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
+                                                <span className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                                    {item.main_image ? (
+                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-cover" />
+                                                    ) : null}
+                                                </span>
                                             </span>
                                             <span className="hoopz-thumb__name mt-3 line-clamp-2 block min-h-[44px]">{item.name}</span>
                                         </Link>
                                     ) : (
                                         <div className="w-full">
-                                            <span className="mt-2 inline-flex h-[150px] w-full max-w-[165px] items-start justify-start overflow-hidden rounded-none">
-                                                {item.main_image ? (
-                                                    <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
-                                                ) : null}
+                                            <span className="mt-0 inline-flex aspect-square w-full max-w-[135px] items-start justify-start overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
+                                                <span className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                                    {item.main_image ? (
+                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-cover" />
+                                                    ) : null}
+                                                </span>
                                             </span>
                                             <span className="hoopz-thumb__name mt-3 line-clamp-2 block min-h-[44px]">{item.name}</span>
                                         </div>

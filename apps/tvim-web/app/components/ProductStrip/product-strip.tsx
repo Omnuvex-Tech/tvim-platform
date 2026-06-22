@@ -630,6 +630,8 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
     const [visibleCount, setVisibleCountState] = useState<number>(1);
 
+    const [isMeasured, setIsMeasured] = useState(false);
+
     const [index, setIndex] = useState<number>(0);
 
     const [useNativeTouchScroll, setUseNativeTouchScroll] = useState(false);
@@ -1127,6 +1129,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
         const update = () => {
             setVisibleCountState(getVisibleCount(resolveWidth(), mobileSingleCard));
+            setIsMeasured(true);
         };
 
         update();
@@ -1668,7 +1671,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
                 <Link href={product.href} className="block w-full text-center">
 
-                        <div className={`product-thumb mx-auto mt-0 flex items-center justify-center ${variant === "special" ? (compactMobileCard ? "h-[120px] sm:h-[145px] max-[512px]:h-[128px]" : "h-[120px] sm:h-[145px] max-[512px]:h-[160px]") : (compactMobileCard ? "h-[135px] sm:h-[150px] max-[512px]:h-[128px]" : "h-[135px] sm:h-[150px] max-[512px]:h-[160px]")} w-full overflow-visible rounded-[10px]`}>
+                        <div className={`product-thumb mx-auto mt-0 flex aspect-square items-center justify-center ${variant === "special" ? (compactMobileCard ? "w-full max-w-[120px] sm:max-w-[145px] max-[512px]:max-w-[128px]" : "w-full max-w-[120px] sm:max-w-[145px] max-[512px]:max-w-[160px]") : (compactMobileCard ? "w-full max-w-[135px] sm:max-w-[150px] max-[512px]:max-w-[128px]" : "w-full max-w-[135px] sm:max-w-[150px] max-[512px]:max-w-[160px]")} overflow-visible rounded-[10px]`}>
 
                     {product.discount ? (
     
@@ -1852,7 +1855,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
     
     
 
-                            <div className="relative z-[1] h-full w-full overflow-hidden rounded-[10px] max-[512px]:h-auto max-[512px]:aspect-square">
+                            <div className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
                                 {product.imageUrl ? (
 
                                     <img
@@ -2110,12 +2113,16 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
                             ref={trackRef}
 
-                            className={`flex ${!useNativeTouchScroll && isDragging ? "transition-none" : "transition-transform duration-300 ease-in-out"} -mx-2 sm:-mx-3`}
+                            className={`flex ${!useNativeTouchScroll && isDragging ? "transition-none" : "transition-transform duration-300 ease-in-out"} ${isMeasured ? "opacity-100" : "pointer-events-none opacity-0"} -mx-2 sm:-mx-3`}
 
                         >
 
                             {products.map((product) => (
-                                <div key={product.id} style={{ flex: `0 0 ${itemFlexBasis}` }} className="box-border h-auto px-2 sm:px-3">
+                                <div
+                                    key={product.id}
+                                    style={{ flex: `0 0 ${itemFlexBasis}` }}
+                                    className="box-border h-auto px-2 sm:px-3"
+                                >
 
                                     {renderCard(product, { dragging: isDragging })}
 
