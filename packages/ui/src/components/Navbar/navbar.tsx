@@ -1757,16 +1757,17 @@ export function Navbar({
                                                   <ul className="divide-y divide-white/10 lg:divide-gray-200">
                                                       {rootCategories.map((parent: any) => {
                                                           const isActive = Number(parent.id) === Number(activeParent?.id);
+                                                          const parentHref = `/${(locale || "az").toLowerCase()}/${(parent.multi_links && parent.multi_links[(locale || "az").toLowerCase()]) || parent.link || ""}`;
                                                           return (
                                                               <li key={parent.id}>
-                                                                <button
-                                                                    type="button"
+                                                                <SmartLink
+                                                                    href={parentHref}
                                                                     onMouseEnter={() => setActiveParentId(Number(parent.id))}
-                                                                    onClick={() => setActiveParentId(Number(parent.id))}
+                                                                    onFocus={() => setActiveParentId(Number(parent.id))}
                                                                     className={cn(
                                                                         "flex h-[52px] w-full items-center justify-between gap-3 px-4 text-left text-[13.3px] font-bold transition-colors cursor-pointer lg:text-[#131722]",
                                                                         isActive
-                                                                            ? "bg-[#003dff] text-white lg:bg-white lg:text-[#131722]"
+                                                                            ? "bg-[#003dff] text-white lg:bg-transparent lg:text-[#131722] lg:hover:bg-[#f3f4f6]"
                                                                             : "bg-transparent text-white hover:bg-[#0256ff] lg:bg-transparent lg:text-[#131722] lg:hover:bg-[#f3f4f6]"
                                                                     )}
                                                                 >
@@ -1781,7 +1782,7 @@ export function Navbar({
                                                                           )}
                                                                           strokeWidth={2}
                                                                       />
-                                                                  </button>
+                                                                  </SmartLink>
                                                               </li>
                                                           );
                                                       })}
