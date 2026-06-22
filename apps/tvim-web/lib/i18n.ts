@@ -19,6 +19,21 @@ type TranslationDictionary = {
         callUs: string;
         searchPlaceholder: string;
     };
+    search: {
+        title: string;
+        emptyQuery: string;
+        noResults: string;
+        categoryFallback: string;
+        sort: {
+            newest: string;
+            nameAsc: string;
+            nameDesc: string;
+            priceAsc: string;
+            priceDesc: string;
+            popular: string;
+            mostSale: string;
+        };
+    };
     account: {
         navigation: string;
         myAccount: string;
@@ -77,6 +92,21 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             callUs: "Bizə zəng edin",
             searchPlaceholder: "Məhsul axtarışı",
         },
+        search: {
+            title: "Axtarış",
+            emptyQuery: "Axtarış üçün söz daxil edin.",
+            noResults: "Nəticə tapılmadı.",
+            categoryFallback: "Kateqoriya",
+            sort: {
+                newest: "Yenilər: üstdə",
+                nameAsc: "Ad (A-Z)",
+                nameDesc: "Ad (Z-A)",
+                priceAsc: "Qiymət (artan)",
+                priceDesc: "Qiymət (azalan)",
+                popular: "Reytinq",
+                mostSale: "Model",
+            },
+        },
         account: {
             navigation: "Naviqasiya",
             myAccount: "Hesabım",
@@ -133,6 +163,21 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             callUs: "Call us",
             searchPlaceholder: "Search products",
         },
+        search: {
+            title: "Search",
+            emptyQuery: "Type something to search.",
+            noResults: "No results found.",
+            categoryFallback: "Category",
+            sort: {
+                newest: "Newest first",
+                nameAsc: "Name (A-Z)",
+                nameDesc: "Name (Z-A)",
+                priceAsc: "Price (low-high)",
+                priceDesc: "Price (high-low)",
+                popular: "Rating",
+                mostSale: "Model",
+            },
+        },
         account: {
             navigation: "Navigation",
             myAccount: "My account",
@@ -188,6 +233,21 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             address: "Адрес",
             callUs: "Позвоните нам",
             searchPlaceholder: "Поиск товаров",
+        },
+        search: {
+            title: "Поиск",
+            emptyQuery: "Введите запрос для поиска.",
+            noResults: "Ничего не найдено.",
+            categoryFallback: "Категория",
+            sort: {
+                newest: "Сначала новые",
+                nameAsc: "Название (A-Z)",
+                nameDesc: "Название (Z-A)",
+                priceAsc: "Цена (возр.)",
+                priceDesc: "Цена (убыв.)",
+                popular: "Рейтинг",
+                mostSale: "Модель",
+            },
         },
         account: {
             navigation: "Навигация",

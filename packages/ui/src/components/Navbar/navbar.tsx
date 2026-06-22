@@ -539,6 +539,7 @@ function NavbarSearch({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
+    const [mobilePopupStyle, setMobilePopupStyle] = useState<React.CSSProperties | null>(null);
     const searchRef = useRef<HTMLDivElement | null>(null);
     const activeQueryRef = useRef("");
     const localeCode = (locale || "az").toLowerCase();
@@ -599,6 +600,36 @@ function NavbarSearch({
     useEffect(() => {
         if (!isOpen) return;
 
+        const updatePopupPosition = () => {
+            if (typeof window === "undefined") return;
+            if (window.innerWidth >= 1024) {
+                setMobilePopupStyle(null);
+                return;
+            }
+
+            const rect = searchRef.current?.getBoundingClientRect();
+            const rowRect = searchRef.current?.parentElement?.getBoundingClientRect();
+            if (!rect || !rowRect) return;
+            setMobilePopupStyle({
+                top: `${rect.bottom + 8}px`,
+                left: `${rowRect.left}px`,
+                width: `${rowRect.width}px`,
+            });
+        };
+
+        updatePopupPosition();
+        window.addEventListener("resize", updatePopupPosition);
+        window.addEventListener("scroll", updatePopupPosition, true);
+
+        return () => {
+            window.removeEventListener("resize", updatePopupPosition);
+            window.removeEventListener("scroll", updatePopupPosition, true);
+        };
+    }, [isOpen, value]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
         const onDocClick = (e: MouseEvent) => {
             const target = e.target as Node;
             if (searchRef.current && searchRef.current.contains(target)) return;
@@ -654,7 +685,10 @@ function NavbarSearch({
             />
 
             {isOpen && (
-                <div className="absolute top-[calc(100%+8px)] left-0 right-0 z-[1200] overflow-hidden rounded-[18px] border border-[#dfe5ef] bg-white shadow-[0_16px_34px_rgba(17,24,39,0.16)]">
+                <div
+                    className="fixed z-[1200] overflow-hidden rounded-[18px] border border-[#dfe5ef] bg-white shadow-[0_16px_34px_rgba(17,24,39,0.16)] lg:absolute lg:top-[calc(100%+8px)] lg:left-0 lg:right-0"
+                    style={mobilePopupStyle ?? undefined}
+                >
                     <div className="max-h-[420px] overflow-y-auto">
                         {isLoading ? (
                             <div className="flex min-h-[78px] items-center justify-center px-4 py-5">
@@ -709,7 +743,7 @@ function NavbarSearch({
 
                     {!isLoading && totalResults > 0 ? (
                         <SmartLink
-                            href={`/${localeCode}/products?q=${encodeURIComponent(value.trim())}`}
+                            href={`/${localeCode}/search?q=${encodeURIComponent(value.trim())}`}
                             className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
                             onClick={() => setIsOpen(false)}
                         >

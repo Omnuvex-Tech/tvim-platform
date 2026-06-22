@@ -631,6 +631,74 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
         const sortOptions = Array.isArray(productList?.sort_options) ? productList!.sort_options! : [];
         const activeSort = String(productList?.applied?.sort ?? currentUiParams.get("sort") ?? "").trim() || "newest";
+        const sortedListItems = (() => {
+            if (listItems.length <= 1) return listItems;
+
+            const readName = (item: any) => String(item?.name ?? "").trim();
+            const readPrice = (item: any) => {
+                const candidate = item?.discount_price ?? item?.price ?? item?.old_price;
+                const parsed = typeof candidate === "number" ? candidate : Number(String(candidate ?? "").replace(",", "."));
+                return Number.isFinite(parsed) ? parsed : null;
+            };
+            const readFlag = (item: any, key: "is_new" | "is_popular" | "most_sale") => {
+                const raw = item?.[key];
+                if (raw === true || raw === 1 || raw === "1" || raw === "true") return 1;
+                return 0;
+            };
+            const readId = (item: any) => {
+                const raw = item?.variation_id ?? item?.product_id ?? item?.id ?? 0;
+                const parsed = typeof raw === "number" ? raw : Number(raw ?? 0);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const localeForCompare = normalizedLocale || "az";
+            const dir = activeSort;
+            const next = [...listItems];
+
+            next.sort((a: any, b: any) => {
+                if (dir === "price_asc" || dir === "price_desc") {
+                    const pa = readPrice(a);
+                    const pb = readPrice(b);
+                    const na = pa == null ? Number.POSITIVE_INFINITY : pa;
+                    const nb = pb == null ? Number.POSITIVE_INFINITY : pb;
+                    if (na !== nb) return dir === "price_asc" ? na - nb : nb - na;
+                    return readId(b) - readId(a);
+                }
+
+                if (dir === "name_asc" || dir === "name_desc") {
+                    const na = readName(a).toLowerCase();
+                    const nb = readName(b).toLowerCase();
+                    const cmp = na.localeCompare(nb, localeForCompare);
+                    if (cmp !== 0) return dir === "name_asc" ? cmp : -cmp;
+                    return readId(b) - readId(a);
+                }
+
+                if (dir === "popular") {
+                    const fa = readFlag(a, "is_popular");
+                    const fb = readFlag(b, "is_popular");
+                    if (fa !== fb) return fb - fa;
+                    return readId(b) - readId(a);
+                }
+
+                if (dir === "most_sale") {
+                    const fa = readFlag(a, "most_sale");
+                    const fb = readFlag(b, "most_sale");
+                    if (fa !== fb) return fb - fa;
+                    return readId(b) - readId(a);
+                }
+
+                if (dir === "newest") {
+                    const fa = readFlag(a, "is_new");
+                    const fb = readFlag(b, "is_new");
+                    if (fa !== fb) return fb - fa;
+                    return readId(b) - readId(a);
+                }
+
+                return 0;
+            });
+
+            return next;
+        })();
 
         const currentPage = Math.max(1, Number(productList?.pagination?.current_page ?? parsePageNumber(resolvedSearchParams.page)));
         const lastPage = Math.max(1, Number(productList?.pagination?.last_page ?? 1));
@@ -819,8 +887,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                             })()}
 
                             <div className="relative min-h-[360px]">
-                                {listItems.length > 0 ? (
-                                    <ProductStrip  items={listItems} variant="selected" layout="grid" showHeader={false} />
+                                {sortedListItems.length > 0 ? (
+                                    <ProductStrip  items={sortedListItems} variant="selected" layout="grid" showHeader={false} />
                                 ) : (
                                     <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
                                         Məhsul tapılmadı.

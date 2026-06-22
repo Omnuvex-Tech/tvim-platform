@@ -487,16 +487,7 @@ const NavbarWrapper = ({
             return `/${localeCode}${normalizedLink}`;
         };
 
-        const toLocalizedBrandHref = (slug: unknown, rawLink: unknown) => {
-            const normalizedSlug = String(slug ?? "").trim().replace(/^\/+|\/+$/g, "");
-            if (normalizedSlug) {
-                return `/${localeCode}/brands/${encodeURIComponent(normalizedSlug)}`;
-            }
-
-            return toLocalizedHref(rawLink);
-        };
-
-        const mapSectionItems = (items: unknown, type: "brand" | "category" | "product") => {
+        const mapSectionItems = (items: unknown, type: "category" | "product") => {
             if (!Array.isArray(items)) return [];
 
             return items
@@ -505,13 +496,11 @@ const NavbarWrapper = ({
                     const typedItem = item as LiveSearchEntry;
                     const modelText = String(typedItem.model ?? typedItem.sku ?? "").trim();
                     const subtitle =
-                        type === "brand"
-                            ? "Brend"
-                            : type === "category"
-                                ? "Kateqoriya"
-                                : modelText
-                                    ? `Model: ${modelText}`
-                                    : "";
+                        type === "category"
+                            ? "Kateqoriya"
+                            : modelText
+                                ? `Model: ${modelText}`
+                                : "";
 
                     return {
                         id: typedItem.id ?? typedItem.product_id ?? typedItem.slug ?? typedItem.link ?? typedItem.name ?? `${type}-item`,
@@ -522,9 +511,7 @@ const NavbarWrapper = ({
                             ? formatSearchPrice(typedItem.discount_price ?? typedItem.price ?? typedItem.old_price)
                             : "",
                         imageUrl: String(typedItem.image ?? ""),
-                        href: type === "brand"
-                            ? toLocalizedBrandHref(typedItem.slug, typedItem.link)
-                            : toLocalizedHref(typedItem.link),
+                        href: toLocalizedHref(typedItem.link),
                         type,
                     };
                 })
@@ -542,11 +529,6 @@ const NavbarWrapper = ({
         };
 
         const sections: NavbarSearchSection[] = [
-            {
-                key: "brands",
-                name: resolveSectionName("brands", payload.brands?.name),
-                items: mapSectionItems(payload.brands?.items, "brand"),
-            },
             {
                 key: "categories",
                 name: resolveSectionName("categories", payload.categories?.name),

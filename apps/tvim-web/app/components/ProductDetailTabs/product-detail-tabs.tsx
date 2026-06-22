@@ -524,7 +524,7 @@ const ProductDetailTabs = ({
                                 />
                             </div>
 
-                            <div className="grid grid-cols-[150px_auto] items-center gap-y-2 max-sm:grid-cols-[120px_auto]">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
                                 <span className="text-[16px] font-normal text-[#1b202b]">
                                     <span className="mr-0 text-[#e01010]">*</span> <span className="-ml-[2px]">Reytinq</span>
                                 </span>

@@ -361,7 +361,7 @@ export async function renderServiceSlugPage({
             ) : null}
 
             {keywords.length > 0 ? (
-                <div className="mx-auto mt-40 w-full max-w-[1280px]">
+                <div className="mx-auto mt-8 w-full max-w-[1280px] lg:mt-10">
                     <div className="w-[calc(100%-56px)] border-t border-[#e5e9ef]" />
                     <div className="pt-4">
                         <div className="flex flex-wrap justify-start gap-2">
