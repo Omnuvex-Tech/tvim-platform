@@ -232,9 +232,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                             event.stopPropagation();
                                             void handleAddToCart(item);
                                         }}
-                                        className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white ${
-                                            isCartPending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"
-                                        }`}
+                                        className="relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none cursor-pointer"
                                         aria-label="Səbətə əlavə et"
                                     >
                                         <i className="fas fa-shopping-cart text-white" aria-hidden="true" />

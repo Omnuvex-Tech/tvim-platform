@@ -4,6 +4,7 @@ import type { Language } from "@repo/types/types";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import { getMainPageRequestFormProps } from "@/lib/main-page";
 import { buildNoIndexMetadata } from "@/lib/seo";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
@@ -266,9 +267,11 @@ export default async function WishlistPage({
     const homePageMeta = config.pages.home[locale as "az" | "ru" | "en"];
     const wishlistPageMeta = config.pages.wishlist[locale as "az" | "ru" | "en"];
 
-    const chrome = await getSiteChromeData(locale);
-
-    const favoriteProducts = await fetchFavoriteProducts(locale, authToken, guestToken);
+    const [chrome, favoriteProducts, requestFormProps] = await Promise.all([
+        getSiteChromeData(locale),
+        fetchFavoriteProducts(locale, authToken, guestToken),
+        getMainPageRequestFormProps(locale),
+    ]);
 
     return (
         <SitePageShell chrome={chrome}>
@@ -289,9 +292,11 @@ export default async function WishlistPage({
                 </div>
             </section>
 
-            <div className="mx-auto mt-14 mb-10 w-full max-w-[1280px] px-0 lg:mt-16 lg:mb-14">
-                <RequestForm />
-            </div>
+            {requestFormProps ? (
+                <div className="mx-auto mt-14 mb-10 w-full max-w-[1280px] px-0 lg:mt-16 lg:mb-14">
+                    <RequestForm {...requestFormProps} />
+                </div>
+            ) : null}
         </SitePageShell>
     );
 }

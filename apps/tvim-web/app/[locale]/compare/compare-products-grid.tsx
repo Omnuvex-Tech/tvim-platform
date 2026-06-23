@@ -377,9 +377,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                         type="button"
                                         disabled={isCartPending}
                                         onClick={() => void handleAddToCart(item)}
-                                        className={`relative z-[2] my-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white ${
-                                            isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"
-                                        }`}
+                                        className="relative z-[2] my-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none cursor-pointer"
                                         aria-label="Səbətə əlavə et"
                                     >
                                         <i className="fas fa-shopping-cart text-white" aria-hidden="true" />

@@ -2,12 +2,13 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { RequestForm } from "../components/RequestForm/request-form";
 import { CircleX, Minus, Plus } from "lucide-react";
 import { hydrateCart, removeCartItem, updateCartItemQuantity } from "@/lib/cart/client";
 import { CheckoutDetailsForm } from "./components/checkout-details-form";
 import { CheckoutOrderSummary } from "./components/checkout-order-summary";
-import { RequestForm } from "../components/RequestForm/request-form";
 import type { AuthSessionUser } from "@/lib/auth/session";
+import type { RequestFormProps } from "@repo/types/types";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 export const CHECKOUT_SUBMIT_EVENT = "tvim:checkout-submit";
@@ -106,6 +107,7 @@ type Props = {
     initialCheckout: CheckoutData | null;
     isAuthenticated: boolean;
     authUser?: AuthSessionUser | null;
+    requestFormProps?: RequestFormProps | null;
 };
 
 const toNumber = (value: unknown) => {
@@ -113,7 +115,7 @@ const toNumber = (value: unknown) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-export default function CheckoutClient({ locale, initialCheckout, isAuthenticated, authUser }: Props) {
+export default function CheckoutClient({ locale, initialCheckout, isAuthenticated, authUser, requestFormProps }: Props) {
     const router = useRouter();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -337,7 +339,11 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                 />
             </div>
 
-            <div className="mt-2 mb-10 lg:mt-4 lg:mb-14"><RequestForm /></div>
+            {requestFormProps ? (
+                <div className="mt-2 mb-10 lg:mt-4 lg:mb-14">
+                    <RequestForm {...requestFormProps} />
+                </div>
+            ) : null}
         </div>
     );
 }

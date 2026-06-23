@@ -1,6 +1,8 @@
 import { config } from "@/config";
 import { api } from "@/lib/api";
+import type { RequestFormProps } from "@repo/types/types";
 import type { MainPageBlock } from "@/app/components/MainPageBlocks/main-page-blocks";
+import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 
 type MainPageProductItem = {
     id?: number | string;
@@ -13,6 +15,7 @@ type MainPageProductItem = {
 const asTrimmedString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 const isPlaceholderName = (value: string) => /^#\d+$/.test(value);
+const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 
 function getProductItemKey(item: MainPageProductItem) {
     const id = asTrimmedString(item?.id);
@@ -124,6 +127,55 @@ function mergeLocalizedProductData(localized: MainPageBlock[], fallback: MainPag
     });
 }
 
+const isFormBlock = (block: MainPageBlock) => {
+    if (block?.source_type !== "menu_type") {
+        return false;
+    }
+
+    const menuType = String(block?.data?.menu?.type ?? "").toLowerCase();
+    const dataMode = String(block?.data?.data?.mode ?? "").toLowerCase();
+
+    return menuType === "form" || dataMode === "form";
+};
+
+const mapFormPlaceholders = (block: MainPageBlock): RequestFormProps["placeholders"] => {
+    const fields = Array.isArray(block?.data?.data?.fields) ? block.data.data.fields : [];
+
+    const byType = (type: string) => fields.find((field) => String((field as { type?: unknown }).type ?? "").toLowerCase() === type);
+
+    const textBoxField = byType("textbox");
+    const phoneField = byType("phone_number");
+    const fileField = byType("file");
+    const textAreaField = byType("textarea");
+
+    const toPlaceholder = (field: unknown, fallback: string) => {
+        if (!isRecord(field) || !field.name) return fallback;
+        const suffix = field.is_required ? " *" : "";
+        return `${String(field.name).trim()}${suffix}`;
+    };
+
+    return {
+        name: toPlaceholder(textBoxField, "Adınız *"),
+        phone: toPlaceholder(phoneField, "Telefon *"),
+        file: toPlaceholder(fileField, "Fayl seç"),
+        description: toPlaceholder(textAreaField, "Layihəni təsvir edin... *"),
+    };
+};
+
+const mapMainPageRequestFormProps = (block: MainPageBlock): RequestFormProps => {
+    const blockData = block?.data as Record<string, unknown> | null | undefined;
+    const heading = String(block?.data?.menu?.name ?? "").trim() || undefined;
+    const subheading = String(block?.data?.menu?.title ?? "").trim() || undefined;
+
+    return {
+        heading,
+        subheading,
+        placeholders: mapFormPlaceholders(block),
+        fields: Array.isArray(block?.data?.data?.fields) ? block.data.data.fields as RequestFormProps["fields"] : undefined,
+        submitConfig: resolveRequestFormSubmitConfig(blockData?.submit ?? (blockData?.data as Record<string, unknown> | undefined)?.submit ?? blockData ?? block),
+    };
+};
+
 export async function getMainPageBlocks(locale: string): Promise<MainPageBlock[]> {
     const [localizedResponse, fallbackResponse] = await Promise.all([
         api.get<MainPageBlock[]>(config.endpoints.mainPage.list, { locale }),
@@ -149,4 +201,10 @@ export async function getMainPageBlocks(locale: string): Promise<MainPageBlock[]
     }
 
     return mergeLocalizedProductData(localizedBlocks, fallbackBlocks);
+}
+
+export async function getMainPageRequestFormProps(locale: string): Promise<RequestFormProps | null> {
+    const blocks = await getMainPageBlocks(locale);
+    const formBlock = blocks.find(isFormBlock);
+    return formBlock ? mapMainPageRequestFormProps(formBlock) : null;
 }

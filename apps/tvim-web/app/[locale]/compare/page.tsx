@@ -10,6 +10,7 @@ import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { COMPARE_GUEST_TOKEN_COOKIE, decodeCompareTokenFromCookie } from "@/lib/compare/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
+import { getMainPageRequestFormProps } from "@/lib/main-page";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { CompareProductsGrid } from "./compare-products-grid";
 
@@ -566,10 +567,11 @@ export default async function ComparePage({
     }
     const copy = COMPARE_PAGE_COPY[locale];
 
-    const chrome = await getSiteChromeData(locale);
-    const [compareResponse, favoriteVariationIds] = await Promise.all([
+    const [chrome, compareResponse, favoriteVariationIds, requestFormProps] = await Promise.all([
+        getSiteChromeData(locale),
         fetchCompareProducts(locale, authToken, compareGuestToken),
         fetchFavoriteVariationIds(locale, authToken, favoritesGuestToken),
+        getMainPageRequestFormProps(locale),
     ]);
     const compareItems = compareResponse.items.map((item) => ({
         ...item,
@@ -604,9 +606,11 @@ export default async function ComparePage({
                 />
             </section>
 
-            <div className="mx-auto mt-14 mb-10 w-full max-w-[1280px] px-0 lg:mt-16 lg:mb-14">
-                <RequestForm />
-            </div>
+            {requestFormProps ? (
+                <div className="mx-auto mt-14 mb-10 w-full max-w-[1280px] px-0 lg:mt-16 lg:mb-14">
+                    <RequestForm {...requestFormProps} />
+                </div>
+            ) : null}
         </SitePageShell>
     );
 }

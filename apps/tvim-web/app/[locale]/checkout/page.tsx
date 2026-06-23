@@ -8,6 +8,7 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Breadcrumb } from "@repo/ui";
 import CheckoutClient from "@/app/checkout/checkout-client";
 import type { CheckoutData } from "@/app/checkout/checkout-client";
+import { getMainPageRequestFormProps } from "@/lib/main-page";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
@@ -86,9 +87,10 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
         notFound();
     }
 
-    const [chrome, checkoutData] = await Promise.all([
+    const [chrome, checkoutData, requestFormProps] = await Promise.all([
         getSiteChromeData(locale),
         fetchCheckoutData(locale, authToken, guestToken),
+        getMainPageRequestFormProps(locale),
     ]);
 
     return (
@@ -105,7 +107,12 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
             />
 
             <div className="mx-auto mt-3 w-full max-w-[1280px] px-3 lg:mt-4 lg:px-0">
-                <CheckoutClient locale={locale} initialCheckout={checkoutData} isAuthenticated={Boolean(authToken)} />
+                <CheckoutClient
+                    locale={locale}
+                    initialCheckout={checkoutData}
+                    isAuthenticated={Boolean(authToken)}
+                    requestFormProps={requestFormProps}
+                />
             </div>
         </SitePageShell>
     );
