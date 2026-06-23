@@ -3,12 +3,19 @@ import {
     generateServiceMetadata,
     renderServiceSlugPage,
 } from "@/app/services/[slug]/page";
+import { getStaticServiceSlugParams } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type ServiceLocaleRouteParams = {
     locale: string;
     slug: string;
 };
+
+export const revalidate = 31_536_000;
+
+export async function generateStaticParams() {
+    return await getStaticServiceSlugParams();
+}
 
 export default async function LocalizedServiceSlugPage({
     params,

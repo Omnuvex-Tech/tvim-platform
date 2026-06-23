@@ -1,21 +1,25 @@
-import type { Language, ProjectSettingsResponseData } from "@repo/types/types";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
 import {
     buildHomeMetadata,
-    resolveSettingsApiLocale,
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
 } from "@/lib/settings";
 import { config } from "@/config";
 import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 31_536_000;
+
+export async function generateStaticParams() {
+    const languages = await getPublicLanguages();
+    return languages.map((language) => ({
+        locale: language.code.toLowerCase(),
+    }));
+}
 
 export async function generateMetadata({
     params,
@@ -24,34 +28,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
     const normalizedLocale = locale.trim().toLowerCase();
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        params: { lang: normalizedLocale },
-        locale: resolveSettingsApiLocale(normalizedLocale),
-        cache: "no-store",
-    });
-
-    const requestOrigin = await (async () => {
-        try {
-            const h = await headers();
-            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
-            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
-            const host = forwardedHost || h.get("host")?.trim();
-            if (!host) return undefined;
-            const proto = forwardedProto || "https";
-            return `${proto}://${host}`;
-        } catch {
-            return undefined;
-        }
-    })();
+    const settingsResponse = await getPublicProjectSettingsResponse(normalizedLocale);
 
     const siteUrl = resolveSiteUrlWithFallbacks({
-        settingsResponse: settingsResponse.success ? settingsResponse.data : undefined,
-        requestOrigin,
+        settingsResponse,
         configUrl: config.project.url,
     });
 
     return buildHomeMetadata(
-        settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
+        settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined,
         normalizedLocale,
         {
             canonicalPath: normalizedLocale,
@@ -68,26 +53,21 @@ export default async function HomePage({
     const { locale } = await params;
     const normalizedLocale = locale.trim().toLowerCase();
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+    const languages = await getPublicLanguages();
 
-    if (!langResponse.success || !langResponse.data) {
+    if (languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Languages could not be loaded.</p>
             </div>
         );
     }
 
-    if (!langResponse.data.some((language) => language.code.toLowerCase() === normalizedLocale)) {
+    if (!languages.some((language) => language.code.toLowerCase() === normalizedLocale)) {
         notFound();
     }
 
-    const [settingsResponse, mainPageBlocks, chrome] = await Promise.all([
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            params: { lang: normalizedLocale },
-            locale: resolveSettingsApiLocale(normalizedLocale),
-            cache: "no-store",
-        }),
+    const [mainPageBlocks, chrome] = await Promise.all([
         getMainPageBlocks(normalizedLocale),
         getSiteChromeData(normalizedLocale),
     ]);

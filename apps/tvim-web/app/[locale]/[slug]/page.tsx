@@ -1,19 +1,18 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
-import { api } from "@/lib/api";
 import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
+import { getPublicMenuDetail } from "@/lib/public-data";
+import { getStaticSlugParams } from "@/lib/static-paths";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
-import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
 type MenuDetailData = {
@@ -68,9 +67,7 @@ type Props = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
+export const revalidate = 31_536_000;
 
 type ProductListFilterValue = {
     value_id?: number;
@@ -164,20 +161,38 @@ type ProductListApiResponse = {
     data?: ProductListData;
 };
 
-async function getMenuDetail(slug: string, locale: string) {
-    try {
-        const response = await api.get<MenuDetailData>(config.endpoints.menus.detail(slug), {
-            params: { lang: locale },
-            locale: resolveSettingsApiLocale(locale),
-            cache: "no-store",
-        });
-        if (response.success && response.data) {
-            return response.data;
+const getCachedProductListPayload = unstable_cache(
+    async (requestUrl: string, locale: string) => {
+        try {
+            const response = await fetch(requestUrl, {
+                method: "GET",
+                cache: "force-cache",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Language": locale,
+                },
+            });
+
+            const json = (await response.json()) as unknown;
+            if (!json || typeof json !== "object") {
+                return null;
+            }
+
+            return json as ProductListApiResponse;
+        } catch {
+            return null;
         }
-        return null;
-    } catch {
-        return null;
-    }
+    },
+    ["public-product-list-payload"],
+    { revalidate: 31_536_000, tags: ["public-product-list-payload"] }
+);
+
+export async function generateStaticParams() {
+    return await getStaticSlugParams();
+}
+
+async function getMenuDetail(slug: string, locale: string) {
+    return await getPublicMenuDetail<MenuDetailData>(slug, locale);
 }
 
 const getCanonicalPath = (canonical: unknown) => {
@@ -226,20 +241,6 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         return acc;
     }, {});
 
-    const requestOrigin = await (async () => {
-        try {
-            const h = await headers();
-            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
-            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
-            const host = forwardedHost || h.get("host")?.trim();
-            if (!host) return undefined;
-            const proto = forwardedProto || "https";
-            return `${proto}://${host}`;
-        } catch {
-            return undefined;
-        }
-    })();
-
     const menuType = String(detail.menu.type ?? "").trim().toLowerCase();
     const viewType = String(detail.menu.view_type ?? "").trim().toLowerCase();
     const isListingPage =
@@ -264,7 +265,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         {
             canonicalPath: currentPath,
             alternatePathByLocale,
-            siteUrl: requestOrigin ?? config.project.url,
+            siteUrl: config.project.url,
             useProjectFallbacks: false,
         },
     );
@@ -446,9 +447,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     })();
 
     if (isCategoriesView) {
-        const cookieStore = await cookies();
-        const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
-
         const apiBase = (config.api.url || "https://admin.tvim.az/api/v1").trim().replace(/\/+$/, "");
         const listUrl = new URL(`${apiBase}${config.endpoints.products.paginatedList}`);
         const outgoingParams = new URLSearchParams();
@@ -523,31 +521,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
         listUrl.search = outgoingParams.toString();
 
-        const headers: Record<string, string> = {
-            Accept: "application/json",
-            "Content-Language": normalizedLocale,
-        };
-
-        if (authToken) {
-            headers.Authorization = `Bearer ${authToken}`;
-        }
-
-        let productListPayload: ProductListApiResponse | null = null;
-        try {
-            const response = await fetch(listUrl.toString(), {
-                method: "GET",
-                cache: "no-store",
-                headers,
-            });
-            const json = (await response.json()) as unknown;
-            if (json && typeof json === "object") {
-                productListPayload = json as ProductListApiResponse;
-            } else {
-                productListPayload = null;
-            }
-        } catch {
-            productListPayload = null;
-        }
+        const productListPayload = await getCachedProductListPayload(listUrl.toString(), normalizedLocale);
 
         const productList = productListPayload?.success ? productListPayload.data : undefined;
         const listItems = Array.isArray(productList?.items) ? productList!.items! : [];

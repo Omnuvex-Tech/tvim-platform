@@ -7,8 +7,8 @@ import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider"
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { config } from "@/config";
-import { api } from "@/lib/api";
-import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { getPublicMenuDetail } from "@/lib/public-data";
+import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
@@ -140,23 +140,13 @@ function resolveStaticServiceContent(slug: string): StaticServiceContent | undef
 }
 
 async function getMenuDetail(slug: string, locale: string) {
-    try {
-        const response = await api.get<any>(config.endpoints.menus.detail(slug), { locale });
-        if (!response.success || !response.data) return null;
-
-        const payload = response.data;
-        if (payload && typeof payload === "object" && payload.menu) {
-            return payload as MenuDetailData;
-        }
-
-        if (payload && typeof payload === "object" && payload.data?.menu) {
-            return payload.data as MenuDetailData;
-        }
-
-        return null;
-    } catch {
-        return null;
+    const payload = await getPublicMenuDetail<any>(slug, locale);
+    if (!payload || typeof payload !== "object") return null;
+    if ("menu" in payload) return payload as MenuDetailData;
+    if ("data" in payload && payload.data && typeof payload.data === "object" && "menu" in payload.data) {
+        return payload.data as MenuDetailData;
     }
+    return null;
 }
 
 function mapIncludedValuesToCompanies(values: any[], locale: string) {
@@ -187,10 +177,7 @@ export async function generateServiceMetadata({
         .toLowerCase()
         .replace(/^\/+|\/+$/g, "");
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
-    const [menuDetail, requestOrigin] = await Promise.all([
-        getMenuDetail(normalizedSlug, locale),
-        resolveRequestOrigin(),
-    ]);
+    const menuDetail = await getMenuDetail(normalizedSlug, locale);
     const staticContent = resolveStaticServiceContent(normalizedSlug);
     const menu = menuDetail?.menu;
     const title = staticContent?.pageTitle || staticContent?.title || menu?.title || menu?.name || "Service";
@@ -208,7 +195,7 @@ export async function generateServiceMetadata({
         keywords,
         locale,
         canonicalPath: `${locale}/services/${normalizedSlug}`,
-        siteUrl: requestOrigin ?? config.project.url,
+        siteUrl: config.project.url,
         locales: [locale],
         defaultLocale: locale,
         image: staticContent?.bannerImage,

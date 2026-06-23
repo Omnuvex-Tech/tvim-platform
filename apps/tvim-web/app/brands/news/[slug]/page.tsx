@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { getPublicMenuDetail } from "@/lib/public-data";
+import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
@@ -117,45 +118,12 @@ async function getMenuDetail(slug: string, locale: string) {
     };
 
     try {
-        const responseList = await api.get<any>(config.endpoints.menus.list, {
-            params: { detail: slug },
-            locale,
-        });
-        if (responseList.success && responseList.data) {
-            const fromList = tryResolveFromPayload(responseList.data);
-            if (fromList) return fromList;
-
-            const deepItem = tryDeepFindItem(responseList.data);
-            if (deepItem) {
-                return {
-                    menu: { name: deepItem.name ?? normalizeSlugText(slug), title: deepItem.name ?? normalizeSlugText(slug) },
-                    data: { item: deepItem },
-                };
-            }
-        }
-
-        const responseDetail = await api.get<any>(config.endpoints.menus.detail(slug), { locale });
-        if (responseDetail.success && responseDetail.data) {
-            const fromDetail = tryResolveFromPayload(responseDetail.data);
+        const responseDetail = await getPublicMenuDetail<any>(slug, locale);
+        if (responseDetail) {
+            const fromDetail = tryResolveFromPayload(responseDetail);
             if (fromDetail) return fromDetail;
-        }
 
-        const absoluteUrl = `https://admin.tvim.az/api/v1/menus?detail=${encodeURIComponent(slug)}`;
-        const absoluteResponse = await fetch(absoluteUrl, {
-            headers: {
-                Accept: "application/json",
-                "Content-Language": locale,
-            },
-            cache: "no-store",
-        });
-
-        if (absoluteResponse.ok) {
-            const absoluteJson = await absoluteResponse.json();
-            const absoluteData = absoluteJson?.data ?? absoluteJson;
-            const fromAbsolute = tryResolveFromPayload(absoluteData);
-            if (fromAbsolute) return fromAbsolute;
-
-            const deepItem = tryDeepFindItem(absoluteData);
+            const deepItem = tryDeepFindItem(responseDetail);
             if (deepItem) {
                 return {
                     menu: { name: deepItem.name ?? normalizeSlugText(slug), title: deepItem.name ?? normalizeSlugText(slug) },
@@ -200,10 +168,7 @@ export async function generateBrandNewsMetadata({
 }: BrandNewsPageProps): Promise<Metadata> {
     const normalizedSlug = normalizeSlug(slug);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
-    const [menuDetail, requestOrigin] = await Promise.all([
-        getMenuDetail(normalizedSlug, locale),
-        resolveRequestOrigin(),
-    ]);
+    const menuDetail = await getMenuDetail(normalizedSlug, locale);
 
     if (!menuDetail?.menu) {
         return {};
@@ -224,7 +189,7 @@ export async function generateBrandNewsMetadata({
         keywords: [pageTitle, "brand news", "tvim"],
         locale,
         canonicalPath: `${locale}/brands/news/${normalizedSlug}`,
-        siteUrl: requestOrigin ?? config.project.url,
+        siteUrl: config.project.url,
         locales: [locale],
         defaultLocale: locale,
         image: bannerImage || undefined,

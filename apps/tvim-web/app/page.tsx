@@ -1,62 +1,35 @@
-import type { Language, ProjectSettingsResponseData } from "@repo/types/types";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { api } from "@/lib/api";
 import { getMainPageBlocks } from "@/lib/main-page";
 import {
     buildHomeMetadata,
-    resolveSettingsApiLocale,
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
 } from "@/lib/settings";
 import { config } from "@/config";
 import { MainPageBlocks } from "./components/MainPageBlocks/main-page-blocks";
 import { SitePageShell } from "./components/SiteChrome/site-page-shell";
+import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 31_536_000;
 
 export async function generateMetadata(): Promise<Metadata> {
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+    const languages = await getPublicLanguages();
     const siteDefaultLocale =
-        langResponse.success && langResponse.data
-            ? langResponse.data.find((language) => language.is_default_site)?.code ?? config.project.defLang
-            : config.project.defLang;
-
-    const settingsResponse = await api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-        params: { lang: siteDefaultLocale.toLowerCase() },
-        locale: resolveSettingsApiLocale(siteDefaultLocale),
-        cache: "no-store",
-    });
-
-    const requestOrigin = await (async () => {
-        try {
-            const h = await headers();
-            const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
-            const forwardedHost = h.get("x-forwarded-host")?.split(",")[0]?.trim();
-            const host = forwardedHost || h.get("host")?.trim();
-            if (!host) return undefined;
-            const proto = forwardedProto || "https";
-            return `${proto}://${host}`;
-        } catch {
-            return undefined;
-        }
-    })();
+        languages.find((language) => language.is_default_site)?.code ?? config.project.defLang;
+    const settingsResponse = await getPublicProjectSettingsResponse(siteDefaultLocale.toLowerCase());
 
     const siteUrl = resolveSiteUrlWithFallbacks({
-        settingsResponse: settingsResponse.success ? settingsResponse.data : undefined,
-        requestOrigin,
+        settingsResponse,
         configUrl: config.project.url,
     });
 
     return buildHomeMetadata(
-        settingsResponse.success ? resolveSettingsSeo(settingsResponse.data) : undefined,
+        settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined,
         siteDefaultLocale.toLowerCase(),
         {
             canonicalPath: "",
-            locales: langResponse.success && langResponse.data
-                ? langResponse.data.map((language) => language.code)
-                : undefined,
+            locales: languages.map((language) => language.code),
             defaultLocale: siteDefaultLocale,
             siteUrl,
         }
@@ -64,26 +37,21 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+    const languages = await getPublicLanguages();
 
-    if (!langResponse.success || !langResponse.data) {
+    if (languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Languages could not be loaded.</p>
             </div>
         );
     }
 
     const siteDefaultLocale =
-        langResponse.data.find((language) => language.is_default_site)?.code ??
+        languages.find((language) => language.is_default_site)?.code ??
         config.project.defLang;
 
-    const [settingsResponse, mainPageBlocks, chrome] = await Promise.all([
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            params: { lang: siteDefaultLocale.toLowerCase() },
-            locale: resolveSettingsApiLocale(siteDefaultLocale),
-            cache: "no-store",
-        }),
+    const [mainPageBlocks, chrome] = await Promise.all([
         getMainPageBlocks(siteDefaultLocale),
         getSiteChromeData(siteDefaultLocale),
     ]);

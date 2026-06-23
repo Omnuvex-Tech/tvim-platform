@@ -1,11 +1,9 @@
-import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { Breadcrumb, type Company } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { buildSeoMetadata } from "@/lib/seo";
 import { normalizeLocale } from "@/lib/site-locales";
-import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Pagination } from "@/app/components/Pagination/pagination";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
@@ -56,7 +54,6 @@ const copyByLocale = (locale: string) => {
             brands: "Бренды",
             pageTitle: "Бренды",
             empty: "Активные бренды не найдены.",
-            authRequired: "Для просмотра списка брендов требуется авторизация.",
             fallbackError: "Не удалось загрузить список брендов.",
             countSuffix: "товаров",
         };
@@ -68,7 +65,6 @@ const copyByLocale = (locale: string) => {
             brands: "Brands",
             pageTitle: "Brands",
             empty: "No active brands were found.",
-            authRequired: "Authentication is required to view the brand list.",
             fallbackError: "Failed to load the brand list.",
             countSuffix: "products",
         };
@@ -79,7 +75,6 @@ const copyByLocale = (locale: string) => {
         brands: "Brendlər",
         pageTitle: "Brendlər",
         empty: "Aktiv brend tapılmadı.",
-        authRequired: "Brend siyahısını görmək üçün giriş tələb olunur.",
         fallbackError: "Brend siyahısını yükləmək olmadı.",
         countSuffix: "məhsul",
     };
@@ -149,15 +144,12 @@ export async function renderProductBrandsPage({
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
     const t = copyByLocale(locale);
-    const cookieStore = await cookies();
-    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
 
     const [chrome, brandsResponse] = await Promise.all([
         getSiteChromeData(locale),
         api.get<ProductBrandsResponseData>("/product/brands", {
             locale,
-            cache: "no-store",
-            ...(authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : null),
+            cache: "force-cache",
         }),
     ]);
 
@@ -187,14 +179,11 @@ export async function renderProductBrandsPage({
             };
         })
         .filter(Boolean) as Company[];
-    const isUnauthorized = !authToken || brandsResponse.status === 401 || brandsResponse.status === 403;
     const infoMessage = brandsResponse.success
         ? brandItems.length === 0
             ? t.empty
             : ""
-        : isUnauthorized
-            ? t.authRequired
-            : brandsResponse.message || t.fallbackError;
+        : brandsResponse.message || t.fallbackError;
     const buildHrefWithParams = (page: number) => {
         const nextParams = new URLSearchParams(currentUiParams.toString());
         if (page <= 1) {
@@ -254,7 +243,6 @@ export async function generateProductBrandsMetadata({
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
-    const requestOrigin = await resolveRequestOrigin();
     const t = copyByLocale(locale);
 
     return buildSeoMetadata({
@@ -263,7 +251,7 @@ export async function generateProductBrandsMetadata({
         keywords: [t.pageTitle, "brands", "tvim"],
         locale,
         canonicalPath: `${locale}/product/brands`,
-        siteUrl: requestOrigin ?? config.project.url,
+        siteUrl: config.project.url,
         locales: [locale],
         defaultLocale: locale,
         robots: requestedPage > 1

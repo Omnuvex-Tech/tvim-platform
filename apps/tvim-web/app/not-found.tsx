@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { config } from "@/config";
 import { NotFoundRoute } from "@/app/components/NotFoundPage/not-found-route";
 
@@ -10,9 +9,7 @@ const normalizeLocale = (locale: string) => {
 };
 
 export default async function NotFound() {
-    const cookieStore = await cookies();
-    const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
-    const locale = normalizeLocale(cookieLocale || config.project.defLang);
+    const locale = normalizeLocale(config.project.defLang);
 
     return <NotFoundRoute locale={locale} />;
 }

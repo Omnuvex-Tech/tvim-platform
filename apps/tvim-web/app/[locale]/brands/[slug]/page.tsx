@@ -3,6 +3,7 @@ import {
     generateBrandSlugMetadata,
     renderBrandSlugPage,
 } from "@/app/brands/brand-slug-page";
+import { getStaticBrandSlugParams } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandLocalePageSearchParams = {
@@ -10,6 +11,12 @@ type BrandLocalePageSearchParams = {
     per_page?: string | string[];
     sort?: string | string[];
 };
+
+export const revalidate = 31_536_000;
+
+export async function generateStaticParams() {
+    return await getStaticBrandSlugParams();
+}
 
 export default async function BrandLocaleSlugPage({
     params,

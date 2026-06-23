@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
-import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { getPublicMenuDetail } from "@/lib/public-data";
+import { getStaticItemSlugParams } from "@/lib/static-paths";
+import { buildSeoMetadata } from "@/lib/seo";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
@@ -30,6 +30,8 @@ type GridItem = {
         meta_keywords?: string | string[];
     };
 };
+
+export const revalidate = 31_536_000;
 
 type MenuDetailData = {
     menu: {
@@ -200,15 +202,7 @@ type ProductDetailData = {
 };
 
 async function getMenuDetail(slug: string, locale: string) {
-    try {
-        const response = await api.get<MenuDetailData>(config.endpoints.menus.detail(slug), {
-            locale,
-        });
-        if (response.success && response.data) return response.data;
-        return null;
-    } catch {
-        return null;
-    }
+    return await getPublicMenuDetail<MenuDetailData>(slug, locale);
 }
 
 function resolveItemBySlug(items: GridItem[], itemSlug: string, locale: string) {
@@ -245,12 +239,15 @@ const resolveAssetUrl = (value: string | null | undefined) => {
     return cleaned;
 };
 
-async function getProductDetailBySlug(slug: string, locale: string, authToken: string | null) {
+export async function generateStaticParams() {
+    return await getStaticItemSlugParams();
+}
+
+async function getProductDetailBySlug(slug: string, locale: string) {
     try {
         const response = await api.get<ProductDetailData>(config.endpoints.products.detailBySlug(slug), {
             locale,
-            cache: "no-store",
-            headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+            cache: "force-cache",
         });
         if (response.success && response.data) return { ok: true as const, data: response.data };
         return { ok: false as const, message: response.message };
@@ -318,9 +315,7 @@ export async function generateMetadata({
     const normalizedLocale = locale.toLowerCase();
 
     if (isProductSlug(slug)) {
-        const cookieStore = await cookies();
-        const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value ?? undefined);
-        const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale, authToken);
+        const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale);
         if (!productResult.ok) return {};
 
         const active = productResult.data.active_variation;
@@ -336,7 +331,6 @@ export async function generateMetadata({
             String(product?.meta_description ?? "").trim() ||
             stripHtml(product?.description).slice(0, 170) ||
             undefined;
-        const requestOrigin = await resolveRequestOrigin();
         const canonicalSlug = String(active?.slug ?? product?.slug ?? itemSlug).trim() || itemSlug;
 
         return buildSeoMetadata({
@@ -345,7 +339,7 @@ export async function generateMetadata({
             keywords: active?.meta_keywords ?? product?.meta_keywords ?? undefined,
             locale: normalizedLocale,
             canonicalPath: `${normalizedLocale}/products/${canonicalSlug}`,
-            siteUrl: requestOrigin ?? config.project.url,
+            siteUrl: config.project.url,
             locales: [normalizedLocale],
             defaultLocale: normalizedLocale,
             image: resolveAssetUrl(active?.main_image_path),
@@ -362,15 +356,13 @@ export async function generateMetadata({
     const fallbackDescription = stripHtml(item.content).slice(0, 170);
     const title = item.seo?.meta_title || item.name || menuDetail.menu.title || menuDetail.menu.name;
     const description = item.seo?.meta_description || fallbackDescription;
-    const requestOrigin = await resolveRequestOrigin();
-
     return buildSeoMetadata({
         title,
         description,
         keywords: item.seo?.meta_keywords,
         locale: normalizedLocale,
         canonicalPath: `${normalizedLocale}/${slug}/${itemSlug}`,
-        siteUrl: requestOrigin ?? config.project.url,
+        siteUrl: config.project.url,
         locales: [normalizedLocale],
         defaultLocale: normalizedLocale,
         image: resolveAssetUrl(item.banner || item.main_photo),
@@ -397,9 +389,6 @@ export default async function GridDetailPage({
     if (slug.trim().toLowerCase() === "brand-news") {
         redirect(`/${normalizedLocale}/brands/news/${itemSlug}`);
     }
-
-    const cookieStore = await cookies();
-    const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value ?? undefined);
 
     const chrome = await getSiteChromeData(normalizedLocale);
     const projectSettings = chrome.projectSettings;
@@ -428,7 +417,7 @@ export default async function GridDetailPage({
     ).trim();
 
     if (isProductSlug(slug)) {
-        const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale, authToken);
+        const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale);
         if (!productResult.ok) {
             const msg = String(productResult.message ?? "").toLowerCase();
             if (msg.includes("unauth") || msg.includes("unauthorized")) {

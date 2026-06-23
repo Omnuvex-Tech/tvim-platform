@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { config } from "@/config";
 import { NotFoundRoute } from "@/app/components/NotFoundPage/not-found-route";
@@ -11,12 +10,14 @@ const normalizeLocale = (locale: string) => {
 };
 
 export default async function LocaleNotFound({
+    params,
 }: {
     params?: Promise<{ locale: string }>;
 }) {
-    const cookieStore = await cookies();
-    const cookieLocale = cookieStore.get("preferred-locale")?.value ?? "";
-    const normalizedLocale = normalizeLocale(cookieLocale || config.project.defLang);
+    const resolvedParams = params ? await params : undefined;
+    const normalizedLocale = normalizeLocale(
+        resolvedParams?.locale || config.project.defLang
+    );
 
     if (!SUPPORTED_LOCALES.includes(normalizedLocale as (typeof SUPPORTED_LOCALES)[number])) {
         notFound();

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Footer } from "@/app/components/Footer/footer";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
@@ -33,7 +33,11 @@ export function SitePageShell({
 
             {children}
 
-            {includeLogoutToast ? <LogoutToast /> : null}
+            {includeLogoutToast ? (
+                <Suspense fallback={null}>
+                    <LogoutToast />
+                </Suspense>
+            ) : null}
 
             <Footer
                 footerMenus={chrome.footerMenus}

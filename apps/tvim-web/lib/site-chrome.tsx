@@ -8,7 +8,6 @@ import type {
 } from "@repo/types/types";
 import type { NavbarMenuItem } from "@repo/ui";
 import type { ReactNode } from "react";
-import { api } from "@/lib/api";
 import { config } from "@/config";
 import {
     extractHeaderCategories,
@@ -18,7 +17,8 @@ import {
     resolveHeaderMenuHref,
     resolveHeaderMenuLabel,
 } from "@/lib/header-navigation";
-import { resolveProjectSettings, resolveSettingsApiLocale } from "@/lib/settings";
+import { getPublicHeaderCategories, getPublicLanguages, getPublicMenuList, getPublicProjectSettingsResponse } from "@/lib/public-data";
+import { resolveProjectSettings } from "@/lib/settings";
 
 export type SiteChromeData = {
     footerMenus: MenuItem[];
@@ -34,27 +34,14 @@ export type SiteChromeData = {
 export async function getSiteChromeData(incomingLocale: string): Promise<SiteChromeData> {
     const locale = incomingLocale.trim().toLowerCase();
 
-    const [langResponse, menusResponse, settingsResponse, categoriesResponse] = await Promise.all([
-        api.get<Language[]>(config.endpoints.languages.list),
-        api.get<any>(config.endpoints.menus.list, {
-            locale,
-        }),
-        api.get<ProjectSettingsResponseData>(config.endpoints.settings.get, {
-            params: { lang: locale },
-            locale: resolveSettingsApiLocale(locale),
-            cache: "no-store",
-        }),
-        api.get<HeaderCategoriesResponseData>("/product/categories", {
-            params: { in_header: "1" },
-            locale,
-        }),
+    const [languages, rawMenusData, settingsResponse, categoriesResponse] = await Promise.all([
+        getPublicLanguages(),
+        getPublicMenuList(locale),
+        getPublicProjectSettingsResponse(locale),
+        getPublicHeaderCategories(locale),
     ]);
+    const rawMenus = rawMenusData as { footer?: unknown } | null;
 
-    const languages = langResponse.success && Array.isArray(langResponse.data)
-        ? langResponse.data
-        : [];
-
-    const rawMenusData = menusResponse.success && menusResponse.data ? menusResponse.data : null;
     const headerItems = extractHeaderItems(rawMenusData);
 
     const menuItems = headerItems
@@ -66,8 +53,8 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
         .filter((item) => item.label);
 
     let initialCatalogItems: HeaderCategoryItem[] = [];
-    if (categoriesResponse.success && categoriesResponse.data) {
-        const items = extractHeaderCategories(categoriesResponse.data);
+    if (categoriesResponse) {
+        const items = extractHeaderCategories(categoriesResponse as HeaderCategoriesResponseData);
         const filtered = items.filter(isHeaderEnabledItem);
         initialCatalogItems = filtered.length > 0 ? filtered : items;
     } else {
@@ -75,13 +62,13 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
     }
 
     const footerMenus: MenuItem[] =
-        rawMenusData && Array.isArray(rawMenusData.footer)
-            ? rawMenusData.footer as MenuItem[]
+        rawMenus && Array.isArray(rawMenus.footer)
+            ? rawMenus.footer as MenuItem[]
             : [];
 
     let projectSettings: ProjectSettingsData | undefined;
-    if (settingsResponse.success && settingsResponse.data) {
-        projectSettings = resolveProjectSettings(settingsResponse.data);
+    if (settingsResponse) {
+        projectSettings = resolveProjectSettings(settingsResponse as ProjectSettingsResponseData);
     }
 
     const logo = projectSettings?.general.images.logo ? (

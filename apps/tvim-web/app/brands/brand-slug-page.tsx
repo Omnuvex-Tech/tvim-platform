@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
+import { buildSeoMetadata } from "@/lib/seo";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
@@ -122,12 +122,11 @@ export async function generateBrandSlugMetadata({
 }: RenderBrandSlugPageProps): Promise<Metadata> {
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
-    const requestOrigin = await resolveRequestOrigin();
 
     const brandLookupResponse = await api.get<LiveSearchResponseData>("/product/live-search", {
         params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
         locale,
-        cache: "no-store",
+        cache: "force-cache",
     });
 
     const brandItems = Array.isArray(brandLookupResponse.data?.brands?.items)
@@ -148,7 +147,7 @@ export async function generateBrandSlugMetadata({
         keywords: [pageName, "brand", "brands", "tvim"],
         locale,
         canonicalPath,
-        siteUrl: requestOrigin ?? config.project.url,
+        siteUrl: config.project.url,
         locales: [locale],
         defaultLocale: locale,
         robots: seoState.hasCustomPage || seoState.hasRefinement
@@ -225,7 +224,7 @@ export async function renderBrandSlugPage({
         api.get<LiveSearchResponseData>("/product/live-search", {
             params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
             locale,
-            cache: "no-store",
+            cache: "force-cache",
         }),
         getSiteChromeData(locale),
     ]);
@@ -253,7 +252,7 @@ export async function renderBrandSlugPage({
             ...(hasBrandFilter ? { [`filters[${brandFilterId}][]`]: String(brandValueId) } : { q: String(slug ?? "").trim() }),
         },
         locale,
-        cache: "no-store",
+        cache: "force-cache",
     });
 
     const detailData = productListResponse.success && productListResponse.data ? productListResponse.data : null;
