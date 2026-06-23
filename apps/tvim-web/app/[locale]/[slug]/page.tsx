@@ -12,6 +12,7 @@ import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
@@ -319,6 +320,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const includedItems: any[] = menuDetail.included_items || [];
     const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
     const isGridView = menu.type === "grids" || (pageData?.mode === "list" && gridItems.length > 0);
+    const pageSubmitConfig = resolveRequestFormSubmitConfig(pageData?.submit ?? pageData);
 
     function mapIncludedValuesToCompanies(values: any[]) {
         const arr = Array.isArray(values) ? values : [];
@@ -361,9 +363,12 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 px-1 lg:px-2">
                 {includedItems.map((inc: any, idx: number) => {
                     if (inc.included_type === "menu" && inc.type === "form") {
+                        const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
+                        const fields = inc.data?.fields ?? inc.data?.data?.fields;
+
                         return (
                             <div key={idx}>
-                                <RequestForm submitConfig={inc.data.submit} fields={inc.data?.fields ?? inc.data?.data?.fields} />
+                                <RequestForm submitConfig={submitConfig} fields={fields} />
                             </div>
                         );
                     }
@@ -1150,10 +1155,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         <div className="mt-0 w-full">
                             <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 px-1 lg:px-2">
                                         {includedItems.map((inc: any, idx: number) => {
-                                    if (inc.included_type === "menu" && inc.type === "form") {
-                                        return (
-                                            <div key={idx}>
-                                                <RequestForm submitConfig={inc.data.submit} fields={inc.data?.fields ?? inc.data?.data?.fields} />
+                    if (inc.included_type === "menu" && inc.type === "form") {
+                        const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
+                        const fields = inc.data?.fields ?? inc.data?.data?.fields;
+
+                        return (
+                            <div key={idx}>
+                                                <RequestForm submitConfig={submitConfig} fields={fields} />
                                             </div>
                                         );
                                     }
@@ -1221,9 +1229,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     )}
                 </div>
 
-                {pageData?.submit && (
+                {pageSubmitConfig && (
                     <div className="mt-8 lg:mt-12">
-                        <RequestForm submitConfig={pageData.submit} />
+                        <RequestForm submitConfig={pageSubmitConfig} />
                     </div>
                 )}
             </section>

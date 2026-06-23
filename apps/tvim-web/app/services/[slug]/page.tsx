@@ -10,8 +10,8 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
-import type { RequestFormSubmitConfig } from "@repo/types/types";
 
 type MenuDetailData = {
     menu?: {
@@ -139,16 +139,6 @@ function resolveStaticServiceContent(slug: string): StaticServiceContent | undef
     return undefined;
 }
 
-function normalizeSubmitConfig(value: any): RequestFormSubmitConfig | undefined {
-    if (!value || typeof value !== "object") return undefined;
-    const path = typeof value.path === "string" ? value.path.trim() : "";
-    if (!path) return undefined;
-    return {
-        path,
-        method: typeof value.method === "string" ? value.method : undefined,
-    };
-}
-
 async function getMenuDetail(slug: string, locale: string) {
     try {
         const response = await api.get<any>(config.endpoints.menus.detail(slug), { locale });
@@ -250,8 +240,6 @@ export async function renderServiceSlugPage({
     const menu = menuDetail?.menu;
     const pageData = menuDetail?.data;
     const includedItems = Array.isArray(menuDetail?.included_items) ? menuDetail.included_items : [];
-    const pageSubmitConfig = normalizeSubmitConfig(pageData?.submit);
-
     const pageTitle = staticContent?.pageTitle || staticContent?.title || menu?.title || menu?.name || "Service";
     const keywordsRaw = menu?.seo?.meta_keywords;
     const keywords = Array.isArray(keywordsRaw)
@@ -323,18 +311,13 @@ export async function renderServiceSlugPage({
                     </div>
                 )}
 
-                {(staticContent || pageSubmitConfig) ? (
-                    <div className="mt-8 lg:mt-12">
-                        <RequestForm submitConfig={pageSubmitConfig} />
-                    </div>
-                ) : null}
             </section>
 
             {includedItems.length > 0 ? (
                 <div className="mt-4 w-full">
                     <div className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2">
                         {includedItems.map((inc: any, idx: number) => {
-                            const includedSubmitConfig = normalizeSubmitConfig(inc?.data?.submit);
+                            const includedSubmitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
 
                             if (inc.included_type === "menu" && inc.type === "form" && includedSubmitConfig) {
                                 return (

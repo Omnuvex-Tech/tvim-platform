@@ -8,10 +8,10 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { buildSeoMetadata, resolveRequestOrigin } from "@/lib/seo";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
-import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
 import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-link";
+import { generateServiceMetadata, renderServiceSlugPage } from "@/app/services/[slug]/page";
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
@@ -309,6 +309,9 @@ export async function generateMetadata({
     params: Promise<{ locale: string; slug: string; itemSlug: string }>;
 }): Promise<Metadata> {
     const { locale, slug, itemSlug } = await params;
+    if (slug.trim().toLowerCase() === "services") {
+        return await generateServiceMetadata({ slug: itemSlug, locale });
+    }
     if (slug.trim().toLowerCase() === "brand-news") {
         return {};
     }
@@ -383,6 +386,9 @@ export default async function GridDetailPage({
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
     const { locale, slug, itemSlug } = await params;
+    if (slug.trim().toLowerCase() === "services") {
+        return await renderServiceSlugPage({ slug: itemSlug, locale });
+    }
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const sourceParamRaw = resolvedSearchParams?.source;
     const sourceParam = Array.isArray(sourceParamRaw) ? sourceParamRaw[0] : sourceParamRaw;
@@ -818,9 +824,6 @@ export default async function GridDetailPage({
                     </section>
                 ) : null}
 
-                <div className="mx-auto mt-4 mb-10 w-full max-w-[1280px] px-1 lg:mt-6 lg:mb-14 lg:px-2">
-                    <RequestForm />
-                </div>
             </SitePageShell>
         );
     }

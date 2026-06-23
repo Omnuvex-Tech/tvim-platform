@@ -8,6 +8,7 @@ import { CategoryStrip, type CategoryStripItem } from "@/app/components/Category
 import { BenefitsStrip } from "@/app/components/BenefitsStrip/benefits-strip";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
+import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 
 export type MainPageBlock = {
     id?: number;
@@ -296,17 +297,8 @@ function mapFormPlaceholders(block: MainPageBlock): RequestFormPlaceholders {
 }
 
 function mapFormSubmitConfig(block: MainPageBlock) {
-    const submit = block?.data?.data?.submit;
-    const path = String(submit?.path ?? "").trim();
-
-    if (!path) {
-        return undefined;
-    }
-
-    return {
-        method: String(submit?.method ?? "POST").toUpperCase(),
-        path,
-    };
+    const blockData = block?.data as Record<string, unknown> | undefined;
+    return resolveRequestFormSubmitConfig(blockData?.submit ?? (blockData?.data as Record<string, unknown> | undefined)?.submit ?? blockData ?? block);
 }
 
 function isFormBlock(block: MainPageBlock) {

@@ -2,6 +2,7 @@
 
 import { RequestForm as RequestFormUI } from "@repo/ui";
 import type { RequestFormData, RequestFormField, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
+import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 
@@ -97,9 +98,11 @@ const RequestForm = (props: RequestFormProps) => {
         let successMessage = "";
         let ok = false;
 
-        if (props.submitConfig?.path) {
-            const method = String(props.submitConfig.method ?? "POST").toUpperCase();
-            const submitUrl = resolveSubmitUrl(props.submitConfig.path);
+        const submitConfig = resolveRequestFormSubmitConfig(props.submitConfig);
+
+        if (submitConfig?.path) {
+            const method = String(submitConfig.method ?? "POST").toUpperCase();
+            const submitUrl = resolveSubmitUrl(submitConfig.path);
 
             const normalizedFields = normalizeRequestFormFields(props.fields);
 

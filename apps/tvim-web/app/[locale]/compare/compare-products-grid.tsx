@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useNotify } from "@repo/ui";
 import type { CompareListItem } from "./page";
+import { addProductToCart } from "@/lib/cart/client";
 import { toggleCompare } from "@/lib/compare/client";
 import { toggleFavorite } from "@/lib/favorites/client";
 
@@ -32,6 +33,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
     const notify = useNotify();
     const [items, setItems] = useState<CompareListItem[]>(initialItems);
     const [showOnlyDifferent, setShowOnlyDifferent] = useState(false);
+    const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
     const [pendingCompareVariationIds, setPendingCompareVariationIds] = useState<Set<number>>(new Set());
     const [pendingFavoriteVariationIds, setPendingFavoriteVariationIds] = useState<Set<number>>(new Set());
 
@@ -170,6 +172,47 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
         }
     };
 
+    const handleAddToCart = async (item: CompareListItem) => {
+        const variationId = item.product_variation_id;
+
+        if (!variationId || !Number.isFinite(variationId)) {
+            notify.error(copy.removeCompareFailed);
+            return;
+        }
+
+        if (pendingCartVariationIds.has(variationId)) {
+            return;
+        }
+
+        setPendingCartVariationIds((prev) => {
+            const next = new Set(prev);
+            next.add(variationId);
+            return next;
+        });
+
+        try {
+            await addProductToCart({
+                id: item.id,
+                title: item.name,
+                price: String(item.price),
+                imageUrl: item.main_image ?? "",
+                productVariationId: variationId,
+                stock: null,
+            });
+
+            notify.success(`${item.name} sebete əlavə edildi.`);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : copy.removeCompareFailed;
+            notify.error(message);
+        } finally {
+            setPendingCartVariationIds((prev) => {
+                const next = new Set(prev);
+                next.delete(variationId);
+                return next;
+            });
+        }
+    };
+
     if (items.length === 0) {
         return (
             <div className="rounded-[24px] bg-[#f7f7f7] px-7 py-4 text-left text-[16px] leading-normal font-normal text-black">
@@ -224,6 +267,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                             ? `/${locale}/products/${String(item.slug).replace(/^\/+/, "")}`
                             : null;
                         const isComparePending = pendingCompareVariationIds.has(item.product_variation_id);
+                        const isCartPending = pendingCartVariationIds.has(item.product_variation_id);
                         const isFavoritePending = pendingFavoriteVariationIds.has(item.product_variation_id);
                         const isFavorited = item.is_favorite === true;
 
@@ -331,7 +375,11 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
 
                                     <button
                                         type="button"
-                                        className="relative z-[2] my-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white cursor-pointer"
+                                        disabled={isCartPending}
+                                        onClick={() => void handleAddToCart(item)}
+                                        className={`relative z-[2] my-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white ${
+                                            isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                                        }`}
                                         aria-label="Səbətə əlavə et"
                                     >
                                         <i className="fas fa-shopping-cart text-white" aria-hidden="true" />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useNotify } from "@repo/ui";
+import { addProductToCart } from "@/lib/cart/client";
 import { toggleFavorite } from "@/lib/favorites/client";
 
 type FavoriteListItem = {
@@ -27,6 +28,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
     const notify = useNotify();
     const [items, setItems] = useState<FavoriteListItem[]>(initialItems);
     const [pendingVariationIds, setPendingVariationIds] = useState<Set<number>>(new Set());
+    const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
 
     const handleRemoveFromFavorites = async (item: FavoriteListItem) => {
         const variationId = item.product_variation_id;
@@ -68,6 +70,47 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
         }
     };
 
+    const handleAddToCart = async (item: FavoriteListItem) => {
+        const variationId = item.product_variation_id;
+
+        if (!variationId || !Number.isFinite(variationId)) {
+            notify.error("Bu məhsul səbətə əlavə edilə bilmədi.");
+            return;
+        }
+
+        if (pendingCartVariationIds.has(variationId)) {
+            return;
+        }
+
+        setPendingCartVariationIds((prev) => {
+            const next = new Set(prev);
+            next.add(variationId);
+            return next;
+        });
+
+        try {
+            await addProductToCart({
+                id: item.id,
+                title: item.name,
+                price: String(item.price),
+                imageUrl: item.main_image ?? "",
+                productVariationId: variationId,
+                stock: null,
+            });
+
+            notify.success(`${item.name} səbətə əlavə edildi.`);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Səbətə əlavə edilərkən xəta baş verdi.";
+            notify.error(message);
+        } finally {
+            setPendingCartVariationIds((prev) => {
+                const next = new Set(prev);
+                next.delete(variationId);
+                return next;
+            });
+        }
+    };
+
     if (items.length === 0) {
         return (
             <div className="rounded-[24px] bg-[#f7f7f7] px-7 py-4 text-left text-[16px] leading-normal font-normal text-black">
@@ -86,6 +129,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                         : null;
                     const variationId = item.product_variation_id;
                     const isFavoritePending = typeof variationId === "number" && pendingVariationIds.has(variationId);
+                    const isCartPending = typeof variationId === "number" && pendingCartVariationIds.has(variationId);
 
                     const discountPercent = typeof item.old_price === "number" && item.old_price > item.price
                         ? Math.round((1 - item.price / item.old_price) * 100)
@@ -182,7 +226,15 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
                                     <button
                                         type="button"
-                                        className="relative z-[2] mt-1 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#0f57d6] text-white"
+                                        disabled={isCartPending || !variationId}
+                                        onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            void handleAddToCart(item);
+                                        }}
+                                        className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white ${
+                                            isCartPending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                                        }`}
                                         aria-label="Səbətə əlavə et"
                                     >
                                         <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
