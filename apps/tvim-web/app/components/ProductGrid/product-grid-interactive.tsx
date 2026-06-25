@@ -6,6 +6,7 @@ import { useNotify } from "@repo/ui";
 import { addProductToCart } from "@/lib/cart/client";
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
+import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
 
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
@@ -35,6 +36,7 @@ export function ProductGridInteractive({ products }: ProductGridInteractiveProps
     const [favoritePendingIds, setFavoritePendingIds] = useState<Set<number>>(new Set());
     const [comparePendingIds, setComparePendingIds] = useState<Set<number>>(new Set());
     const [cartPendingIds, setCartPendingIds] = useState<Set<number>>(new Set());
+    const [quickOrderProduct, setQuickOrderProduct] = useState<ProductGridInteractiveItem | null>(null);
 
     useEffect(() => {
         let alive = true;
@@ -200,7 +202,7 @@ export function ProductGridInteractive({ products }: ProductGridInteractiveProps
         if (cartPendingIds.has(product.id)) return;
 
         if (product.cartVariant !== "blue") {
-            notify.error("Məhsul stokda yoxdur.");
+            setQuickOrderProduct(product);
             return;
         }
 
@@ -227,9 +229,10 @@ export function ProductGridInteractive({ products }: ProductGridInteractiveProps
     };
 
     return (
-        <div className="product-carousel">
-            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
-                {products.map((product) => {
+        <>
+            <div className="product-carousel">
+                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
+                    {products.map((product) => {
                     const variationId = product.productVariationId;
                     const isFavorite = typeof variationId === "number" && favoriteIds.has(variationId);
                     const isFavoritePending = typeof variationId === "number" && favoritePendingIds.has(variationId);
@@ -314,11 +317,11 @@ export function ProductGridInteractive({ products }: ProductGridInteractiveProps
 
                                 <button
                                     type="button"
-                                    disabled={isCartPending || product.cartVariant !== "blue"}
+                                    disabled={isCartPending}
                                     onClick={(event) => void handleCartClick(product, event)}
                                     className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full ${
                                         product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"
-                                    } ${isCartPending || product.cartVariant !== "blue" ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                    } ${isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                                     aria-label={product.cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}
                                 >
                                     {product.cartVariant === "blue" ? (
@@ -336,7 +339,16 @@ export function ProductGridInteractive({ products }: ProductGridInteractiveProps
                         </li>
                     );
                 })}
-            </ul>
-        </div>
+                </ul>
+            </div>
+
+            <QuickOrderPopup
+                isOpen={Boolean(quickOrderProduct)}
+                productTitle={quickOrderProduct?.title ?? ""}
+                productCode={quickOrderProduct ? String(quickOrderProduct.id) : ""}
+                productVariationId={quickOrderProduct?.productVariationId ?? null}
+                onClose={() => setQuickOrderProduct(null)}
+            />
+        </>
     );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useNotify } from "@repo/ui";
 import { addProductToCart } from "@/lib/cart/client";
 import { toggleFavorite } from "@/lib/favorites/client";
+import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
 
 type FavoriteListItem = {
     id: number;
@@ -14,6 +15,7 @@ type FavoriteListItem = {
     main_image?: string;
     slug?: string;
     product_variation_id?: number | null;
+    stock?: number | null;
     is_favorite: true;
 };
 
@@ -29,6 +31,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
     const [items, setItems] = useState<FavoriteListItem[]>(initialItems);
     const [pendingVariationIds, setPendingVariationIds] = useState<Set<number>>(new Set());
     const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
+    const [quickOrderItem, setQuickOrderItem] = useState<FavoriteListItem | null>(null);
 
     const handleRemoveFromFavorites = async (item: FavoriteListItem) => {
         const variationId = item.product_variation_id;
@@ -82,6 +85,11 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
             return;
         }
 
+        if (typeof item.stock === "number" && item.stock <= 0) {
+            setQuickOrderItem(item);
+            return;
+        }
+
         setPendingCartVariationIds((prev) => {
             const next = new Set(prev);
             next.add(variationId);
@@ -130,6 +138,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                     const variationId = item.product_variation_id;
                     const isFavoritePending = typeof variationId === "number" && pendingVariationIds.has(variationId);
                     const isCartPending = typeof variationId === "number" && pendingCartVariationIds.has(variationId);
+                    const isOutOfStock = typeof item.stock === "number" && item.stock <= 0;
 
                     const discountPercent = typeof item.old_price === "number" && item.old_price > item.price
                         ? Math.round((1 - item.price / item.old_price) * 100)
@@ -232,10 +241,21 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                             event.stopPropagation();
                                             void handleAddToCart(item);
                                         }}
-                                        className="relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none cursor-pointer"
-                                        aria-label="Səbətə əlavə et"
+                                        className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none ${
+                                            isOutOfStock ? "bg-[#ffd500] text-[#1b212e]" : "bg-[#0f57d6] text-white"
+                                        } ${isCartPending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                        aria-label={isOutOfStock ? "Məhsul stokda yoxdur" : "Səbətə əlavə et"}
                                     >
-                                        <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                                        {isOutOfStock ? (
+                                            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
+                                                <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        ) : (
+                                            <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                                        )}
                                     </button>
                                 </div>
                             </article>
@@ -243,6 +263,14 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                     );
                 })}
             </ul>
+
+            <QuickOrderPopup
+                isOpen={Boolean(quickOrderItem)}
+                productTitle={quickOrderItem?.name ?? ""}
+                productCode={quickOrderItem ? String(quickOrderItem.id) : ""}
+                productVariationId={quickOrderItem?.product_variation_id ?? null}
+                onClose={() => setQuickOrderItem(null)}
+            />
         </div>
     );
 }

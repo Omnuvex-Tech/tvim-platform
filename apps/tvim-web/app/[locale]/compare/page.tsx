@@ -137,6 +137,7 @@ export type CompareListItem = {
     slug?: string;
     main_image?: string;
     product_variation_id: number;
+    stock?: number | null;
     is_favorite: boolean;
     specs: Array<{ label: string; value: string }>;
 };
@@ -293,6 +294,14 @@ const normalizeCompareItem = (item: unknown, locale: LocaleCode): CompareListIte
         item.product,
         item.product_variation,
         isRecord(item.product) ? item.product.variation : null,
+        ...[
+            item,
+            compare,
+            variation,
+            item.product,
+            item.product_variation,
+            isRecord(item.product) ? item.product.variation : null,
+        ].map((source) => (isRecord(source) && isRecord(source.body) ? source.body : null)),
     ].filter(isRecord);
 
     const variationId = toPositiveNumber(readNumber(nestedSources, ["product_variation_id", "variation_id", "id"]));
@@ -309,6 +318,7 @@ const normalizeCompareItem = (item: unknown, locale: LocaleCode): CompareListIte
         || `${COMPARE_PAGE_COPY[locale].productFallbackPrefix} #${resolvedVariationId}`;
     const price = readNumber(nestedSources, ["sale_price", "final_price", "special", "price"]) ?? 0;
     const oldPrice = readNumber(nestedSources, ["old_price", "compare_price", "regular_price"]);
+    const stock = readNumber(nestedSources, ["stock", "quantity", "qty"]);
     const slug = readString(nestedSources, ["slug", "uuid"]);
     const image = readImage(nestedSources);
     const isFavorite = readBooleanFlag(nestedSources, [
@@ -394,6 +404,7 @@ const normalizeCompareItem = (item: unknown, locale: LocaleCode): CompareListIte
         slug: slug || undefined,
         main_image: image || undefined,
         product_variation_id: resolvedVariationId,
+        stock,
         is_favorite: isFavorite,
         specs,
     };

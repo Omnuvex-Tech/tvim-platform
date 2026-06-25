@@ -7,6 +7,7 @@ import type { CompareListItem } from "./page";
 import { addProductToCart } from "@/lib/cart/client";
 import { toggleCompare } from "@/lib/compare/client";
 import { toggleFavorite } from "@/lib/favorites/client";
+import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
 
 type Props = {
     locale: string;
@@ -36,6 +37,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
     const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
     const [pendingCompareVariationIds, setPendingCompareVariationIds] = useState<Set<number>>(new Set());
     const [pendingFavoriteVariationIds, setPendingFavoriteVariationIds] = useState<Set<number>>(new Set());
+    const [quickOrderItem, setQuickOrderItem] = useState<CompareListItem | null>(null);
 
     const allSpecLabels = useMemo(() => getUniqueSpecLabels(items), [items]);
 
@@ -184,6 +186,11 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
             return;
         }
 
+        if (typeof item.stock === "number" && item.stock <= 0) {
+            setQuickOrderItem(item);
+            return;
+        }
+
         setPendingCartVariationIds((prev) => {
             const next = new Set(prev);
             next.add(variationId);
@@ -270,6 +277,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                         const isCartPending = pendingCartVariationIds.has(item.product_variation_id);
                         const isFavoritePending = pendingFavoriteVariationIds.has(item.product_variation_id);
                         const isFavorited = item.is_favorite === true;
+                        const isOutOfStock = typeof item.stock === "number" && item.stock <= 0;
 
                         return (
                             <article
@@ -377,10 +385,21 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                         type="button"
                                         disabled={isCartPending}
                                         onClick={() => void handleAddToCart(item)}
-                                        className="relative z-[2] my-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0f57d6] text-white shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none cursor-pointer"
-                                        aria-label="Səbətə əlavə et"
+                                        className={`relative z-[2] my-4 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none ${
+                                            isOutOfStock ? "bg-[#ffd500] text-[#1b212e]" : "bg-[#0f57d6] text-white"
+                                        } ${isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                        aria-label={isOutOfStock ? "Məhsul stokda yoxdur" : "Səbətə əlavə et"}
                                     >
-                                        <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                                        {isOutOfStock ? (
+                                            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
+                                                <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        ) : (
+                                            <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+                                        )}
                                     </button>
                                 </div>
 
@@ -401,6 +420,14 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                     })}
                 </div>
             </div>
+
+            <QuickOrderPopup
+                isOpen={Boolean(quickOrderItem)}
+                productTitle={quickOrderItem?.name ?? ""}
+                productCode={quickOrderItem ? String(quickOrderItem.id) : ""}
+                productVariationId={quickOrderItem?.product_variation_id ?? null}
+                onClose={() => setQuickOrderItem(null)}
+            />
         </>
     );
 }

@@ -1911,8 +1911,6 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
                         suppressHydrationWarning
 
-                        disabled={product.cartVariant !== "blue"}
-
                         onClick={(event) => {
 
                             event.preventDefault();
@@ -1924,7 +1922,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
                         }}
 
                         className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"} ${
-                            product.cartVariant !== "blue" ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                            "cursor-pointer"
                         }`}
 
                         aria-label={product.cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}

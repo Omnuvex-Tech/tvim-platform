@@ -23,6 +23,7 @@ type FavoriteListItem = {
     main_image?: string;
     slug?: string;
     product_variation_id?: number | null;
+    stock?: number | null;
     is_favorite: true;
 };
 
@@ -166,6 +167,17 @@ const normalizeFavoriteItem = (item: unknown): FavoriteListItem | null => {
         isRecord(item.variation) && isRecord(item.variation.data)
             ? item.variation.data
             : null,
+        ...[
+            item,
+            item.favorite,
+            item.product_variation,
+            item.productVariation,
+            item.variation,
+            item.product,
+            item.item,
+            item.data,
+            productVariation,
+        ].map((source) => (isRecord(source) && isRecord(source.body) ? source.body : null)),
     ].filter(isRecord);
 
     const variationId = toPositiveNumber(readNumber(nestedSources, ["product_variation_id", "variation_id", "id"]));
@@ -183,6 +195,7 @@ const normalizeFavoriteItem = (item: unknown): FavoriteListItem | null => {
     const price = readNumber(nestedSources, ["sale_price", "final_price", "special", "price"]) ?? 0;
 
     const oldPrice = readNumber(nestedSources, ["old_price", "compare_price", "regular_price"]);
+    const stock = readNumber(nestedSources, ["stock", "quantity", "qty"]);
     const slug = readString(nestedSources, ["slug", "uuid"]);
     const image = readImage(nestedSources);
 
@@ -194,6 +207,7 @@ const normalizeFavoriteItem = (item: unknown): FavoriteListItem | null => {
         main_image: image || undefined,
         slug: slug || undefined,
         product_variation_id: resolvedVariationId,
+        stock,
         is_favorite: true,
     };
 };
