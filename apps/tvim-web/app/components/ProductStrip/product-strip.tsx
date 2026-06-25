@@ -100,8 +100,6 @@ function getStripCopy(locale?: string) {
     return stripCopy.az;
 }
 
-console.log("copy test:", getStripCopy("ru"));
-
 
 
 

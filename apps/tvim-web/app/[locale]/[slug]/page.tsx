@@ -9,7 +9,7 @@ import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
 import { getPublicMenuDetail } from "@/lib/public-data";
 import { getStaticSlugParams } from "@/lib/static-paths";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
-import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
@@ -867,7 +867,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
                             <div className="relative min-h-[360px]">
                                 {sortedListItems.length > 0 ? (
-                                    <ProductStrip  items={sortedListItems} variant="selected" layout="grid" showHeader={false} />
+                                    <ProductGrid items={sortedListItems} locale={normalizedLocale} />
                                 ) : (
                                     <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
                                         Məhsul tapılmadı.

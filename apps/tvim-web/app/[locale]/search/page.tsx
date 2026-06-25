@@ -6,7 +6,7 @@ import { getTranslations } from "@/lib/i18n";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
-import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
 
 type LiveSearchEntry = {
     id?: number | string;
@@ -380,7 +380,7 @@ export default async function SearchPage({
                                 })()}
 
                                 {listItems.length > 0 ? (
-                                    <ProductStrip items={listItems} variant="selected" layout="grid" showHeader={false} />
+                                    <ProductGrid items={listItems} locale={normalizedLocale} />
                                 ) : (
                                     <div className="text-[15px] text-[#4b5565]">{t.search.noResults}</div>
                                 )}
