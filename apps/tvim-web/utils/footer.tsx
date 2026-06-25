@@ -129,13 +129,20 @@ const getFooterSections = (menus: MenuItem[], locale?: string) => {
         customerLinks = mapChildrenToLinks(customerSection.children, locale);
     }
 
-    const brandsHref = "/product/brands";
+    const normalizedLocale = String(locale || "").trim().toLowerCase() || "az";
+    const brandsHref = `/${normalizedLocale}/product/brands`;
     const brandsLink = {
         label: getBrandsFooterLabel(locale),
         href: brandsHref,
     };
-    const hasBrandsInCustomer = customerLinks.some((item) => String(item.href ?? "").trim().toLowerCase() === brandsHref);
-    const hasBrandsInCompany = companyLinks.some((item) => String(item.href ?? "").trim().toLowerCase() === brandsHref);
+    const hasBrandsInCustomer = customerLinks.some((item) => {
+        const href = String(item.href ?? "").trim().toLowerCase();
+        return href === "/product/brands" || href.endsWith("/product/brands");
+    });
+    const hasBrandsInCompany = companyLinks.some((item) => {
+        const href = String(item.href ?? "").trim().toLowerCase();
+        return href === "/product/brands" || href.endsWith("/product/brands");
+    });
 
     if (!hasBrandsInCustomer && !hasBrandsInCompany && companyTitle) {
         companyLinks = [...companyLinks, brandsLink];

@@ -353,6 +353,10 @@ const NavbarWrapper = ({
                 return { ...item, href: `/${effectiveLocale}` };
             }
 
+            if (href === "/product/brands") {
+                return { ...item, href: `/${effectiveLocale}/product/brands` };
+            }
+
             if (!href.startsWith("/")) return item;
 
             const segments = href.split("/").filter(Boolean);
@@ -370,10 +374,10 @@ const NavbarWrapper = ({
             })
             : [];
 
-        const brandsHref = "/product/brands";
+        const brandsHref = `/${effectiveLocale}/product/brands`;
         const hasBrandsItem = normalizedItems.some((item) => {
             const href = String(item?.href ?? "").trim().toLowerCase();
-            return href === brandsHref || href.endsWith("/product/brands");
+            return href === "/product/brands" || href.endsWith("/product/brands");
         });
 
         if (hasBrandsItem) {

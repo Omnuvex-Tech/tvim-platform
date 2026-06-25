@@ -77,7 +77,7 @@ const Footer = ({ footerMenus, footerSettings, locale }: FooterComponentProps) =
             ? normalizedStored
             : locale;
 
-    const dynamicSections = utils.footer.getFooterSections(footerMenus, locale);
+    const dynamicSections = utils.footer.getFooterSections(footerMenus, effectiveLocale);
     let logo: ReactNode | undefined;
     let description: string | undefined;
     let rightsText: string | undefined;
