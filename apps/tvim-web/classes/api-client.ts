@@ -1,6 +1,7 @@
 import { config } from "@/config";
 import { ApiResponse } from "@/classes";
 import type { ApiResponseBody, RequestOptions } from "@repo/types/types";
+import { isDevelopmentRuntime } from "@/lib/runtime-env";
 
 type GetCacheEntry = {
     createdAt: number;
@@ -34,6 +35,10 @@ export class ApiClient {
         const method = typeof init.method === "string" ? init.method.toUpperCase() : "GET";
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        const startedAt =
+            typeof performance !== "undefined" && typeof performance.now === "function"
+                ? performance.now()
+                : Date.now();
 
         try {
             const url = new URL(`${this.baseUrl}${endpoint}`);
@@ -66,6 +71,25 @@ export class ApiClient {
                 }
             }
 
+            const recordServerMetric = async (status: number) => {
+                if (!isDevelopmentRuntime || typeof window !== "undefined") {
+                    return;
+                }
+
+                const endedAt =
+                    typeof performance !== "undefined" && typeof performance.now === "function"
+                        ? performance.now()
+                        : Date.now();
+                const { recordDevApiMetric } = await import("@/lib/dev-request-metrics");
+
+                recordDevApiMetric({
+                    durationMs: Math.max(endedAt - startedAt, 0),
+                    method,
+                    status,
+                    url: `${url.pathname}${url.search}`,
+                });
+            };
+
             const runFetch = async (): Promise<ApiResponse<T>> => {
             const response = await fetch(url.toString(), {
                 ...init,
@@ -82,12 +106,14 @@ export class ApiClient {
             const parsedBody = text ? (JSON.parse(text) as ApiResponseBody<T>) : null;
 
             if (parsedBody && typeof parsedBody.success === "boolean") {
+                await recordServerMetric(response.status);
                 return new ApiResponse<T>({
                     ...parsedBody,
                     status: response.status,
                 });
             }
 
+            await recordServerMetric(response.status);
             return new ApiResponse<T>({
                 success: false,
                 message: "API-dan gözlənilməz cavab gəldi",
@@ -136,6 +162,21 @@ export class ApiClient {
 
             const isTimeout = errorName === "AbortError";
             const message = error instanceof Error ? error.message : "Naməlum xəta";
+
+            if (isDevelopmentRuntime && typeof window === "undefined") {
+                const endedAt =
+                    typeof performance !== "undefined" && typeof performance.now === "function"
+                        ? performance.now()
+                        : Date.now();
+                const { recordDevApiMetric } = await import("@/lib/dev-request-metrics");
+
+                recordDevApiMetric({
+                    durationMs: Math.max(endedAt - startedAt, 0),
+                    method,
+                    status: isTimeout ? 408 : 0,
+                    url: endpoint,
+                });
+            }
 
             return new ApiResponse<T>({
                 success: false,

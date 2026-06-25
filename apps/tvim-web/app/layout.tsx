@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { NotifyProvider, NotifyContainer } from "@repo/ui";
 import { QueryProvider } from "@/app/providers";
+import { DevelopmentPerformance } from "@/app/components/DevelopmentPerformance/development-performance";
 import { MobileBottomTabs } from "@/app/components/MobileBottomTabs/mobile-bottom-tabs";
 import { config } from "@/config";
 import "./globals.css";
@@ -49,6 +50,7 @@ export default function RootLayout({
                         <main className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">{children}</main>
                         <MobileBottomTabs />
                         <NotifyContainer />
+                        <DevelopmentPerformance />
                     </NotifyProvider>
                 </QueryProvider>
             </body>

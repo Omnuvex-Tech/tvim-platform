@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "next dev",
         "build": "next build",
+        "build:clean": "node -e \"require('node:fs').rmSync('.next', { recursive: true, force: true })\" && next build",
         "start": "next start",
         "lint": "eslint --max-warnings 0",
         "check-types": "next typegen && tsc --noEmit"

@@ -47,11 +47,15 @@ const decodeCookieValue = (value: string) => {
     return current;
 };
 
-export const encodeTokenForCookie = (token: string) => encodeURIComponent(token);
+export const normalizeAuthToken = (token: string) =>
+    token.replace(/^Bearer\s+/i, "").trim();
+
+export const encodeTokenForCookie = (token: string) =>
+    encodeURIComponent(normalizeAuthToken(token));
 
 export const decodeTokenFromCookie = (value?: string) => {
     if (!value) return null;
-    const decoded = decodeCookieValue(value).trim();
+    const decoded = normalizeAuthToken(decodeCookieValue(value));
     return decoded || null;
 };
 

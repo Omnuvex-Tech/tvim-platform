@@ -19,6 +19,11 @@ type MemoryCacheEntry<T> = {
 };
 
 const navigationMemoryCache = new Map<string, MemoryCacheEntry<unknown>>();
+const languagesMemoryCache: MemoryCacheEntry<Language[]> = {
+    createdAt: 0,
+    promise: null,
+    value: null,
+};
 
 async function getFromNavigationMemoryCache<T>(key: string, loader: () => Promise<T>) {
     const now = Date.now();
@@ -54,14 +59,42 @@ async function getFromNavigationMemoryCache<T>(key: string, loader: () => Promis
     return await promise;
 }
 
-const getCachedLanguages = unstable_cache(
-    async () => {
-        const response = await api.get<Language[]>(config.endpoints.languages.list);
-        return response.success && Array.isArray(response.data) ? response.data : [];
-    },
-    ["public-languages"],
-    { revalidate: LANGUAGES_REVALIDATE_SECONDS, tags: ["public-languages"] }
-);
+async function getCachedLanguages() {
+    const now = Date.now();
+
+    if (
+        languagesMemoryCache.value &&
+        languagesMemoryCache.value.length > 0 &&
+        now - languagesMemoryCache.createdAt < LANGUAGES_REVALIDATE_SECONDS * 1_000
+    ) {
+        return languagesMemoryCache.value;
+    }
+
+    if (languagesMemoryCache.promise) {
+        return await languagesMemoryCache.promise;
+    }
+
+    const promise = api.get<Language[]>(config.endpoints.languages.list).then((response) => {
+        const languages = response.success && Array.isArray(response.data) ? response.data : [];
+
+        if (languages.length > 0) {
+            languagesMemoryCache.createdAt = Date.now();
+            languagesMemoryCache.value = languages;
+        } else {
+            languagesMemoryCache.createdAt = 0;
+            languagesMemoryCache.value = null;
+        }
+
+        languagesMemoryCache.promise = null;
+        return languages;
+    }).catch(() => {
+        languagesMemoryCache.promise = null;
+        return [];
+    });
+
+    languagesMemoryCache.promise = promise;
+    return await promise;
+}
 
 const getCachedProjectSettingsResponse = unstable_cache(
     async (incomingLocale: string) => {

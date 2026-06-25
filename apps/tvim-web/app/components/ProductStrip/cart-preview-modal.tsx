@@ -106,15 +106,6 @@ const CartPreviewModal = ({
                                         </div>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => onRemove(item.key)}
-                                        className="inline-flex h-8 w-8 items-center justify-center justify-self-end self-start text-[#93a1b6] transition-colors hover:text-[#5f6f86] md:self-center md:justify-self-end cursor-pointer"
-                                        aria-label="Səbətdən sil"
-                                    >
-                                        <i className="fa-regular fa-circle-xmark text-[18px]" aria-hidden="true" />
-                                    </button>
-
                                     <div className="col-span-3 flex justify-end md:col-span-1 md:block">
                                         <div className="inline-flex h-[61px] w-[126px] items-center justify-between rounded-[20px] border border-[#d6deea] px-4">
                                             <button
@@ -183,6 +174,17 @@ const CartPreviewModal = ({
                                             Cəmi
                                         </p>
                                         <p className="mt-[2px] whitespace-nowrap text-[15px] leading-none font-medium text-[#171d28]">{item.totalPriceText}</p>
+                                    </div>
+
+                                    <div className="col-span-3 flex justify-end md:col-span-1 md:justify-self-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => onRemove(item.key)}
+                                            className="inline-flex h-8 w-8 items-center justify-center text-[#93a1b6] transition-colors hover:text-[#5f6f86] cursor-pointer"
+                                            aria-label="Səbətdən sil"
+                                        >
+                                            <i className="fa-regular fa-circle-xmark text-[18px]" aria-hidden="true" />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
