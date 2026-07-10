@@ -4,7 +4,6 @@ import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicMenuDetail } from "@/lib/public-data";
-import { getStaticItemSlugParams } from "@/lib/static-paths";
 import { buildSeoMetadata } from "@/lib/seo";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
@@ -32,6 +31,7 @@ type GridItem = {
 };
 
 export const revalidate = 31_536_000;
+export const dynamicParams = true;
 
 type MenuDetailData = {
     menu: {
@@ -238,10 +238,6 @@ const resolveAssetUrl = (value: string | null | undefined) => {
     }
     return cleaned;
 };
-
-export async function generateStaticParams() {
-    return await getStaticItemSlugParams();
-}
 
 async function getProductDetailBySlug(slug: string, locale: string) {
     try {

@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { MouseEvent, ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useNotify } from "@repo/ui";
-import { addProductToCart } from "@/lib/cart/client";
-import { listCompare, toggleCompare } from "@/lib/compare/client";
-import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
+const QuickOrderPopup = dynamic(
+    () => import("@/app/components/ProductStrip/quick-order-popup").then((module) => module.QuickOrderPopup),
+    { ssr: false }
+);
 
-type ProductGridCardActionsProps = {
+const loadFavoritesClient = () => import("@/lib/favorites/client");
+const loadCompareClient = () => import("@/lib/compare/client");
+const loadCartClient = () => import("@/lib/cart/client");
+
+export type ProductGridCardActionItem = {
     id: number;
     title: string;
     priceText: string;
@@ -19,29 +26,44 @@ type ProductGridCardActionsProps = {
     cartVariant: "yellow" | "blue";
 };
 
-export function ProductGridCardActions({
-    id,
-    title,
-    priceText,
-    imageUrl,
-    productVariationId,
-    stock,
-    cartVariant,
-}: ProductGridCardActionsProps) {
+type ProductGridCardActionsProviderProps = {
+    children: ReactNode;
+};
+
+type ProductGridCardActionsContextValue = {
+    favoriteIds: Set<number>;
+    compareIds: Set<number>;
+    favoritePendingIds: Set<number>;
+    comparePendingIds: Set<number>;
+    cartPendingIds: Set<number>;
+    handleFavoriteClick: (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => Promise<void>;
+    handleCompareClick: (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => Promise<void>;
+    handleCartClick: (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => Promise<void>;
+};
+
+const ProductGridCardActionsContext = createContext<ProductGridCardActionsContextValue | null>(null);
+
+export function ProductGridCardActionsProvider({ children }: ProductGridCardActionsProviderProps) {
     const notify = useNotify();
     const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
     const [compareIds, setCompareIds] = useState<Set<number>>(new Set());
     const [favoritePendingIds, setFavoritePendingIds] = useState<Set<number>>(new Set());
     const [comparePendingIds, setComparePendingIds] = useState<Set<number>>(new Set());
-    const [cartPending, setCartPending] = useState(false);
+    const [cartPendingIds, setCartPendingIds] = useState<Set<number>>(new Set());
+    const [quickOrderProduct, setQuickOrderProduct] = useState<ProductGridCardActionItem | null>(null);
 
     useEffect(() => {
         let alive = true;
 
         const load = async () => {
+            const [favoritesClient, compareClient] = await Promise.all([
+                loadFavoritesClient(),
+                loadCompareClient(),
+            ]);
+
             const [favoritesResponse, compareResponse] = await Promise.all([
-                listFavorites(),
-                listCompare(),
+                favoritesClient.listFavorites(),
+                compareClient.listCompare(),
             ]);
 
             if (!alive) return;
@@ -100,18 +122,13 @@ export function ProductGridCardActions({
         };
     }, []);
 
-    const isFavorite = typeof productVariationId === "number" && favoriteIds.has(productVariationId);
-    const isFavoritePending = typeof productVariationId === "number" && favoritePendingIds.has(productVariationId);
-    const isCompared = typeof productVariationId === "number" && compareIds.has(productVariationId);
-    const isComparePending = typeof productVariationId === "number" && comparePendingIds.has(productVariationId);
-
-    const handleFavoriteClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleFavoriteClick = async (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         event.stopPropagation();
 
-        const variationId = productVariationId;
+        const variationId = product.productVariationId;
         if (!variationId) {
-            notify.error("Bu məhsul favorilərə əlavə edilə bilmədi.");
+            notify.error("Bu mehsul favorilere elave edile bilmedi.");
             return;
         }
         if (favoritePendingIds.has(variationId)) return;
@@ -126,7 +143,8 @@ export function ProductGridCardActions({
         });
 
         try {
-            const response = await toggleFavorite(variationId);
+            const favoritesClient = await loadFavoritesClient();
+            const response = await favoritesClient.toggleFavorite(variationId);
             setFavoriteIds((prev) => {
                 const next = new Set(prev);
                 if (response.data.action === "deleted") next.delete(variationId);
@@ -141,7 +159,7 @@ export function ProductGridCardActions({
                 else next.delete(variationId);
                 return next;
             });
-            notify.error(error instanceof Error ? error.message : "Favorilərə əlavə edilərkən xəta baş verdi.");
+            notify.error(error instanceof Error ? error.message : "Favorilere elave edilerken xeta bas verdi.");
         } finally {
             setFavoritePendingIds((prev) => {
                 const next = new Set(prev);
@@ -151,13 +169,13 @@ export function ProductGridCardActions({
         }
     };
 
-    const handleCompareClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleCompareClick = async (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         event.stopPropagation();
 
-        const variationId = productVariationId;
+        const variationId = product.productVariationId;
         if (!variationId) {
-            notify.error("Bu məhsul müqayisəyə əlavə edilə bilmədi.");
+            notify.error("Bu mehsul muqayiseye elave edile bilmedi.");
             return;
         }
         if (comparePendingIds.has(variationId)) return;
@@ -172,7 +190,8 @@ export function ProductGridCardActions({
         });
 
         try {
-            const response = await toggleCompare(variationId);
+            const compareClient = await loadCompareClient();
+            const response = await compareClient.toggleCompare(variationId);
             setCompareIds((prev) => {
                 const next = new Set(prev);
                 if (response.data.action === "deleted") next.delete(variationId);
@@ -187,7 +206,7 @@ export function ProductGridCardActions({
                 else next.delete(variationId);
                 return next;
             });
-            notify.error(error instanceof Error ? error.message : "Müqayisə yenilənərkən xəta baş verdi.");
+            notify.error(error instanceof Error ? error.message : "Muqayise yenilenirken xeta bas verdi.");
         } finally {
             setComparePendingIds((prev) => {
                 const next = new Set(prev);
@@ -197,88 +216,144 @@ export function ProductGridCardActions({
         }
     };
 
-    const handleCartClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleCartClick = async (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         event.stopPropagation();
 
-        if (cartPending) return;
+        if (cartPendingIds.has(product.id)) return;
 
-        if (cartVariant !== "blue") {
-            notify.error("Məhsul stokda yoxdur.");
+        if (product.cartVariant !== "blue") {
+            setQuickOrderProduct(product);
             return;
         }
 
-        setCartPending(true);
+        setCartPendingIds((prev) => new Set(prev).add(product.id));
         try {
-            await addProductToCart({
-                id,
-                title,
-                price: priceText,
-                imageUrl,
-                productVariationId,
-                stock,
+            const cartClient = await loadCartClient();
+            await cartClient.addProductToCart({
+                id: product.id,
+                title: product.title,
+                price: product.priceText,
+                imageUrl: product.imageUrl,
+                productVariationId: product.productVariationId,
+                stock: product.stock,
             });
 
-            notify.success(title ? `${title} səbətinizə müvəffəqiyyətlə əlavə edildi!` : "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!");
+            notify.success(product.title ? `${product.title} sebetinize muveffeqiyyetle elave edildi!` : "Mehsul sebetinize muveffeqiyyetle elave edildi!");
         } catch (error) {
-            notify.error(error instanceof Error ? error.message : "Səbətə əlavə edərkən xəta baş verdi.");
+            notify.error(error instanceof Error ? error.message : "Sebete elave ederken xeta bas verdi.");
         } finally {
-            setCartPending(false);
+            setCartPendingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(product.id);
+                return next;
+            });
         }
     };
 
+    const value = useMemo<ProductGridCardActionsContextValue>(
+        () => ({
+            favoriteIds,
+            compareIds,
+            favoritePendingIds,
+            comparePendingIds,
+            cartPendingIds,
+            handleFavoriteClick,
+            handleCompareClick,
+            handleCartClick,
+        }),
+        [favoriteIds, compareIds, favoritePendingIds, comparePendingIds, cartPendingIds]
+    );
+
     return (
         <>
-            <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
-                <button
-                    type="button"
-                    disabled={isFavoritePending || !productVariationId}
-                    onClick={handleFavoriteClick}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
-                        isFavorite
-                            ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                            : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-                    } ${isFavoritePending || !productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                    aria-label="Seçilmişlər"
-                >
-                    <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
-                </button>
+            <ProductGridCardActionsContext.Provider value={value}>
+                {children}
+            </ProductGridCardActionsContext.Provider>
+            {quickOrderProduct ? (
+                <QuickOrderPopup
+                    isOpen={Boolean(quickOrderProduct)}
+                    onClose={() => setQuickOrderProduct(null)}
+                    productVariationId={quickOrderProduct.productVariationId ?? quickOrderProduct.id}
+                    productTitle={quickOrderProduct.title}
+                    productCode={String(quickOrderProduct.productVariationId ?? quickOrderProduct.id)}
+                />
+            ) : null}
+        </>
+    );
+}
 
-                <button
-                    type="button"
-                    disabled={isComparePending || !productVariationId}
-                    onClick={handleCompareClick}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
-                        isCompared
-                            ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                            : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
-                    } ${isComparePending || !productVariationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                    aria-label="Müqayisə"
-                >
-                    <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
-                </button>
-            </div>
+export function ProductGridCardSideActions(props: ProductGridCardActionItem) {
+    const context = useContext(ProductGridCardActionsContext);
+
+    if (!context) return null;
+
+    const variationId = props.productVariationId;
+    const isFavorite = typeof variationId === "number" && context.favoriteIds.has(variationId);
+    const isFavoritePending = typeof variationId === "number" && context.favoritePendingIds.has(variationId);
+    const isCompared = typeof variationId === "number" && context.compareIds.has(variationId);
+    const isComparePending = typeof variationId === "number" && context.comparePendingIds.has(variationId);
+
+    return (
+        <div className="absolute top-3 left-3 z-[3] flex flex-col items-center gap-2">
+            <button
+                type="button"
+                disabled={isFavoritePending || !variationId}
+                onClick={(event) => void context.handleFavoriteClick(props, event)}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                    isFavorite
+                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                        : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                } ${isFavoritePending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                aria-label="Secilmisler"
+            >
+                <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[14px] leading-none`} aria-hidden="true" />
+            </button>
 
             <button
                 type="button"
-                disabled={cartPending || cartVariant !== "blue"}
-                onClick={handleCartClick}
-                className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full ${
-                    cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"
-                } ${cartPending || cartVariant !== "blue" ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                aria-label={cartVariant === "blue" ? "Səbətə əlavə et" : "Məhsul stokda yoxdur"}
+                disabled={isComparePending || !variationId}
+                onClick={(event) => void context.handleCompareClick(props, event)}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                    isCompared
+                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                        : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                } ${isComparePending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                aria-label="Muqayise"
             >
-                {cartVariant === "blue" ? (
-                    <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
-                ) : (
-                    <svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
-                        <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                )}
+                <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
             </button>
-        </>
+        </div>
+    );
+}
+
+export function ProductGridCartButton(props: ProductGridCardActionItem) {
+    const context = useContext(ProductGridCardActionsContext);
+
+    if (!context) return null;
+
+    const isCartPending = context.cartPendingIds.has(props.id);
+
+    return (
+        <button
+            type="button"
+            disabled={isCartPending}
+            onClick={(event) => void context.handleCartClick(props, event)}
+            className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full ${
+                props.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"
+            } ${isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+            aria-label={props.cartVariant === "blue" ? "Sebete elave et" : "Mehsul stokda yoxdur"}
+        >
+            {props.cartVariant === "blue" ? (
+                <i className="fas fa-shopping-cart text-white" aria-hidden="true" />
+            ) : (
+                <svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M1.25 6V3.25C1.25 2.14543 2.14543 1.25 3.25 1.25H5" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 1.25H12.75C13.8546 1.25 14.75 2.14543 14.75 3.25V12.75C14.75 13.8546 13.8546 14.75 12.75 14.75H3.25C2.14543 14.75 1.25 13.8546 1.25 12.75V6" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M8 1.25V9.1" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" />
+                    <path d="M5.9 7.7L8 9.8L10.1 7.7" stroke="#1b212e" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            )}
+        </button>
     );
 }

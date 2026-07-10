@@ -25,7 +25,6 @@ import {
     PhoneCall,
     X,
 } from "lucide-react";
-import { FaWhatsapp } from "react-icons/fa";
 import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
@@ -1690,7 +1689,9 @@ export function Navbar({
                             aria-label="WhatsApp ilə əlaqə"
                             className="inline-flex size-8 cursor-pointer items-center justify-center rounded-[10px] text-[#25D366] transition-colors hover:text-[#1fb85a]"
                         >
-                            <FaWhatsapp className="size-6" />
+                            <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden="true">
+                                <path d="M19.05 4.91A9.82 9.82 0 0 0 12.03 2C6.61 2 2.2 6.41 2.2 11.83c0 1.74.46 3.45 1.33 4.95L2 22l5.37-1.49a9.8 9.8 0 0 0 4.66 1.18h.01c5.42 0 9.83-4.41 9.83-9.83 0-2.62-1.02-5.08-2.82-6.95Zm-7.02 15.12h-.01a8.16 8.16 0 0 1-4.15-1.13l-.3-.18-3.19.89.85-3.11-.2-.32a8.17 8.17 0 0 1-1.26-4.35c0-4.5 3.66-8.16 8.17-8.16 2.18 0 4.23.84 5.77 2.39a8.1 8.1 0 0 1 2.39 5.78c0 4.5-3.67 8.17-8.16 8.17Zm4.48-6.11c-.25-.13-1.47-.73-1.7-.82-.23-.08-.4-.12-.56.13-.17.25-.64.82-.79.98-.15.17-.3.19-.55.07-.25-.13-1.07-.39-2.03-1.25a7.53 7.53 0 0 1-1.41-1.75c-.15-.25-.02-.38.11-.5.11-.11.25-.3.38-.45.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.07-.13-.56-1.35-.77-1.85-.2-.48-.41-.41-.56-.42h-.48c-.16 0-.42.06-.64.3-.22.25-.84.82-.84 1.99 0 1.17.86 2.31.98 2.47.12.17 1.68 2.57 4.07 3.6.57.25 1.01.39 1.36.5.57.18 1.08.16 1.49.1.46-.07 1.47-.6 1.67-1.18.21-.58.21-1.08.15-1.18-.05-.09-.22-.15-.47-.28Z" />
+                            </svg>
                         </a>
 
                         <button

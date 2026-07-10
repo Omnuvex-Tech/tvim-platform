@@ -1,4 +1,5 @@
-import { ProductGridInteractive } from "./product-grid-interactive";
+import Link from "next/link";
+import { ProductGridCartButton, ProductGridCardActionsProvider, ProductGridCardSideActions } from "./product-grid-card-actions";
 
 type ProductGridProps = {
     locale: string;
@@ -149,5 +150,82 @@ export function ProductGrid({ locale, items }: ProductGridProps) {
         .map((it, index) => normalizeProduct(it as any, normalizedLocale, index))
         .filter((it): it is NormalizedProduct => Boolean(it));
 
-    return <ProductGridInteractive products={products} />;
+    return (
+        <ProductGridCardActionsProvider>
+            <div className="product-carousel">
+                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
+                    {products.map((product, index) => (
+                        <li key={product.key}>
+                            <article className="group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none cursor-pointer max-[512px]:pt-4 max-[512px]:pb-5">
+                                <ProductGridCardSideActions
+                                    id={product.id}
+                                    title={product.title}
+                                    priceText={product.priceText}
+                                    imageUrl={product.imageUrl}
+                                    productVariationId={product.productVariationId}
+                                    stock={product.stock}
+                                    cartVariant={product.cartVariant}
+                                />
+
+                                <div className="product-thumb relative mx-auto mt-0 flex aspect-square w-full max-w-[135px] items-center justify-center overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
+                                    {product.discountText ? (
+                                        <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
+                                            {product.discountText}
+                                        </span>
+                                    ) : null}
+
+                                    <Link href={product.href} className="block w-full text-center">
+                                        <div className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                            {product.imageUrl ? (
+                                                <img
+                                                    draggable={false}
+                                                    src={product.imageUrl}
+                                                    alt={product.title}
+                                                    className="h-full w-full object-cover transition-transform duration-200 ease-out"
+                                                    loading={index === 0 ? "eager" : "lazy"}
+                                                    fetchPriority={index === 0 ? "high" : "auto"}
+                                                />
+                                            ) : null}
+                                        </div>
+                                    </Link>
+                                </div>
+
+                                <Link href={product.href} className="block w-full text-center">
+                                    <h3 className="hoopz-thumb__name mt-3">{product.title}</h3>
+                                </Link>
+
+                                <div className="mt-2 flex items-center justify-center gap-1">
+                                    <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                                    <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                                    <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                                    <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                                    <i className="far fa-star text-[#d2d7e2] text-[18px]" aria-hidden="true" />
+                                </div>
+
+                                <div className="price mt-2 text-center">
+                                    {product.oldPriceText ? <span className="price-old block mb-1">{product.oldPriceText}</span> : null}
+                                    <span
+                                        className="price-new block text-[24px] font-bold"
+                                        style={{ color: product.oldPriceText ? "#ff0000" : "#000000" }}
+                                    >
+                                        {product.priceText}
+                                    </span>
+                                </div>
+
+                                <ProductGridCartButton
+                                    id={product.id}
+                                    title={product.title}
+                                    priceText={product.priceText}
+                                    imageUrl={product.imageUrl}
+                                    productVariationId={product.productVariationId}
+                                    stock={product.stock}
+                                    cartVariant={product.cartVariant}
+                                />
+                            </article>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </ProductGridCardActionsProvider>
+    );
 }

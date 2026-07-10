@@ -1,20 +1,5 @@
-import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicLanguages, getPublicMenuList } from "@/lib/public-data";
-
-type ProductListResponse = {
-    data?: {
-        items?: Array<{
-            slug?: string;
-            variation?: {
-                slug?: string;
-            };
-        }>;
-        pagination?: {
-            last_page?: number;
-        };
-    };
-};
 
 type ProductBrandsResponseData = {
     values?: Array<{
@@ -124,46 +109,6 @@ const collectCategoryPaths = (
     children.forEach((child) => collectCategoryPaths(child, locale, paths));
 };
 
-async function collectProductPaths(locale: string, paths: Set<string>) {
-    const firstPage = await api.get<ProductListResponse>(config.endpoints.products.paginatedList, {
-        locale,
-        params: {
-            page: "1",
-            per_page: "100",
-        },
-        cache: "force-cache",
-    });
-
-    const pages = [firstPage.data ?? null];
-    const lastPage = Math.max(1, Number(firstPage.data?.data?.pagination?.last_page ?? 1));
-
-    if (lastPage > 1) {
-        const remainingPages = await Promise.all(
-            Array.from({ length: lastPage - 1 }, (_, index) =>
-                api.get<ProductListResponse>(config.endpoints.products.paginatedList, {
-                    locale,
-                    params: {
-                        page: String(index + 2),
-                        per_page: "100",
-                    },
-                    cache: "force-cache",
-                }).then((response) => response.data ?? null)
-            )
-        );
-
-        pages.push(...remainingPages);
-    }
-
-    pages.forEach((payload) => {
-        const items = Array.isArray(payload?.data?.items) ? payload.data.items : [];
-        items.forEach((item) => {
-            const slug = normalizePath(String(item.variation?.slug ?? item.slug ?? ""));
-            if (!slug) return;
-            paths.add(`${locale}/products/${slug}`);
-        });
-    });
-}
-
 async function collectBrandPaths(locale: string, paths: Set<string>) {
     const response = await api.get<ProductBrandsResponseData>("/product/brands", {
         locale,
@@ -195,7 +140,6 @@ export async function getStaticPublicPaths() {
                     locale,
                     cache: "force-cache",
                 }).then((response) => response.data ?? null),
-                collectProductPaths(locale, paths),
                 collectBrandPaths(locale, paths),
             ]);
 
@@ -221,7 +165,11 @@ export async function getStaticItemSlugParams() {
 
     return paths
         .map((path) => path.split("/").filter(Boolean))
-        .filter((segments) => segments.length === 3)
+        .filter((segments) => {
+            if (segments.length !== 3) return false;
+            const normalizedSlug = String(segments[1] ?? "").trim().toLowerCase();
+            return normalizedSlug !== "products" && normalizedSlug !== "product";
+        })
         .map(([locale, slug, itemSlug]) => ({ locale, slug, itemSlug }));
 }
 

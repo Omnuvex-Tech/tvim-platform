@@ -46,11 +46,7 @@
 
 // export { Footer };
 
-
-"use client";
-
 import type { ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import {
     type FooterComponentProps,
     type FooterContactItem,
@@ -60,23 +56,9 @@ import {
     Footer as FooterUI,
 } from "@repo/ui";
 import { utils } from "@/utils";
-import { useLanguageStore } from "@/stores";
-
-const SUPPORTED_LOCALES = new Set(["az", "en", "ru"]);
 
 const Footer = ({ footerMenus, footerSettings, locale }: FooterComponentProps) => {
-    const pathname = usePathname();
-    const { locale: storedLocale } = useLanguageStore();
-
-    const localeFromPath = pathname.split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
-    const normalizedStored = storedLocale?.trim().toLowerCase() ?? "";
-
-    const effectiveLocale = SUPPORTED_LOCALES.has(localeFromPath)
-        ? localeFromPath
-        : SUPPORTED_LOCALES.has(normalizedStored)
-            ? normalizedStored
-            : locale;
-
+    const effectiveLocale = locale;
     const dynamicSections = utils.footer.getFooterSections(footerMenus, effectiveLocale);
     let logo: ReactNode | undefined;
     let description: string | undefined;

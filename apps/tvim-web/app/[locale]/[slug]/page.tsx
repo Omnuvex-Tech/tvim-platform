@@ -7,7 +7,6 @@ import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider"
 import { config } from "@/config";
 import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
 import { getPublicMenuDetail } from "@/lib/public-data";
-import { getStaticSlugParams } from "@/lib/static-paths";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
@@ -68,6 +67,7 @@ type Props = {
 };
 
 export const revalidate = 31_536_000;
+export const dynamicParams = true;
 
 type ProductListFilterValue = {
     value_id?: number;
@@ -186,10 +186,6 @@ const getCachedProductListPayload = unstable_cache(
     ["public-product-list-payload"],
     { revalidate: 31_536_000, tags: ["public-product-list-payload"] }
 );
-
-export async function generateStaticParams() {
-    return await getStaticSlugParams();
-}
 
 async function getMenuDetail(slug: string, locale: string) {
     return await getPublicMenuDetail<MenuDetailData>(slug, locale);

@@ -12,6 +12,7 @@ type ServiceLocaleRouteParams = {
 };
 
 export const revalidate = 31_536_000;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
     return await getStaticServiceSlugParams();
