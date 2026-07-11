@@ -5,6 +5,91 @@ import type { RequestFormData, RequestFormProps, RequestFormSubmitResult } from 
 import { cn } from "../../lib/utils";
 import { useNotify } from "../Notify/notify-provider";
 
+const AZ_COUNTRY_CODE = "994";
+const AZ_LOCAL_PHONE_LENGTH = 9;
+
+const extractAzerbaijanLocalDigits = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.startsWith(AZ_COUNTRY_CODE)) {
+    return digits.slice(AZ_COUNTRY_CODE.length, AZ_LOCAL_PHONE_LENGTH + AZ_COUNTRY_CODE.length);
+  }
+
+  return digits.slice(0, AZ_LOCAL_PHONE_LENGTH);
+};
+
+const formatAzerbaijanPhone = (value: string) => {
+  const localDigits = extractAzerbaijanLocalDigits(value);
+  if (!localDigits) return "";
+
+  const part1 = localDigits.slice(0, 2);
+  const part2 = localDigits.slice(2, 5);
+  const part3 = localDigits.slice(5, 7);
+  const part4 = localDigits.slice(7, 9);
+
+  let formatted = "+994";
+
+  if (part1) {
+    formatted += ` (${part1}`;
+    if (part1.length === 2) {
+      formatted += ")";
+    }
+  }
+
+  if (part2) {
+    formatted += ` ${part2}`;
+  }
+
+  if (part3) {
+    formatted += ` ${part3}`;
+  }
+
+  if (part4) {
+    formatted += ` ${part4}`;
+  }
+
+  return formatted;
+};
+
+const countLocalDigitsBeforeCursor = (value: string, cursorPosition: number) => {
+  const limit = Math.max(0, Math.min(cursorPosition, value.length));
+  const leftPart = value.slice(0, limit);
+  return extractAzerbaijanLocalDigits(leftPart).length;
+};
+
+const getCursorPositionFromLocalDigits = (formatted: string, localDigitsCount: number) => {
+  if (!formatted) return 0;
+  if (localDigitsCount <= 0) {
+    return Math.min(formatted.length, 4);
+  }
+
+  let countryDigitsLeft = AZ_COUNTRY_CODE.length;
+  let seenLocalDigits = 0;
+
+  for (let i = 0; i < formatted.length; i += 1) {
+    const char = formatted[i] ?? "";
+    if (!/\d/.test(char)) continue;
+
+    if (countryDigitsLeft > 0) {
+      countryDigitsLeft -= 1;
+      continue;
+    }
+
+    seenLocalDigits += 1;
+    if (seenLocalDigits >= localDigitsCount) {
+      let nextCursor = i + 1;
+
+      while (nextCursor < formatted.length && /\D/.test(formatted[nextCursor] ?? "")) {
+        nextCursor += 1;
+      }
+
+      return nextCursor;
+    }
+  }
+
+  return formatted.length;
+};
+
 const UserIcon = () => (
   <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none">
     <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.5" />
@@ -103,6 +188,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
   const [form, setForm] = useState<RequestFormData>({ name: "", phone: "", file: null, description: "" });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const phoneInputRef = useRef<HTMLInputElement | null>(null);
 
   const namePlaceholder = placeholders?.name?.trim() || "Adınız *";
   const phonePlaceholder = placeholders?.phone?.trim() || "Telefon *";
@@ -112,6 +198,61 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
   const set = (field: keyof Omit<RequestFormData, "file">) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setSuccess(false);
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const handlePhoneChange = (value: string, cursorPosition: number | null) => {
+    const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(value, cursorPosition ?? value.length);
+    const formattedPhone = formatAzerbaijanPhone(value);
+
+    setSuccess(false);
+    setForm((prev) => ({ ...prev, phone: formattedPhone }));
+
+    requestAnimationFrame(() => {
+      const input = phoneInputRef.current;
+      if (!input) return;
+
+      const nextCursor = getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor);
+      input.setSelectionRange(nextCursor, nextCursor);
+    });
+  };
+
+  const handlePhoneBackspace = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Backspace") return;
+
+    const input = event.currentTarget;
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+
+    if (selectionStart === null || selectionEnd === null) return;
+    if (selectionStart !== selectionEnd) return;
+
+    const currentValue = form.phone;
+    if (!currentValue) return;
+
+    const localDigits = extractAzerbaijanLocalDigits(currentValue);
+    const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(currentValue, selectionStart);
+    const deleteLocalIndex = localDigitsBeforeCursor - 1;
+
+    if (deleteLocalIndex < 0) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+
+    const nextLocalDigits = localDigits.slice(0, deleteLocalIndex) + localDigits.slice(deleteLocalIndex + 1);
+    const nextFormattedPhone = formatAzerbaijanPhone(nextLocalDigits);
+
+    setSuccess(false);
+    setForm((prev) => ({ ...prev, phone: nextFormattedPhone }));
+
+    requestAnimationFrame(() => {
+      const target = phoneInputRef.current;
+      if (!target) return;
+
+      const nextCursor = getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex);
+      target.setSelectionRange(nextCursor, nextCursor);
+    });
   };
 
   const handleSubmit = async () => {
@@ -148,7 +289,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
             </FormField>
 
             <FormField icon={<PhoneIcon />}>
-              <input suppressHydrationWarning className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={set("phone")} autoComplete="tel" />
+              <input suppressHydrationWarning ref={phoneInputRef} className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)} onKeyDown={handlePhoneBackspace} autoComplete="tel" />
             </FormField>
 
             <FileUpload file={form.file} onChange={(file) => {

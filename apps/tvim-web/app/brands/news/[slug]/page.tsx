@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
-import { getPublicMenuDetail } from "@/lib/public-data";
+import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
@@ -124,6 +124,20 @@ async function getMenuDetail(slug: string, locale: string) {
             if (fromDetail) return fromDetail;
 
             const deepItem = tryDeepFindItem(responseDetail);
+            if (deepItem) {
+                return {
+                    menu: { name: deepItem.name ?? normalizeSlugText(slug), title: deepItem.name ?? normalizeSlugText(slug) },
+                    data: { item: deepItem },
+                };
+            }
+        }
+
+        const menuList = await getPublicMenuList(locale);
+        if (menuList) {
+            const fromMenuList = tryResolveFromPayload(menuList);
+            if (fromMenuList) return fromMenuList;
+
+            const deepItem = tryDeepFindItem(menuList);
             if (deepItem) {
                 return {
                     menu: { name: deepItem.name ?? normalizeSlugText(slug), title: deepItem.name ?? normalizeSlugText(slug) },
@@ -268,7 +282,7 @@ export async function renderBrandNewsSlugPage({
             <Breadcrumb
                 items={[
                     { label: locale === "en" ? "Home" : "Ana sehife", href: `/${locale}` },
-                    { label: "Korporativ" },
+                    { label: "Korporativ", href: `/${locale}/corporate` },
                     { label: pageTitle, isCurrent: true as const },
                 ]}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2 [&_ul.breadcrumb]:!mb-0 [&_ul.breadcrumb]:!pb-0"

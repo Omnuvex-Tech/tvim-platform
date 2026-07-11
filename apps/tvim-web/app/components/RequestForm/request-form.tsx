@@ -6,6 +6,24 @@ import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 
+function normalizeAzerbaijanPhone(value: string) {
+    const digits = String(value ?? "").replace(/\D/g, "");
+
+    if (digits.startsWith("994") && digits.length === 12) {
+        return `+${digits}`;
+    }
+
+    if (digits.length === 9) {
+        return `+994${digits}`;
+    }
+
+    if (digits.startsWith("0") && digits.length === 10) {
+        return `+994${digits.slice(1)}`;
+    }
+
+    return String(value ?? "").trim();
+}
+
 function resolveSubmitUrl(path: string) {
     const normalizedPath = path.trim();
 
@@ -97,6 +115,11 @@ const RequestForm = (props: RequestFormProps) => {
     const handleSubmit = async (data: RequestFormData) => {
         let successMessage = "";
         let ok = false;
+        const normalizedPhone = normalizeAzerbaijanPhone(data.phone);
+        const normalizedData = {
+            ...data,
+            phone: normalizedPhone,
+        } satisfies RequestFormData;
 
         const submitConfig = resolveRequestFormSubmitConfig(props.submitConfig);
 
@@ -115,7 +138,7 @@ const RequestForm = (props: RequestFormProps) => {
                     const key = String(field.id).trim();
                     if (!key) continue;
 
-                    const value = resolveValueForFieldType(String(field.type ?? ""), data);
+                    const value = resolveValueForFieldType(String(field.type ?? ""), normalizedData);
                     if (value === null) continue;
 
                     if (value instanceof File) {
@@ -161,12 +184,12 @@ const RequestForm = (props: RequestFormProps) => {
                 }
             } else {
                 const formData = new FormData();
-                formData.append("name", data.name);
-                formData.append("phone", data.phone);
-                formData.append("description", data.description);
+                formData.append("name", normalizedData.name);
+                formData.append("phone", normalizedData.phone);
+                formData.append("description", normalizedData.description);
 
-                if (data.file) {
-                    formData.append("file", data.file);
+                if (normalizedData.file) {
+                    formData.append("file", normalizedData.file);
                 }
 
                 const response = await fetch(submitUrl, {
@@ -202,7 +225,7 @@ const RequestForm = (props: RequestFormProps) => {
             }
         }
 
-        const extra = (await props.onSubmit?.(data)) as void | RequestFormSubmitResult;
+        const extra = (await props.onSubmit?.(normalizedData)) as void | RequestFormSubmitResult;
         const message = typeof extra?.message === "string" && extra.message.trim() ? extra.message.trim() : successMessage;
         const mergedOk = typeof extra?.ok === "boolean" ? extra.ok : ok;
         if (message || mergedOk) {

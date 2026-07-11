@@ -356,8 +356,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     }
 
     const includedItemsSection = includedItems.length > 0 ? (
-        <div className="mt-0 w-full">
-            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 px-1 lg:px-2">
+        <div className="mt-8 w-full lg:mt-10">
+            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-1 lg:gap-10 lg:px-2">
                 {includedItems.map((inc: any, idx: number) => {
                     if (inc.included_type === "menu" && inc.type === "form") {
                         const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
@@ -1122,8 +1122,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                     {includedItems.length > 0 && (
-                        <div className="mt-0 w-full">
-                            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-0 px-1 lg:px-2">
+                        <div className="mt-8 w-full lg:mt-10">
+                            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-1 lg:gap-10 lg:px-2">
                                         {includedItems.map((inc: any, idx: number) => {
                     if (inc.included_type === "menu" && inc.type === "form") {
                         const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
