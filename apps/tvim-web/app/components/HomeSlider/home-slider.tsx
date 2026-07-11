@@ -197,10 +197,11 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                         className={`flex h-full ${isDragging ? "" : "transition-transform duration-700 ease-in-out"}`}
                         style={{ transform: `translateX(calc(-${index * 100}% + ${dragOffset}px))` }}
                     >
-                        {activeSlides.map((slide) => {
+                        {activeSlides.map((slide, slideIndex) => {
                             const isLinkAction = slide.action_type === "link" && !!slide.button_link;
                             const slideLink = isLinkAction ? normalizeHref(slide.button_link ?? "") : "";
                             const slideIsExternal = slideLink ? isExternalHref(slideLink) : false;
+                            const isPrioritySlide = slideIndex === 0;
 
                             return (
                                 <article key={slide.id} className="relative h-full w-full shrink-0">
@@ -230,6 +231,9 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                                             src={slide.image}
                                             alt={slide.title ?? "Slider image"}
                                             className="h-full w-full object-cover"
+                                            loading={isPrioritySlide ? "eager" : "lazy"}
+                                            fetchPriority={isPrioritySlide ? "high" : "auto"}
+                                            decoding={isPrioritySlide ? "sync" : "async"}
                                             draggable={false}
                                         />
                                     </picture>
