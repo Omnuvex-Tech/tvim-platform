@@ -8,6 +8,7 @@ import { useNotify } from "../Notify/notify-provider";
 const AZ_COUNTRY_CODE = "994";
 const AZ_LOCAL_PHONE_LENGTH = 9;
 
+
 const extractAzerbaijanLocalDigits = (value: string) => {
   const digits = value.replace(/\D/g, "");
 
