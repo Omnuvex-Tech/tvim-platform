@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Slider } from "@repo/types/types";
 import styles from "./home-slider.module.css";
 
@@ -23,6 +24,7 @@ const normalizeHref = (href: string) => {
 };
 
 export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
+    const router = useRouter();
     const activeSlides = useMemo(
         () => slides.filter((slide) => slide.is_active).sort((a, b) => a.sort_order - b.sort_order),
         [slides],
@@ -33,6 +35,8 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     const dragOffsetRef = useRef(0);
     const dragPointerIdRef = useRef<number | null>(null);
     const suppressClickRef = useRef(false);
+    const clickHrefRef = useRef<string | null>(null);
+    const clickHrefExternalRef = useRef(false);
     const [index, setIndex] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -54,6 +58,8 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         dragOffsetRef.current = 0;
         dragPointerIdRef.current = null;
         suppressClickRef.current = false;
+        clickHrefRef.current = null;
+        clickHrefExternalRef.current = false;
         setIsDragging(false);
         setDragOffset(0);
     };
@@ -105,9 +111,15 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
             return;
         }
 
+        const currentSlide = activeSlides[index];
+        const currentIsLinkAction = currentSlide?.action_type === "link" && !!currentSlide.button_link;
+        const currentLink = currentIsLinkAction ? normalizeHref(currentSlide.button_link ?? "") : "";
+        clickHrefRef.current = currentLink || null;
+        clickHrefExternalRef.current = currentLink ? isExternalHref(currentLink) : false;
+
         event.currentTarget.setPointerCapture(event.pointerId);
         dragPointerIdRef.current = event.pointerId;
-        setIsDragging(true);
+        setIsDragging(false);
         dragStartXRef.current = event.clientX;
         suppressClickRef.current = false;
         dragOffsetRef.current = 0;
@@ -115,17 +127,23 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     };
 
     const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!isDragging || dragStartXRef.current === null) {
+        if (dragStartXRef.current === null) {
             return;
         }
 
         const nextOffset = event.clientX - dragStartXRef.current;
         dragOffsetRef.current = nextOffset;
-        setDragOffset(nextOffset);
+
+        const dragStartThreshold = 10;
+        if (!isDragging && Math.abs(nextOffset) >= dragStartThreshold) {
+            setIsDragging(true);
+        }
+
+        setDragOffset(isDragging ? nextOffset : 0);
     };
 
     const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!isDragging) {
+        if (dragStartXRef.current === null) {
             return;
         }
 
@@ -136,6 +154,8 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         const viewportWidth = viewportRef.current?.clientWidth ?? 0;
         const threshold = Math.max(60, viewportWidth * 0.15);
         const hasSwipe = Math.abs(dragOffsetRef.current) > threshold;
+        const clickSlop = 8;
+        const isClick = Math.abs(dragOffsetRef.current) < clickSlop;
 
         if (dragOffsetRef.current < -threshold) {
             goTo(index + 1);
@@ -149,7 +169,16 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
             setAutoplayKey((k) => k + 1);
         }
 
-        suppressClickRef.current = hasSwipe;
+        suppressClickRef.current = !isClick;
+
+        if (isClick && clickHrefRef.current) {
+            const href = clickHrefRef.current;
+            if (clickHrefExternalRef.current) {
+                window.location.assign(href);
+            } else {
+                router.push(href);
+            }
+        }
 
         setIsDragging(false);
         dragStartXRef.current = null;
@@ -240,7 +269,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
                                     {(slide.title || slide.description || slide.button_text) ? (
                                         <div
-                                            className={`absolute inset-y-0 left-0 z-10 flex w-full items-center p-5 sm:p-7 lg:p-12 ${
+                                            className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full items-center p-5 sm:p-7 lg:p-12 ${
                                                 slide.hide_text_mobile ? "hidden md:flex" : "flex"
                                             }`}
                                         >
@@ -252,12 +281,23 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                                                     <p className={`mt-3 whitespace-pre-line text-[22px] leading-relaxed text-white/90 ${styles.description}`}>{slide.description}</p>
                                                 ) : null}
                                                 {slide.button_text && isLinkAction ? (
-                                                    <a
-                                                        href={slide.button_link!}
-                                                        className={`pointer-events-auto mt-5 inline-flex items-center rounded-md transition ${styles.btn}`}
-                                                    >
-                                                        {slide.button_text}
-                                                    </a>
+                                                    slideIsExternal ? (
+                                                        <a
+                                                            href={slideLink}
+                                                            className={`pointer-events-auto mt-5 inline-flex items-center rounded-md transition ${styles.btn}`}
+                                                            rel="noreferrer"
+                                                        >
+                                                            {slide.button_text}
+                                                        </a>
+                                                    ) : (
+                                                        <Link
+                                                            href={slideLink}
+                                                            className={`pointer-events-auto mt-5 inline-flex items-center rounded-md transition ${styles.btn}`}
+                                                            prefetch={false}
+                                                        >
+                                                            {slide.button_text}
+                                                        </Link>
+                                                    )
                                                 ) : null}
                                             </div>
                                         </div>

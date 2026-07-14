@@ -312,12 +312,16 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const rawKeywordsSource = menu.seo?.meta_keywords ?? pageData?.meta_keywords ?? pageData?.meta?.meta_keywords ?? menu.meta_keywords;
     const keywordsArr = normalizeKeywords(rawKeywordsSource);
 
-    const isContentView = menu.view_type === "content" || menu.type === "content";
-
     const includedItems: any[] = menuDetail.included_items || [];
     const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
     const isGridView = menu.type === "grids" || (pageData?.mode === "list" && gridItems.length > 0);
     const pageSubmitConfig = resolveRequestFormSubmitConfig(pageData?.submit ?? pageData);
+    const pageDescriptionHtml = String(
+        pageData?.description ??
+        (pageData as { content?: string | null } | undefined)?.content ??
+        menu.description ??
+        "",
+    ).trim();
 
     function mapIncludedValuesToCompanies(values: any[]) {
         const arr = Array.isArray(values) ? values : [];
@@ -1194,8 +1198,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 pb-10 lg:px-2 lg:pt-3 lg:pb-12">
                 <div className="prose max-w-none">
-                    {menu.description && (
-                        <div dangerouslySetInnerHTML={{ __html: menu.description }} />
+                    {pageDescriptionHtml && (
+                        <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
                     )}
                 </div>
 

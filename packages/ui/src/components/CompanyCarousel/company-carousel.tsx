@@ -117,6 +117,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (companies.length <= visibleCount) return;
     if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
     pausedRef.current = true;
     pointerDownRef.current = true;
     activePointerIdRef.current = e.pointerId;
@@ -156,6 +157,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
 
     if (!draggingRef.current) {
       pausedRef.current = false;
+      suppressClickRef.current = false;
       dragDxRef.current = 0;
       setDragTick((t) => t + 1);
       return;
@@ -210,6 +212,13 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   const onPointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!pointerDownRef.current) return;
     if (activePointerIdRef.current !== e.pointerId) return;
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // Pointer capture may already be released by the browser.
+    }
+
     pointerDownRef.current = false;
     activePointerIdRef.current = null;
     draggingRef.current = false;
@@ -322,7 +331,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                       </Link>
                     )
                   ) : (
-                    <div className={styles.companyLink} style={{ cursor: "default" }}>{logoNode}</div>
+                    <div className={styles.companyLink}>{logoNode}</div>
                   )}
                 </div>
               );

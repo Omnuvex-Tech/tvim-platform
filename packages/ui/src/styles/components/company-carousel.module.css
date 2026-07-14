@@ -43,14 +43,14 @@
     overflow: hidden;
     width: 100%;
     touch-action: pan-y;
-    cursor: grab;
+    cursor: pointer;
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
 
 .viewportDragging {
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 .track {
@@ -86,6 +86,7 @@
     justify-content: center;
     -webkit-user-drag: none;
     user-select: none;
+    cursor: pointer;
 }
 
 .companyLogo {
