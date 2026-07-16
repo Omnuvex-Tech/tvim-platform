@@ -149,7 +149,7 @@ export async function renderProductBrandsPage({
         getSiteChromeData(locale),
         api.get<ProductBrandsResponseData>("/product/brands", {
             locale,
-            cache: "force-cache",
+            cache: "no-store",
         }),
     ]);
 

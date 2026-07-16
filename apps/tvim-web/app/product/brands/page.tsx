@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { defaultLocale } from "@/lib/site-locales";
 
-export const revalidate = 31_536_000;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export default async function ProductBrandsPage({
 }: {

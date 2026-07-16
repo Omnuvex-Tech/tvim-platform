@@ -11,7 +11,8 @@ type BrandLocalePageSearchParams = {
     sort?: string | string[];
 };
 
-export const revalidate = 31_536_000;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const dynamicParams = true;
 
 export default async function BrandLocaleSlugPage({

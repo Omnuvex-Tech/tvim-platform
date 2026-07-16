@@ -126,7 +126,7 @@ export async function generateBrandSlugMetadata({
     const brandLookupResponse = await api.get<LiveSearchResponseData>("/product/live-search", {
         params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
         locale,
-        cache: "force-cache",
+        cache: "no-store",
     });
 
     const brandItems = Array.isArray(brandLookupResponse.data?.brands?.items)
@@ -224,7 +224,7 @@ export async function renderBrandSlugPage({
         api.get<LiveSearchResponseData>("/product/live-search", {
             params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
             locale,
-            cache: "force-cache",
+            cache: "no-store",
         }),
         getSiteChromeData(locale),
     ]);
@@ -252,7 +252,7 @@ export async function renderBrandSlugPage({
             ...(hasBrandFilter ? { [`filters[${brandFilterId}][]`]: String(brandValueId) } : { q: String(slug ?? "").trim() }),
         },
         locale,
-        cache: "force-cache",
+        cache: "no-store",
     });
 
     const detailData = productListResponse.success && productListResponse.data ? productListResponse.data : null;

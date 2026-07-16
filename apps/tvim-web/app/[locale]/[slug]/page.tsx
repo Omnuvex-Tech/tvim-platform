@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { unstable_cache } from "next/cache";
 import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
@@ -66,7 +65,8 @@ type Props = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export const revalidate = 31_536_000;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const dynamicParams = true;
 
 type ProductListFilterValue = {
@@ -161,31 +161,27 @@ type ProductListApiResponse = {
     data?: ProductListData;
 };
 
-const getCachedProductListPayload = unstable_cache(
-    async (requestUrl: string, locale: string) => {
-        try {
-            const response = await fetch(requestUrl, {
-                method: "GET",
-                cache: "force-cache",
-                headers: {
-                    Accept: "application/json",
-                    "Content-Language": locale,
-                },
-            });
+async function getProductListPayload(requestUrl: string, locale: string) {
+    try {
+        const response = await fetch(requestUrl, {
+            method: "GET",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+                "Content-Language": locale,
+            },
+        });
 
-            const json = (await response.json()) as unknown;
-            if (!json || typeof json !== "object") {
-                return null;
-            }
-
-            return json as ProductListApiResponse;
-        } catch {
+        const json = (await response.json()) as unknown;
+        if (!json || typeof json !== "object") {
             return null;
         }
-    },
-    ["public-product-list-payload"],
-    { revalidate: 31_536_000, tags: ["public-product-list-payload"] }
-);
+
+        return json as ProductListApiResponse;
+    } catch {
+        return null;
+    }
+}
 
 async function getMenuDetail(slug: string, locale: string) {
     return await getPublicMenuDetail<MenuDetailData>(slug, locale);
@@ -521,7 +517,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
         listUrl.search = outgoingParams.toString();
 
-        const productListPayload = await getCachedProductListPayload(listUrl.toString(), normalizedLocale);
+        const productListPayload = await getProductListPayload(listUrl.toString(), normalizedLocale);
 
         const productList = productListPayload?.success ? productListPayload.data : undefined;
         const listItems = Array.isArray(productList?.items) ? productList!.items! : [];

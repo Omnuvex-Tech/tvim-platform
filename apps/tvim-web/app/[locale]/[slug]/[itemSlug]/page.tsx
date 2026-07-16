@@ -30,7 +30,8 @@ type GridItem = {
     };
 };
 
-export const revalidate = 31_536_000;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const dynamicParams = true;
 
 type MenuDetailData = {
@@ -243,7 +244,7 @@ async function getProductDetailBySlug(slug: string, locale: string) {
     try {
         const response = await api.get<ProductDetailData>(config.endpoints.products.detailBySlug(slug), {
             locale,
-            cache: "force-cache",
+            cache: "no-store",
         });
         if (response.success && response.data) return { ok: true as const, data: response.data };
         return { ok: false as const, message: response.message };

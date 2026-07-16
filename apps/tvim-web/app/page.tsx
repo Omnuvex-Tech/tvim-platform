@@ -11,7 +11,8 @@ import { SitePageShell } from "./components/SiteChrome/site-page-shell";
 import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
-export const revalidate = 31_536_000;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export async function generateMetadata(): Promise<Metadata> {
     const languages = await getPublicLanguages();

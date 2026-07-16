@@ -112,7 +112,7 @@ const collectCategoryPaths = (
 async function collectBrandPaths(locale: string, paths: Set<string>) {
     const response = await api.get<ProductBrandsResponseData>("/product/brands", {
         locale,
-        cache: "force-cache",
+        cache: "no-store",
     });
 
     const items = Array.isArray(response.data?.values) ? response.data.values : [];
@@ -138,7 +138,7 @@ export async function getStaticPublicPaths() {
                 getPublicMenuList(locale),
                 api.get<unknown>("/product/categories", {
                     locale,
-                    cache: "force-cache",
+                    cache: "no-store",
                 }).then((response) => response.data ?? null),
                 collectBrandPaths(locale, paths),
             ]);

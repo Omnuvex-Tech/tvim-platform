@@ -3,7 +3,6 @@ import {
     generateBrandNewsMetadata,
     renderBrandNewsSlugPage,
 } from "@/app/brands/news/[slug]/page";
-import { getStaticBrandNewsSlugParams } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandNewsLocaleRouteParams = {
@@ -11,12 +10,9 @@ type BrandNewsLocaleRouteParams = {
     slug: string;
 };
 
-export const revalidate = 31_536_000;
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 export const dynamicParams = true;
-
-export async function generateStaticParams() {
-    return await getStaticBrandNewsSlugParams();
-}
 
 export default async function LocalizedBrandNewsSlugPage({
     params,

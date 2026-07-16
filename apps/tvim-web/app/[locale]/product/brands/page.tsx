@@ -3,15 +3,10 @@ import {
     generateProductBrandsMetadata,
     renderProductBrandsPage,
 } from "@/app/product/brands/product-brands-page";
-import { getStaticLocaleCodes } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
-export const revalidate = 31_536_000;
-
-export async function generateStaticParams() {
-    const localeCodes = await getStaticLocaleCodes();
-    return localeCodes.map((locale) => ({ locale }));
-}
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 export default async function LocalizedProductBrandsPage({
     params,
