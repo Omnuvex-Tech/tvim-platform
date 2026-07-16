@@ -10,6 +10,7 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
+import { getPublicLanguages } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { WishlistProductsGrid } from "./wishlist-products-grid";
 
@@ -265,16 +266,16 @@ export default async function WishlistPage({
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     const guestToken = decodeGuestTokenFromCookie(cookieStore.get(FAVORITES_GUEST_TOKEN_COOKIE)?.value);
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
-    if (!langResponse.success || !langResponse.data) {
+    const languages = await getPublicLanguages();
+    if (languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Languages could not be loaded.</p>
             </div>
         );
     }
 
-    if (!langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
+    if (!languages.some((language) => language.code.toLowerCase() === locale)) {
         notFound();
     }
 

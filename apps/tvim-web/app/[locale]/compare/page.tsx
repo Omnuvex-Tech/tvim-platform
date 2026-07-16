@@ -11,6 +11,7 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { COMPARE_GUEST_TOKEN_COOKIE, decodeCompareTokenFromCookie } from "@/lib/compare/session";
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
 import { getMainPageRequestFormProps } from "@/lib/main-page";
+import { getPublicLanguages } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { CompareProductsGrid } from "./compare-products-grid";
 
@@ -563,17 +564,17 @@ export default async function ComparePage({
     const compareGuestToken = decodeCompareTokenFromCookie(cookieStore.get(COMPARE_GUEST_TOKEN_COOKIE)?.value);
     const favoritesGuestToken = decodeGuestTokenFromCookie(cookieStore.get(FAVORITES_GUEST_TOKEN_COOKIE)?.value);
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+    const languages = await getPublicLanguages();
 
-    if (!langResponse.success || !langResponse.data) {
+    if (languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Languages could not be loaded.</p>
             </div>
         );
     }
 
-    if (!SUPPORTED_LOCALES.includes(locale) || !langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
+    if (!SUPPORTED_LOCALES.includes(locale) || !languages.some((language) => language.code.toLowerCase() === locale)) {
         notFound();
     }
     const copy = COMPARE_PAGE_COPY[locale];

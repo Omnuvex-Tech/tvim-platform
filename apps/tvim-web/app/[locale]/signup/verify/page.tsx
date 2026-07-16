@@ -6,6 +6,7 @@ import { config } from "@/config";
 import { buildNoIndexMetadata } from "@/lib/seo";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { VerificationForm } from "./verification-form";
+import { getPublicLanguages } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
 export const metadata = buildNoIndexMetadata();
@@ -26,17 +27,17 @@ export default async function RegisterVerificationPage({
     const flow = query.flow === "forgot" ? "forgot" : "signup";
     const homePageMeta = config.pages.home[normalizedLocale];
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
+    const languages = await getPublicLanguages();
 
-    if (!langResponse.success || !langResponse.data) {
+    if (languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Languages could not be loaded.</p>
             </div>
         );
     }
 
-    if (!langResponse.data.some((language) => language.code === locale)) {
+    if (!languages.some((language) => language.code === locale)) {
         notFound();
     }
 

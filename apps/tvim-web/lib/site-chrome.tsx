@@ -7,7 +7,7 @@ import type {
     ProjectSettingsResponseData,
 } from "@repo/types/types";
 import type { NavbarMenuItem } from "@repo/ui";
-import type { ReactNode } from "react";
+import { cache, type ReactNode } from "react";
 import { config } from "@/config";
 import {
     extractHeaderCategories,
@@ -31,7 +31,7 @@ export type SiteChromeData = {
     projectSettings?: ProjectSettingsData;
 };
 
-export async function getSiteChromeData(incomingLocale: string): Promise<SiteChromeData> {
+export const getSiteChromeData = cache(async (incomingLocale: string): Promise<SiteChromeData> => {
     const locale = incomingLocale.trim().toLowerCase();
 
     const [languages, rawMenusData, settingsResponse, categoriesResponse] = await Promise.all([
@@ -97,4 +97,4 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
         phone,
         projectSettings,
     };
-}
+});

@@ -8,6 +8,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { getPublicLanguages } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../account-navigation";
 
@@ -194,16 +195,16 @@ export default async function OrdersPage({
     const page = typeof query.page === "string" ? query.page.trim() : "";
     const perPage = typeof query.per_page === "string" ? query.per_page.trim() : "";
 
-    const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
-    if (!langResponse.success || !langResponse.data) {
+    const languages = await getPublicLanguages();
+    if (languages.length === 0) {
         return (
             <div className="flex min-h-svh items-center justify-center py-8">
-                <p className="text-destructive">{langResponse.message}</p>
+                <p className="text-destructive">Languages could not be loaded.</p>
             </div>
         );
     }
 
-    if (!langResponse.data.some((language) => language.code.toLowerCase() === locale)) {
+    if (!languages.some((language) => language.code.toLowerCase() === locale)) {
         notFound();
     }
 
