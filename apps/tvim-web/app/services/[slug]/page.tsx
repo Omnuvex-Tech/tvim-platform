@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type {
 } from "@repo/types/types";
@@ -11,7 +12,7 @@ import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
-import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
+import { normalizeLocale } from "@/lib/site-locales";
 
 type MenuDetailData = {
     menu?: {
@@ -358,5 +359,7 @@ export default async function ServiceSlugPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    redirect(`/${defaultLocale}/services/${encodeURIComponent(slug)}`);
+    const cookieStore = await cookies();
+    const locale = normalizeLocale(cookieStore.get("preferred-locale")?.value ?? config.project.defLang);
+    redirect(`/${locale}/services/${encodeURIComponent(slug)}`);
 }

@@ -49,6 +49,8 @@ export default async function ResetPasswordPage({
   }
 
   const homePageMeta = config.pages.home[normalizedLocale];
+  const forgotPasswordPageMeta = config.pages.forgotPassword[normalizedLocale];
+  const resetPasswordPageMeta = config.pages.resetPassword[normalizedLocale];
 
   const chrome = await getSiteChromeData(normalizedLocale);
 
@@ -57,11 +59,11 @@ export default async function ResetPasswordPage({
       <Breadcrumb
         items={[
           { label: homePageMeta.name, href: homePageMeta.url },
-          { label: "Şifrəni unutmusunuz?", href: `/${normalizedLocale}/forgot-password` },
-          { label: "Yeni şifrə", isCurrent: true },
+          { label: forgotPasswordPageMeta.name, href: forgotPasswordPageMeta.url },
+          { label: resetPasswordPageMeta.name, isCurrent: true },
         ]}
         showTitle
-        pageTitle="Yeni şifrə təyin edin"
+        pageTitle={resetPasswordPageMeta.title}
         titleClassName="mt-0 mb-0 text-[48px] sm:text-[52px]"
       />
 

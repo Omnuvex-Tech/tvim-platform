@@ -69,6 +69,8 @@ const fetchCheckoutData = async (locale: string, authToken: string | null, guest
 export default async function CheckoutPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale: routeLocale } = await params;
     const locale = normalizeLocale(routeLocale);
+    const homePageMeta = config.pages.home[locale];
+    const checkoutPageMeta = config.pages.checkout[locale];
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     const guestToken = decodeGuestTokenFromCookie(cookieStore.get(GUEST_TOKEN_COOKIE)?.value);
@@ -97,12 +99,12 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
         <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
-                    { label: "Ana səhifə", href: `/${locale}` },
-                    { label: "Sifariş rəsmiləşdirmə", isCurrent: true },
+                    { label: homePageMeta.name, href: homePageMeta.url },
+                    { label: checkoutPageMeta.name, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle="Sifariş rəsmiləşdirmə"
+                pageTitle={checkoutPageMeta.title}
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 

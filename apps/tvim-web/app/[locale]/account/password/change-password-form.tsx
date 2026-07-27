@@ -155,58 +155,60 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
     };
 
     return (
-        <form className="mt-0" autoComplete="off" onSubmit={onSubmit}>
+        <form className="mx-auto mt-0 w-full max-w-[900px]" autoComplete="off" onSubmit={onSubmit}>
             <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                    <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{messages.password}</div>
-                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
-                        <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            placeholder=""
-                            aria-label={messages.password}
-                            autoComplete="new-password"
-                            value={formData.password}
-                            onChange={(e) => updateField("password", e.target.value)}
-                            className="h-full w-full bg-transparent pr-12 text-[15px] leading-none font-normal text-[#161922] outline-none"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword((prev) => !prev)}
-                            className="absolute right-4 cursor-pointer text-[#8ea1bf]"
-                            aria-label="Şifrəni göstər/gizlət"
-                        >
-                            {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-                        </button>
-                    </label>
-                    {errors.password ? <p className="px-2 text-sm text-red-600">{errors.password}</p> : null}
-                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{messages.password}</div>
+                        <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                            <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder=""
+                                aria-label={messages.password}
+                                autoComplete="new-password"
+                                value={formData.password}
+                                onChange={(e) => updateField("password", e.target.value)}
+                                className="h-full w-full bg-transparent pr-12 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="absolute right-4 cursor-pointer text-[#8ea1bf]"
+                                aria-label="Şifrəni göstər/gizlət"
+                            >
+                                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                            </button>
+                        </label>
+                        {errors.password ? <p className="px-2 text-sm text-red-600">{errors.password}</p> : null}
+                    </div>
 
-                <div className="space-y-2">
-                    <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{messages.confirmation}</div>
-                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
-                        <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
-                        <input
-                            type={showPasswordConfirmation ? "text" : "password"}
-                            placeholder=""
-                            aria-label={messages.confirmation}
-                            autoComplete="new-password"
-                            value={formData.password_confirmation}
-                            onChange={(e) => updateField("password_confirmation", e.target.value)}
-                            className="h-full w-full bg-transparent pr-12 text-[15px] leading-none font-normal text-[#161922] outline-none"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                            className="absolute right-4 cursor-pointer text-[#8ea1bf]"
-                            aria-label="Şifrə təkrarını göstər/gizlət"
-                        >
-                            {showPasswordConfirmation ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-                        </button>
-                    </label>
-                    {errors.password_confirmation ? (
-                        <p className="px-2 text-sm text-red-600">{errors.password_confirmation}</p>
-                    ) : null}
+                    <div className="space-y-2">
+                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{messages.confirmation}</div>
+                        <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
+                            <Lock className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
+                            <input
+                                type={showPasswordConfirmation ? "text" : "password"}
+                                placeholder=""
+                                aria-label={messages.confirmation}
+                                autoComplete="new-password"
+                                value={formData.password_confirmation}
+                                onChange={(e) => updateField("password_confirmation", e.target.value)}
+                                className="h-full w-full bg-transparent pr-12 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                                className="absolute right-4 cursor-pointer text-[#8ea1bf]"
+                                aria-label="Şifrə təkrarını göstər/gizlət"
+                            >
+                                {showPasswordConfirmation ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                            </button>
+                        </label>
+                        {errors.password_confirmation ? (
+                            <p className="px-2 text-sm text-red-600">{errors.password_confirmation}</p>
+                        ) : null}
+                    </div>
                 </div>
 
                 <div className="mt-0 text-center">

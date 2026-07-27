@@ -2,6 +2,8 @@
 
 import { RequestForm as RequestFormUI } from "@repo/ui";
 import type { RequestFormData, RequestFormField, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
+import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
@@ -112,6 +114,32 @@ function extractOkFlag(payload: unknown) {
 }
 
 const RequestForm = (props: RequestFormProps) => {
+    const pathname = usePathname();
+    const locale = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
+        return segment === "ru" || segment === "en" || segment === "az" ? segment : "az";
+    }, [pathname]);
+    const localizedCopy = useMemo(() => {
+        if (locale === "ru") {
+            return {
+                submitLabel: "Отправить",
+                consentText: "Нажимая кнопку «Отправить», вы соглашаетесь на обработку персональных данных.",
+            };
+        }
+
+        if (locale === "en") {
+            return {
+                submitLabel: "Send",
+                consentText: "By clicking the “Send” button, you consent to the processing of personal data.",
+            };
+        }
+
+        return {
+            submitLabel: "Göndər",
+            consentText: "“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.",
+        };
+    }, [locale]);
+
     const handleSubmit = async (data: RequestFormData) => {
         let successMessage = "";
         let ok = false;
@@ -233,7 +261,14 @@ const RequestForm = (props: RequestFormProps) => {
         }
     };
 
-    return <RequestFormUI {...props} onSubmit={handleSubmit} />;
+    return (
+        <RequestFormUI
+            {...props}
+            submitLabel={props.submitLabel ?? localizedCopy.submitLabel}
+            consentText={props.consentText ?? localizedCopy.consentText}
+            onSubmit={handleSubmit}
+        />
+    );
 };
 
 export { RequestForm };

@@ -28,6 +28,8 @@ const getVisibleCount = (width: number) => {
   return 3;
 };
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
 function imageHeightFor(visibleCount: number) {
   return visibleCount >= 6 ? 100 : visibleCount >= 5 ? 90 : 75;
 }
@@ -117,7 +119,6 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (companies.length <= visibleCount) return;
     if (e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
     pausedRef.current = true;
     pointerDownRef.current = true;
     activePointerIdRef.current = e.pointerId;
@@ -131,10 +132,16 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!pointerDownRef.current) return;
     if (activePointerIdRef.current !== e.pointerId) return;
-    dragDxRef.current = e.clientX - dragStartXRef.current;
+    const nextDxRaw = e.clientX - dragStartXRef.current;
+    const maxDrag = itemWidth > 0 ? itemWidth * cloneCount : 0;
+    dragDxRef.current = maxDrag > 0 ? clamp(nextDxRaw, -maxDrag, maxDrag) : nextDxRaw;
 
     if (!draggingRef.current && Math.abs(dragDxRef.current) > DRAG_CLICK_THRESHOLD) {
       draggingRef.current = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+      }
       setIsAnimating(false);
     }
 
@@ -149,10 +156,11 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     pointerDownRef.current = false;
     activePointerIdRef.current = null;
 
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (err) {
-      // Pointer capture may already be released by the browser.
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+      }
     }
 
     if (!draggingRef.current) {
@@ -213,10 +221,11 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     if (!pointerDownRef.current) return;
     if (activePointerIdRef.current !== e.pointerId) return;
 
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      // Pointer capture may already be released by the browser.
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+      }
     }
 
     pointerDownRef.current = false;
@@ -240,6 +249,9 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
   };
 
   const translate = -currentIndex * itemWidth + (draggingRef.current ? dragDxRef.current : 0);
+  const preloadCenterIndex =
+    itemWidth > 0 && draggingRef.current ? currentIndex + Math.round(-dragDxRef.current / itemWidth) : currentIndex;
+  const preloadWindow = Math.max(visibleCount * 3, 10);
 
   return (
     <div
@@ -272,6 +284,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
             style={{ width: itemWidth * extended.length, transform: `translateX(${translate}px)` }}
           >
             {extended.map((c, i) => {
+              const shouldEagerLoad = Math.abs(i - preloadCenterIndex) <= preloadWindow;
               const logoHeight = Math.max(44, Math.floor(imageHeightFor(visibleCount) * 0.8));
               const logoNode = c.logo ? (
                 <div className={styles.logoInner} style={{ height: logoHeight }}>
@@ -282,6 +295,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                     style={{ objectFit: "contain" }}
                     sizes={`${itemWidth}px`}
                     unoptimized={typeof c.logo === "string" && c.logo.startsWith("http")}
+                    loading={shouldEagerLoad ? "eager" : "lazy"}
                     draggable={false}
                   />
                 </div>

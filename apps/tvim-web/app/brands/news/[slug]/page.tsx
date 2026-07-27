@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
@@ -6,7 +7,7 @@ import { api } from "@/lib/api";
 import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
-import { defaultLocale, normalizeLocale } from "@/lib/site-locales";
+import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 
@@ -317,5 +318,7 @@ export default async function BrandNewsSlugPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug } = await params;
-    redirect(`/${defaultLocale}/brands/news/${encodeURIComponent(slug)}`);
+    const cookieStore = await cookies();
+    const locale = normalizeLocale(cookieStore.get("preferred-locale")?.value ?? config.project.defLang);
+    redirect(`/${locale}/brands/news/${encodeURIComponent(slug)}`);
 }

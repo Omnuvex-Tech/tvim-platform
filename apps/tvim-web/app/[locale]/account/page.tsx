@@ -53,7 +53,7 @@ export default async function AccountPage({
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle="Hesabım"
+                pageTitle={accountPageMeta.title}
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 

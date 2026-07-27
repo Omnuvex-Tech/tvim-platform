@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { defaultLocale } from "@/lib/site-locales";
+import { config } from "@/config";
+import { normalizeLocale } from "@/lib/site-locales";
 
 type BrandSlugPageSearchParams = {
     page?: string | string[];
@@ -14,5 +16,7 @@ export default async function BrandSlugPage({
     searchParams?: Promise<BrandSlugPageSearchParams>;
 }) {
     const { slug } = await params;
-    redirect(`/${defaultLocale}/brands/${encodeURIComponent(slug)}`);
+    const cookieStore = await cookies();
+    const locale = normalizeLocale(cookieStore.get("preferred-locale")?.value ?? config.project.defLang);
+    redirect(`/${locale}/brands/${encodeURIComponent(slug)}`);
 }

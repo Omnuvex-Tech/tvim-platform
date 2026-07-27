@@ -28,6 +28,7 @@ export default async function AccountEditPage({
     const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
     const homePageMeta = config.pages.home[normalizedLocale];
     const accountPageMeta = config.pages.account[normalizedLocale];
+    const accountEditPageMeta = config.pages.accountEdit[normalizedLocale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
@@ -66,11 +67,11 @@ export default async function AccountEditPage({
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
                     { label: accountPageMeta.name, href: `/${locale}/account` },
-                    { label: "Məlumatları redaktə et", isCurrent: true },
+                    { label: accountEditPageMeta.name, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle="Məlumatları redaktə et"
+                pageTitle={accountEditPageMeta.title}
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 

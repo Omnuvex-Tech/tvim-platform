@@ -40,6 +40,7 @@ export default async function AccountAddressPage({
     const normalizedLocale = (["az", "ru", "en"].includes(locale) ? locale : "az") as "az" | "ru" | "en";
     const homePageMeta = config.pages.home[normalizedLocale];
     const accountPageMeta = config.pages.account[normalizedLocale];
+    const accountAddressPageMeta = config.pages.accountAddress[normalizedLocale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
@@ -70,7 +71,7 @@ export default async function AccountAddressPage({
     ]);
 
     const activeHref = "/account/address";
-    const pageTitle = "Ünvan kitabçası";
+    const pageTitle = accountAddressPageMeta.title;
     const addresses = addressesResponse.success && Array.isArray(addressesResponse.data) ? addressesResponse.data : [];
 
     return (
@@ -79,7 +80,7 @@ export default async function AccountAddressPage({
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
                     { label: accountPageMeta.name, href: accountPageMeta.url },
-                    { label: pageTitle, isCurrent: true },
+                    { label: accountAddressPageMeta.name, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle

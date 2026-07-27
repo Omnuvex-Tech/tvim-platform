@@ -25,6 +25,7 @@ export default async function RegisterVerificationPage({
     const email = typeof query.email === "string" ? query.email : "";
     const flow = query.flow === "forgot" ? "forgot" : "signup";
     const homePageMeta = config.pages.home[normalizedLocale];
+    const verifyPageMeta = config.pages.signupVerify[normalizedLocale];
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
 
@@ -47,13 +48,13 @@ export default async function RegisterVerificationPage({
             <Breadcrumb
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
-                    { label: "Kod təsdiqi", isCurrent: true },
+                    { label: verifyPageMeta.name, isCurrent: true },
                 ]}
             />
 
             <section className="w-full rounded-[20px] bg-white px-4 pt-3 pb-8 sm:px-8 sm:pt-4 sm:pb-10 lg:px-12">
                 <div className="mx-auto w-full max-w-[560px]">
-                    <h1 className="text-center text-[46px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[52px]">Kod təsdiqi</h1>
+                    <h1 className="text-center text-[46px] leading-none font-bold tracking-[-0.02em] text-[#000000] sm:text-[52px]">{verifyPageMeta.title}</h1>
                     <p className="mx-auto mt-4 max-w-[520px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
                         Qeydiyyatı tamamlamaq üçün sizə göndərilən 4 rəqəmli kodu daxil edin.
                     </p>

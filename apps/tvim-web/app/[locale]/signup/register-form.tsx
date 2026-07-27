@@ -448,6 +448,16 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
     };
 
     useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        if (getReCaptchaController(window as WindowWithReCaptcha)) {
+            setIsRecaptchaScriptReady(true);
+        }
+    }, []);
+
+    useEffect(() => {
         if (!isRecaptchaScriptReady || !recaptchaSiteKey) {
             return;
         }
@@ -464,6 +474,32 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             const controller = getReCaptchaController(window as WindowWithReCaptcha);
             if (!controller || typeof controller.render !== "function") {
                 return false;
+            }
+
+            if (typeof controller.ready === "function") {
+                controller.ready(() => {
+                    if (!recaptchaRef.current || recaptchaWidgetIdRef.current !== null) {
+                        return;
+                    }
+
+                    recaptchaWidgetIdRef.current = controller.render(recaptchaRef.current, {
+                        sitekey: recaptchaSiteKey,
+                        callback: (token: string) => {
+                            setCaptchaToken(token);
+                            setCaptchaError("");
+                        },
+                        "expired-callback": () => {
+                            setCaptchaToken("");
+                            setCaptchaError("reCAPTCHA vaxtı bitdi. Yenidən təsdiqləyin.");
+                        },
+                        "error-callback": () => {
+                            setCaptchaToken("");
+                            setCaptchaError("reCAPTCHA yüklənmədi. Bir daha yoxlayın.");
+                        },
+                    });
+                });
+
+                return true;
             }
 
             recaptchaWidgetIdRef.current = controller.render(recaptchaRef.current, {
@@ -490,7 +526,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
         }
 
         let tries = 0;
-        const maxTries = 15;
+        const maxTries = 40;
         const timer = window.setInterval(() => {
             tries += 1;
 

@@ -207,6 +207,9 @@ export default async function OrderDetailPage({
 }) {
     const { locale: routeLocale, id } = await params;
     const locale = normalizeLocale(routeLocale);
+    const homePageMeta = config.pages.home[locale];
+    const orderHistoryPageMeta = config.pages.orderHistory[locale];
+    const orderDetailPageMeta = config.pages.orderDetail[locale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
@@ -263,13 +266,13 @@ export default async function OrderDetailPage({
             <SitePageShell chrome={chrome}>
                 <Breadcrumb
                     items={[
-                        { label: "Ana səhifə", href: `/${locale}` },
-                        { label: "Sifariş tarixçəsi", href: `/${locale}/account/orders` },
-                        { label: "Sifariş detalı", isCurrent: true },
+                        { label: homePageMeta.name, href: homePageMeta.url },
+                        { label: orderHistoryPageMeta.name, href: orderHistoryPageMeta.url },
+                        { label: orderDetailPageMeta.name, isCurrent: true },
                     ]}
                     className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                     showTitle
-                    pageTitle="Sifariş detalı"
+                    pageTitle={orderDetailPageMeta.title}
                     titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
                 />
 
@@ -301,8 +304,8 @@ export default async function OrderDetailPage({
         <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
-                    { label: "Ana s\u0259hif\u0259", href: `/${locale}` },
-                    { label: "Sifari\u015f tarix\u00e7\u0259si", href: `/${locale}/account/orders` },
+                    { label: homePageMeta.name, href: homePageMeta.url },
+                    { label: orderHistoryPageMeta.name, href: orderHistoryPageMeta.url },
                     { label: order.number || order.uuid || `#${order.id}`, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"

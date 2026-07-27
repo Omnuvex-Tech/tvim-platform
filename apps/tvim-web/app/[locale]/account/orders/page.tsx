@@ -180,6 +180,7 @@ export default async function OrdersPage({
     const locale = normalizeLocale(routeLocale);
     const homePageMeta = config.pages.home[locale];
     const accountPageMeta = config.pages.account[locale];
+    const orderHistoryPageMeta = config.pages.orderHistory[locale];
 
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
@@ -257,11 +258,11 @@ export default async function OrdersPage({
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
                     { label: accountPageMeta.name, href: accountPageMeta.url },
-                    { label: "Sifariş tarixçəsi", isCurrent: true },
+                    { label: orderHistoryPageMeta.name, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"
                 showTitle
-                pageTitle="Sifariş tarixçəsi"
+                pageTitle={orderHistoryPageMeta.title}
                 titleClassName="!mt-[-10px] mb-0 !text-left w-full !text-[24px] lg:!text-[39px]"
             />
 
