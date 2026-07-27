@@ -172,7 +172,9 @@ const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
 
 const normalizeLocale = (value: string) => {
     const normalized = value.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number]) ? normalized : "az";
+    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number])
+        ? (normalized as (typeof SUPPORTED_LOCALES)[number])
+        : "az";
 };
 
 const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
