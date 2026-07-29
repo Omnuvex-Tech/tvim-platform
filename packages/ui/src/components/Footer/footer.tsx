@@ -158,18 +158,17 @@ const Footer = ({
                                             </>
                                         );
 
-                                        if (item.href) {
-                                            return (
-                                                <a
-                                                    key={item.label}
-                                                    href={item.href}
-                                                    className="group flex min-w-0 items-center justify-start gap-3 text-left transition-colors hover:text-black"
-                                                >
-                                                    {content}
-                                                </a>
-                                            );
-                                        }
-
+                                if (item.href) {
+    return (
+        <a
+            key={item.label}
+            href={item.href}
+            className="group flex min-w-0 items-center justify-start gap-3 text-left transition-colors hover:text-black"
+        >
+            {content}
+        </a>
+    );
+}
                                         return (
                                             <div key={item.label} className="group flex min-w-0 items-center justify-start gap-3 text-left">
                                                 {content}

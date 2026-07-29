@@ -343,56 +343,42 @@ const NavbarWrapper = ({
         void hydrateCartAsync();
     }, [hydrateCartAsync]);
 
-    const localizedMenuItems = useMemo(() => {
-        const normalizedItems = Array.isArray(menuItems)
-            ? menuItems.map((item) => {
-            const href = typeof item?.href === "string" ? item.href : "";
-            if (!href || href === "#") return item;
+const localizedMenuItems = useMemo(() => {
+    const normalizedItems = Array.isArray(menuItems)
+        ? menuItems.map((item) => {
+        const href = typeof item?.href === "string" ? item.href : "";
+        if (!href || href === "#") return item;
 
-            if (href === "/") {
-                return { ...item, href: `/${effectiveLocale}` };
-            }
-
-            if (href === "/product/brands") {
-                return { ...item, href: `/${effectiveLocale}/product/brands` };
-            }
-
-            if (!href.startsWith("/")) return item;
-
-            const segments = href.split("/").filter(Boolean);
-            if (segments.length === 0) {
-                return { ...item, href: `/${effectiveLocale}` };
-            }
-
-            const firstSegment = segments[0]?.toLowerCase() ?? "";
-            if (!supportedLocales.has(firstSegment)) {
-                return item;
-            }
-
-            segments[0] = effectiveLocale;
-            return { ...item, href: `/${segments.join("/")}` };
-            })
-            : [];
-
-        const brandsHref = `/${effectiveLocale}/product/brands`;
-        const hasBrandsItem = normalizedItems.some((item) => {
-            const href = String(item?.href ?? "").trim().toLowerCase();
-            return href === "/product/brands" || href.endsWith("/product/brands");
-        });
-
-        if (hasBrandsItem) {
-            return normalizedItems;
+        if (href === "/") {
+            return { ...item, href: `/${effectiveLocale}` };
         }
 
-        return [
-            ...normalizedItems,
-            {
-                label: getBrandsMenuLabel(effectiveLocale),
-                href: brandsHref,
-            },
-        ];
-    }, [effectiveLocale, menuItems, supportedLocales]);
+        if (href === "/product/brands") {
+            return { ...item, href: `/${effectiveLocale}/product/brands` };
+        }
 
+        if (!href.startsWith("/")) return item;
+
+        const segments = href.split("/").filter(Boolean);
+        if (segments.length === 0) {
+            return { ...item, href: `/${effectiveLocale}` };
+        }
+
+        const firstSegment = segments[0]?.toLowerCase() ?? "";
+        if (!supportedLocales.has(firstSegment)) {
+            return item;
+        }
+
+        segments[0] = effectiveLocale;
+        return { ...item, href: `/${segments.join("/")}` };
+        })
+        : [];
+
+    return normalizedItems.filter((item) => {
+        const href = String(item?.href ?? "").trim().toLowerCase();
+        return href !== "/product/brands" && !href.endsWith("/product/brands");
+    });
+}, [effectiveLocale, menuItems, supportedLocales]);
     const resolveLocalePath = useCallback((nextLocale: string) => {
         const normalizedNextLocale = nextLocale.trim().toLowerCase();
         if (!supportedLocales.has(normalizedNextLocale)) {

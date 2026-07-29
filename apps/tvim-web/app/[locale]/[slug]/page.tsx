@@ -713,9 +713,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                     >
                                         <span className="flex min-w-0 items-center gap-3">
                                             <span
-                                                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${
-                                                    selected ? "border-[#0f57d6] bg-[#0f57d6]" : "border-[#cfd7e3] bg-white"
-                                                }`}
+                                                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${selected ? "border-[#0f57d6] bg-[#0f57d6]" : "border-[#cfd7e3] bg-white"
+                                                    }`}
                                                 aria-hidden="true"
                                             >
                                                 {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
@@ -784,7 +783,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
                         <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[268px_1fr]">
                             <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
                                 {filtersBody}
                             </aside>
@@ -793,7 +792,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 {hasFilters ? (
                                     <label
                                         htmlFor={drawerId}
-                                    className="mb-4 flex w-full cursor-pointer items-center justify-between rounded-full bg-[#ffd500] px-5 py-3 text-[15px] font-semibold text-[#111318] lg:hidden"
+                                        className="mb-4 flex w-full cursor-pointer items-center justify-between rounded-full bg-[#ffd500] px-5 py-3 text-[15px] font-semibold text-[#111318] lg:hidden"
                                     >
                                         <span>Filtr</span>
                                         <i className="fa-solid fa-sliders text-[16px]" aria-hidden="true" />
@@ -805,9 +804,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                             {effectiveSubcategories.map((sub: any) => {
                                                 const linkValue = String(
                                                     sub?.multi_links?.[normalizedLocale] ??
-                                                        sub?.link ??
-                                                        sub?.slug ??
-                                                        ""
+                                                    sub?.link ??
+                                                    sub?.slug ??
+                                                    ""
                                                 )
                                                     .trim()
                                                     .replace(/^\/+|\/+$/g, "");
@@ -826,148 +825,144 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                     </div>
                                 ) : null}
 
-                            {(() => {
-                                const labelByKey: Record<string, string> = {
-                                    newest: "Yenilər: üstdə",
-                                    name_asc: "Ad (A-Z)",
-                                    name_desc: "Ad (Z-A)",
-                                    price_asc: "Qiymət (artan)",
-                                    price_desc: "Qiymət (azalan)",
-                                    popular: "Reytinq",
-                                    most_sale: "Model",
-                                };
+                                {(() => {
+                                    const labelByKey: Record<string, string> = {
+                                        newest: "Yenilər: üstdə",
+                                        name_asc: "Ad (A-Z)",
+                                        name_desc: "Ad (Z-A)",
+                                        price_asc: "Qiymət (artan)",
+                                        price_desc: "Qiymət (azalan)",
+                                        popular: "Reytinq",
+                                        most_sale: "Model",
+                                    };
 
-                                return (
-                                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                        {sortOptions.map((opt) => {
-                                            const key = String(opt?.key ?? "").trim();
-                                            if (!key) return null;
-                                            const next = new URLSearchParams(currentUiParams.toString());
-                                            next.set("page", "1");
-                                            next.set("sort", key);
-                                            const isActive = key === activeSort;
-                                            return (
-                                                <PendingLink
-                                                    key={key}
-                                                    href={buildHrefWithParams(next)}
-                                                    className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${
-                                                        isActive
-                                                            ? "bg-[#0f57d6] font-semibold text-white"
-                                                            : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
-                                                    }`}
-                                                >
-                                                    {labelByKey[key] ?? opt?.label ?? key}
-                                                </PendingLink>
-                                            );
-                                        })}
-
-                                    </div>
-                                );
-                            })()}
-
-                            <div className="relative min-h-[360px]">
-                                {sortedListItems.length > 0 ? (
-                                    <ProductGrid items={sortedListItems} locale={normalizedLocale} />
-                                ) : (
-                                    <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-                                        Məhsul tapılmadı.
-                                    </div>
-                                )}
-
-                                {lastPage > 1 ? (
-                                    <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                                        {(() => {
-                                            const prevParams = new URLSearchParams(currentUiParams.toString());
-                                            prevParams.set("page", String(Math.max(1, currentPage - 1)));
-                                            const nextParams = new URLSearchParams(currentUiParams.toString());
-                                            nextParams.set("page", String(Math.min(lastPage, currentPage + 1)));
-
-                                            return (
-                                                <>
+                                    return (
+                                        <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                            {sortOptions.map((opt) => {
+                                                const key = String(opt?.key ?? "").trim();
+                                                if (!key) return null;
+                                                const next = new URLSearchParams(currentUiParams.toString());
+                                                next.set("page", "1");
+                                                next.set("sort", key);
+                                                const isActive = key === activeSort;
+                                                return (
                                                     <PendingLink
-                                                        href={buildHrefWithParams(prevParams)}
-                                                        aria-disabled={currentPage <= 1}
-                                                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${
-                                                            currentPage <= 1 ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
-                                                        }`}
+                                                        key={key}
+                                                        href={buildHrefWithParams(next)}
+                                                        className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${isActive
+                                                                ? "bg-[#0f57d6] font-semibold text-white"
+                                                                : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
+                                                            }`}
                                                     >
-                                                        <i className="fa-solid fa-chevron-left text-[12px]" />
+                                                        {labelByKey[key] ?? opt?.label ?? key}
                                                     </PendingLink>
+                                                );
+                                            })}
 
-                                                    {paginationTokens.map((token, idx) => {
-                                                        if (token === "ellipsis") {
-                                                            return (
-                                                                <span key={`ellipsis-${idx}`} className="inline-flex h-9 w-9 items-center justify-center text-[16px] text-[#8b97a9] sm:h-10 sm:w-10">
-                                                                    ...
-                                                                </span>
-                                                            );
-                                                        }
+                                        </div>
+                                    );
+                                })()}
 
-                                                        const next = new URLSearchParams(currentUiParams.toString());
-                                                        next.set("page", String(token));
-                                                        const href = buildHrefWithParams(next);
-                                                        const isActive = token === currentPage;
+                                <div className="relative min-h-[360px]">
+                                    {sortedListItems.length > 0 ? (
+                                        <ProductGrid items={sortedListItems} locale={normalizedLocale} />
+                                    ) : (
+                                        <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+                                            Məhsul tapılmadı.
+                                        </div>
+                                    )}
 
-                                                        return (
-                                                            <PendingLink
-                                                                key={`page-${token}`}
-                                                                href={href}
-                                                                aria-current={isActive ? "page" : undefined}
-                                                                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-[13px] font-semibold transition-colors sm:h-10 sm:w-10 sm:text-[14px] ${
-                                                                    isActive
-                                                                        ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                                                                        : "border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb]"
+                                    {lastPage > 1 ? (
+                                        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                                            {(() => {
+                                                const prevParams = new URLSearchParams(currentUiParams.toString());
+                                                prevParams.set("page", String(Math.max(1, currentPage - 1)));
+                                                const nextParams = new URLSearchParams(currentUiParams.toString());
+                                                nextParams.set("page", String(Math.min(lastPage, currentPage + 1)));
+
+                                                return (
+                                                    <>
+                                                        <PendingLink
+                                                            href={buildHrefWithParams(prevParams)}
+                                                            aria-disabled={currentPage <= 1}
+                                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${currentPage <= 1 ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
                                                                 }`}
-                                                            >
-                                                                {token}
-                                                            </PendingLink>
-                                                        );
-                                                    })}
+                                                        >
+                                                            <i className="fa-solid fa-chevron-left text-[12px]" />
+                                                        </PendingLink>
 
-                                                    <PendingLink
-                                                        href={buildHrefWithParams(nextParams)}
-                                                        aria-disabled={currentPage >= lastPage}
-                                                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${
-                                                            currentPage >= lastPage ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
-                                                        }`}
-                                                    >
-                                                        <i className="fa-solid fa-chevron-right text-[12px]" />
-                                                    </PendingLink>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                ) : null}
-                            </div>
-                        </div>
-                    </div>
+                                                        {paginationTokens.map((token, idx) => {
+                                                            if (token === "ellipsis") {
+                                                                return (
+                                                                    <span key={`ellipsis-${idx}`} className="inline-flex h-9 w-9 items-center justify-center text-[16px] text-[#8b97a9] sm:h-10 sm:w-10">
+                                                                        ...
+                                                                    </span>
+                                                                );
+                                                            }
 
-                    {hasFilters ? (
-                        <>
-                            <label
-                                htmlFor={drawerId}
-                                className="fixed inset-0 z-40 cursor-pointer bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
-                                aria-label="close-filters-overlay"
-                            />
-                            <div className="fixed inset-y-0 left-0 z-50 w-full -translate-x-full bg-white transition-transform duration-300 ease-out transform-gpu will-change-transform peer-checked:translate-x-0 lg:hidden">
-                                <div className="flex h-full flex-col overflow-y-auto p-5">
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
-                                        <label
-                                            htmlFor={drawerId}
-                                            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
-                                            aria-label="close-filters"
-                                        >
-                                            <i className="fa-solid fa-xmark" aria-hidden="true" />
-                                        </label>
-                                    </div>
-                                    <div className="space-y-5">
-                                        {filtersBody}
-                                    </div>
+                                                            const next = new URLSearchParams(currentUiParams.toString());
+                                                            next.set("page", String(token));
+                                                            const href = buildHrefWithParams(next);
+                                                            const isActive = token === currentPage;
+
+                                                            return (
+                                                                <PendingLink
+                                                                    key={`page-${token}`}
+                                                                    href={href}
+                                                                    aria-current={isActive ? "page" : undefined}
+                                                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-[13px] font-semibold transition-colors sm:h-10 sm:w-10 sm:text-[14px] ${isActive
+                                                                            ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                                                            : "border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb]"
+                                                                        }`}
+                                                                >
+                                                                    {token}
+                                                                </PendingLink>
+                                                            );
+                                                        })}
+
+                                                        <PendingLink
+                                                            href={buildHrefWithParams(nextParams)}
+                                                            aria-disabled={currentPage >= lastPage}
+                                                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${currentPage >= lastPage ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
+                                                                }`}
+                                                        >
+                                                            <i className="fa-solid fa-chevron-right text-[12px]" />
+                                                        </PendingLink>
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
-                        </>
-                    ) : null}
+                        </div>
+
+                        {hasFilters ? (
+                            <>
+                                <label
+                                    htmlFor={drawerId}
+                                    className="fixed inset-0 z-40 cursor-pointer bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
+                                    aria-label="close-filters-overlay"
+                                />
+                                <div className="fixed inset-y-0 left-0 z-50 w-full -translate-x-full bg-white transition-transform duration-300 ease-out transform-gpu will-change-transform peer-checked:translate-x-0 lg:hidden">
+                                    <div className="flex h-full flex-col overflow-y-auto p-5">
+                                        <div className="mb-4 flex items-center justify-between">
+                                            <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
+                                            <label
+                                                htmlFor={drawerId}
+                                                className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
+                                                aria-label="close-filters"
+                                            >
+                                                <i className="fa-solid fa-xmark" aria-hidden="true" />
+                                            </label>
+                                        </div>
+                                        <div className="space-y-5">
+                                            {filtersBody}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : null}
                     </PendingNavProvider>
                 </section>
 
@@ -1046,22 +1041,30 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     }
 
     if (menu.view_type === "contact") {
-        const firstPhone = projectSettings?.general.phones[0]?.number ?? "+994 (50) 828-08-88";
+const whatsappPhone = projectSettings?.general.phones.find((phone) => phone.is_whatsapp);
+const azPhone = projectSettings?.general.phones.find((phone) =>
+    phone.number.replace(/\s/g, "").startsWith("+994")
+);
+const firstPhone =
+    whatsappPhone?.number ??
+    azPhone?.number ??
+    projectSettings?.general.phones[0]?.number ??
+    "+994 (50) 828-08-88";
         const email = projectSettings?.general.email || "Info@tvim.az";
         const address = projectSettings?.general.address || "Bakı, Süleyman Sani Axundov 225b";
 
         return (
             <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
-                items={[
-                    { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
-                    { label: menu.name, isCurrent: true },
-                ]}
-                className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
-                showTitle
-                pageTitle={menu.title || menu.name}
-                titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
-            />
+                    items={[
+                        { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        { label: menu.name, isCurrent: true },
+                    ]}
+                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
+                    showTitle
+                    pageTitle={menu.title || menu.name}
+                    titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
+                />
 
                 <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pt-7 lg:pb-12">
                     <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1122,39 +1125,39 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         </div>
                     </div>
 
-            
+
                 </section>
 
-                    {includedItems.length > 0 && (
-                        <div className="mt-8 w-full lg:mt-10">
-                            <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-1 lg:gap-10 lg:px-2">
-                                        {includedItems.map((inc: any, idx: number) => {
-                    if (inc.included_type === "menu" && inc.type === "form") {
-                        const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
-                        const fields = inc.data?.fields ?? inc.data?.data?.fields;
+                {includedItems.length > 0 && (
+                    <div className="mt-8 w-full lg:mt-10">
+                        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-1 lg:gap-10 lg:px-2">
+                            {includedItems.map((inc: any, idx: number) => {
+                                if (inc.included_type === "menu" && inc.type === "form") {
+                                    const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
+                                    const fields = inc.data?.fields ?? inc.data?.data?.fields;
 
-                        return (
-                            <div key={idx}>
-                                                <RequestForm submitConfig={submitConfig} fields={fields} />
-                                            </div>
-                                        );
-                                    }
+                                    return (
+                                        <div key={idx}>
+                                            <RequestForm submitConfig={submitConfig} fields={fields} />
+                                        </div>
+                                    );
+                                }
 
-                                    if (inc.included_type === "brand" && inc.data?.values) {
-                                        const companies = mapIncludedValuesToCompanies(inc.data.values);
-                                        if (companies.length === 0) return null;
-                                        return (
-                                            <div key={idx}>
-                                                <BrandListSlider companies={companies} />
-                                            </div>
-                                        );
-                                    }
+                                if (inc.included_type === "brand" && inc.data?.values) {
+                                    const companies = mapIncludedValuesToCompanies(inc.data.values);
+                                    if (companies.length === 0) return null;
+                                    return (
+                                        <div key={idx}>
+                                            <BrandListSlider companies={companies} />
+                                        </div>
+                                    );
+                                }
 
-                                    return null;
-                                })}
-                            </div>
+                                return null;
+                            })}
                         </div>
-                    )}
+                    </div>
+                )}
 
                 {keywordsArr.length > 0 && (
                     <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
