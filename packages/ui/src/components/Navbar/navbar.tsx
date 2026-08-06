@@ -451,7 +451,15 @@ function isOfficeCategory(name: string) {
     );
 }
 
-function ParentCategoryIcon({ category, className }: { category: any; className?: string }) {
+function ParentCategoryIcon({
+    category,
+    className,
+    imageClassName,
+}: {
+    category: any;
+    className?: string;
+    imageClassName?: string;
+}) {
     const categoryName = String(category?.name ?? category?.title ?? category?.link ?? "");
     const forceOfficeFallback = isOfficeCategory(categoryName);
 
@@ -459,8 +467,16 @@ function ParentCategoryIcon({ category, className }: { category: any; className?
         return <Briefcase className={cn("size-[15px] shrink-0 text-[#131722]", className)} strokeWidth={2.8} />;
     }
 
-    if (category?.icon?.image_url && !forceOfficeFallback) {
-        return <img src={category.icon.image_url} alt={category.name ?? ""} className={cn("h-4 w-4 shrink-0 object-cover", className)} />;
+    const iconImage = category?.icon?.image ?? category?.icon?.image_url ?? null;
+
+    if (iconImage) {
+        return (
+            <img
+                src={iconImage}
+                alt={category.name ?? ""}
+                className={cn("h-4 w-4 shrink-0 object-contain", imageClassName ?? className)}
+            />
+        );
     }
 
     const Icon = getParentIcon(categoryName);
@@ -1466,8 +1482,12 @@ export function Navbar({
         return (
             <div key={child.id} className="min-w-0 p-0">
                 <div className="flex items-start gap-1.5 px-0 py-4 rounded-md h-full">
-                    <div className="hidden lg:flex h-8 w-8 flex-shrink-0 items-start justify-center pt-1.5">
-                        <ParentCategoryIcon category={child} className="size-[16px] text-[#131722]" />
+                    <div className="hidden lg:flex h-8 w-8 flex-shrink-0 items-start justify-center pt-0.5">
+                        <ParentCategoryIcon
+                            category={child}
+                            className="size-[16px] text-[#131722]"
+                            imageClassName="size-[30px]"
+                        />
                     </div>
 
                     <div className="flex-1 flex flex-col gap-1.5">

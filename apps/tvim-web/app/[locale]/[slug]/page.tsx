@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import { Breadcrumb, type Company } from "@repo/ui";
@@ -66,7 +67,7 @@ type Props = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export const revalidate = 31_536_000;
+export const revalidate = 300;
 export const dynamicParams = true;
 
 type ProductListFilterValue = {
@@ -184,7 +185,7 @@ const getCachedProductListPayload = unstable_cache(
         }
     },
     ["public-product-list-payload"],
-    { revalidate: 31_536_000, tags: ["public-product-list-payload"] }
+    { revalidate: 300, tags: ["public-product-list-payload"] }
 );
 
 async function getMenuDetail(slug: string, locale: string) {
@@ -359,10 +360,16 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         return String(localizedLink).trim().replace(/^\/+|\/+$/g, "");
     }
 
-    const includedItemsSection = includedItems.length > 0 ? (
+    const hasSelfIncludedItem = includedItems.some((inc: any) => inc?.included_type === "self");
+
+    const renderIncludedItems = (selfContent?: ReactNode) => includedItems.length > 0 ? (
         <div className="mt-8 w-full lg:mt-10">
             <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-1 lg:gap-10 lg:px-2">
                 {includedItems.map((inc: any, idx: number) => {
+                    if (inc.included_type === "self") {
+                        return selfContent ? <div key={idx}>{selfContent}</div> : null;
+                    }
+
                     if (inc.included_type === "menu" && inc.type === "form") {
                         const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
                         const fields = inc.data?.fields ?? inc.data?.data?.fields;
@@ -437,6 +444,30 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             </div>
         </div>
     ) : null;
+
+    const includedItemsSection = renderIncludedItems();
+
+    const pageContentBody = (
+        <>
+            <div className="prose max-w-none">
+                {pageDescriptionHtml && (
+                    <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
+                )}
+            </div>
+
+            {pageSubmitConfig && (
+                <div className="mt-8 lg:mt-12">
+                    <RequestForm submitConfig={pageSubmitConfig} />
+                </div>
+            )}
+        </>
+    );
+
+    const pageContentSection = (
+        <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 pb-10 lg:px-2 lg:pt-3 lg:pb-12">
+            {pageContentBody}
+        </section>
+    );
 
     const footerSpacer = keywordsArr.length > 0 ? null : <div className="h-10 lg:h-14" />;
 
@@ -783,7 +814,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
                         <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[268px_1fr]">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
                             <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
                                 {filtersBody}
                             </aside>
@@ -830,31 +861,82 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                         newest: "Yenilər: üstdə",
                                         name_asc: "Ad (A-Z)",
                                         name_desc: "Ad (Z-A)",
-                                        price_asc: "Qiymət (artan)",
-                                        price_desc: "Qiymət (azalan)",
+                                        price_asc: "Qiymət",
+                                        price_desc: "Qiymət",
                                         popular: "Reytinq",
                                         most_sale: "Model",
                                     };
 
+                                    const isPriceKey = (key: string) => key === "price_asc" || key === "price_desc";
+
+                                    type SortButton = {
+                                        id: string;
+                                        label: string;
+                                        targetKey: string;
+                                        isActive: boolean;
+                                        priceDirection?: "asc" | "desc";
+                                    };
+
+                                    const sortButtons: SortButton[] = [];
+                                    let priceButtonPlaced = false;
+
+                                    for (const opt of sortOptions) {
+                                        const key = String(opt?.key ?? "").trim();
+                                        if (!key) continue;
+
+                                        if (isPriceKey(key)) {
+                                            if (priceButtonPlaced) continue;
+                                            priceButtonPlaced = true;
+
+                                            const currentDirection = activeSort === "price_desc" ? "desc" : "asc";
+                                            sortButtons.push({
+                                                id: "price",
+                                                label: labelByKey.price_asc ?? "Qiymət",
+                                                targetKey: activeSort === "price_asc" ? "price_desc" : "price_asc",
+                                                isActive: isPriceKey(activeSort),
+                                                priceDirection: currentDirection,
+                                            });
+                                            continue;
+                                        }
+
+                                        sortButtons.push({
+                                            id: key,
+                                            label: labelByKey[key] ?? opt?.label ?? key,
+                                            targetKey: key,
+                                            isActive: key === activeSort,
+                                        });
+                                    }
+
                                     return (
                                         <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                            {sortOptions.map((opt) => {
-                                                const key = String(opt?.key ?? "").trim();
-                                                if (!key) return null;
+                                            {sortButtons.map((button) => {
                                                 const next = new URLSearchParams(currentUiParams.toString());
                                                 next.set("page", "1");
-                                                next.set("sort", key);
-                                                const isActive = key === activeSort;
+                                                next.set("sort", button.targetKey);
                                                 return (
                                                     <PendingLink
-                                                        key={key}
+                                                        key={button.id}
                                                         href={buildHrefWithParams(next)}
-                                                        className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${isActive
+                                                        aria-label={
+                                                            button.priceDirection
+                                                                ? `${button.label}: ${button.priceDirection === "desc" ? "azalan" : "artan"}`
+                                                                : undefined
+                                                        }
+                                                        className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${button.isActive
                                                                 ? "bg-[#0f57d6] font-semibold text-white"
                                                                 : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
                                                             }`}
                                                     >
-                                                        {labelByKey[key] ?? opt?.label ?? key}
+                                                        {button.label}
+                                                        {button.priceDirection ? (
+                                                            <i
+                                                                className={`fa-solid ${button.priceDirection === "desc"
+                                                                        ? "fa-arrow-down-wide-short"
+                                                                        : "fa-arrow-up-short-wide"
+                                                                    } text-[13px]`}
+                                                                aria-hidden="true"
+                                                            />
+                                                        ) : null}
                                                     </PendingLink>
                                                 );
                                             })}
@@ -1199,21 +1281,9 @@ const firstPhone =
                 null
             )}
 
-            <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 pb-10 lg:px-2 lg:pt-3 lg:pb-12">
-                <div className="prose max-w-none">
-                    {pageDescriptionHtml && (
-                        <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
-                    )}
-                </div>
+            {!hasSelfIncludedItem && pageContentSection}
 
-                {pageSubmitConfig && (
-                    <div className="mt-8 lg:mt-12">
-                        <RequestForm submitConfig={pageSubmitConfig} />
-                    </div>
-                )}
-            </section>
-
-            {includedItemsSection}
+            {renderIncludedItems(pageContentBody)}
 
             {keywordsArr.length > 0 && (
                 <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">

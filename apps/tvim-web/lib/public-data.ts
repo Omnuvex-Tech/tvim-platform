@@ -8,9 +8,17 @@ import { api } from "@/lib/api";
 import { config } from "@/config";
 import { resolveSettingsApiLocale } from "@/lib/settings";
 
-const SETTINGS_REVALIDATE_SECONDS = 31_536_000;
-const NAVIGATION_REVALIDATE_SECONDS = 31_536_000;
-const LANGUAGES_REVALIDATE_SECONDS = 31_536_000;
+const DATA_CACHE_DISABLED = process.env.NEXT_PUBLIC_DISABLE_DATA_CACHE === "1";
+
+const resolveCacheTtlSeconds = () => {
+    if (DATA_CACHE_DISABLED) return 0;
+    const configured = Number(process.env.NEXT_PUBLIC_DATA_CACHE_TTL);
+    return Number.isFinite(configured) && configured > 0 ? configured : 300;
+};
+
+const SETTINGS_REVALIDATE_SECONDS = resolveCacheTtlSeconds();
+const NAVIGATION_REVALIDATE_SECONDS = resolveCacheTtlSeconds();
+const LANGUAGES_REVALIDATE_SECONDS = resolveCacheTtlSeconds();
 
 type MemoryCacheEntry<T> = {
     createdAt: number;
@@ -107,7 +115,7 @@ const getCachedProjectSettingsResponse = unstable_cache(
         return response.success && response.data ? response.data : null;
     },
     ["public-project-settings"],
-    { revalidate: SETTINGS_REVALIDATE_SECONDS, tags: ["public-project-settings"] }
+    { revalidate: Math.max(1, SETTINGS_REVALIDATE_SECONDS), tags: ["public-project-settings"] }
 );
 
 async function getCachedMenuList(incomingLocale: string) {
@@ -135,11 +143,12 @@ async function getCachedHeaderCategories(incomingLocale: string) {
     });
 }
 
-async function getCachedMenuDetail<T>(slug: string, incomingLocale: string) {
+async function getCachedMenuDetail<T>(slug: string, incomingLocale: string, dataSlug?: string) {
     const locale = incomingLocale.trim().toLowerCase();
-    return await getFromNavigationMemoryCache(`menu-detail:${locale}:${slug}`, async () => {
+    const cacheKey = `menu-detail:${locale}:${slug}:${dataSlug ?? ""}`;
+    return await getFromNavigationMemoryCache(cacheKey, async () => {
         const locale = incomingLocale.trim().toLowerCase();
-        const response = await api.get<T>(config.endpoints.menus.detail(slug), {
+        const response = await api.get<T>(config.endpoints.menus.detail(slug, dataSlug), {
             params: { lang: locale },
             locale: resolveSettingsApiLocale(locale),
         });
@@ -164,6 +173,6 @@ export async function getPublicHeaderCategories(locale: string) {
     return await getCachedHeaderCategories(locale);
 }
 
-export async function getPublicMenuDetail<T>(slug: string, locale: string) {
-    return await getCachedMenuDetail<T>(slug, locale);
+export async function getPublicMenuDetail<T>(slug: string, locale: string, dataSlug?: string) {
+    return await getCachedMenuDetail<T>(slug, locale, dataSlug);
 }

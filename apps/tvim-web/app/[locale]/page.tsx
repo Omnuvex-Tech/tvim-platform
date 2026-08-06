@@ -12,7 +12,7 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
-export const revalidate = 31_536_000;
+export const revalidate = 300;
 
 export async function generateStaticParams() {
     const languages = await getPublicLanguages();

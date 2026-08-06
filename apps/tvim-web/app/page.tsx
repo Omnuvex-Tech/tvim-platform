@@ -13,7 +13,7 @@ import { SitePageShell } from "./components/SiteChrome/site-page-shell";
 import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
-export const revalidate = 31_536_000;
+export const revalidate = 300;
 
 const resolveRootLocale = async () => {
     const languages = await getPublicLanguages();

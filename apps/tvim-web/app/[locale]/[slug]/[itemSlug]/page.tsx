@@ -30,7 +30,7 @@ type GridItem = {
     };
 };
 
-export const revalidate = 31_536_000;
+export const revalidate = 300;
 export const dynamicParams = true;
 
 type MenuDetailData = {
@@ -561,6 +561,9 @@ export default async function GridDetailPage({
             ""
         ).trim();
         const stockText = typeof active.stock === "number" && active.stock > 0 ? "✓ Məhdud saydadır" : "Stokda yoxdur";
+        // Alış düyməsi stok əsasında qərarlaşır (kartlardakı mavi/sarı qayda ilə eyni),
+        // gəldiyi linkdəki `source=discount` parametrindən asılı deyil.
+        const isPurchasable = !(typeof active.stock === "number" && active.stock <= 0);
         const allSpecRows = Array.from(normalizedFilterMap.values())
             .map((filter) => {
                 const label = filter.label;
@@ -696,23 +699,13 @@ export default async function GridDetailPage({
                                 </>
                             )}
 
-                            {isDiscountSource ? (
-                                <ProductDetailActions
-                                    productVariationId={productVariationId}
-                                    stock={active.stock}
-                                    variant="discount"
-                                    productTitle={resolvedName}
-                                    productCode={productCode}
-                                />
-                            ) : (
-                                <ProductDetailActions
-                                    productVariationId={productVariationId}
-                                    stock={active.stock}
-                                    variant="order"
-                                    productTitle={resolvedName}
-                                    productCode={productCode}
-                                />
-                            )}
+                            <ProductDetailActions
+                                productVariationId={productVariationId}
+                                stock={active.stock}
+                                variant={isPurchasable ? "discount" : "order"}
+                                productTitle={resolvedName}
+                                productCode={productCode}
+                            />
 
                             {navbarPhone ? (
                                 <a
