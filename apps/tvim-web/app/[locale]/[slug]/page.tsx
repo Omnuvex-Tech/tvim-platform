@@ -27,6 +27,11 @@ type MenuDetailData = {
         description: string | null;
         link: string;
         multi_links: Record<string, string>;
+        icon?: {
+            text?: string | null;
+            image?: string | null;
+            image_url?: string | null;
+        } | null;
         seo: any;
         meta_keywords?: any;
     };
@@ -471,6 +476,24 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
     const footerSpacer = keywordsArr.length > 0 ? null : <div className="h-10 lg:h-14" />;
 
+    const keywordsSection = keywordsArr.length > 0 ? (
+        <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
+            <div className="w-full border-t border-[#e5e9ef]" />
+            <div className="pt-4">
+                <div className="flex flex-wrap justify-start gap-2">
+                    {keywordsArr.map((kw, i) => (
+                        <span
+                            key={i}
+                            className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
+                        >
+                            {kw}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        </div>
+    ) : null;
+
     const isCategoriesView = (() => {
         const t = String(menu.type ?? "").trim().toLowerCase();
         const vt = String(menu.view_type ?? "").trim().toLowerCase();
@@ -796,6 +819,31 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             </>
         );
 
+        const categoryDescriptionHtml = String(menu.description ?? "").trim();
+        const categoryIconUrl = String(menu.icon?.image_url ?? "").trim();
+
+        const categoryAboutSection = categoryDescriptionHtml ? (
+            <section className="mt-8 w-full lg:mt-10">
+                <div className="mx-auto w-full max-w-[1280px] px-1 lg:px-2">
+                    <div className="flex flex-col gap-4 rounded-[16px] bg-[#f5f7fb] p-5 sm:flex-row sm:items-start sm:gap-6 lg:p-7">
+                        {categoryIconUrl ? (
+                            <div className="flex size-[96px] shrink-0 items-center justify-center rounded-[12px] bg-white p-3">
+                                <img
+                                    src={categoryIconUrl}
+                                    alt={menu.title || menu.name}
+                                    className="h-full w-full object-contain"
+                                />
+                            </div>
+                        ) : null}
+                        <div
+                            className="max-w-none text-[14px] leading-[1.7] text-[#4b5565] lg:text-[15px] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_b]:font-semibold [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_*]:!text-inherit [&_*]:!text-[length:inherit]"
+                            dangerouslySetInnerHTML={{ __html: categoryDescriptionHtml }}
+                        />
+                    </div>
+                </div>
+            </section>
+        ) : null;
+
         return (
             <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
@@ -1049,6 +1097,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </section>
 
                 {includedItemsSection}
+                {categoryAboutSection}
+                {keywordsSection}
                 {footerSpacer}
             </SitePageShell>
         );
@@ -1241,23 +1291,7 @@ const firstPhone =
                     </div>
                 )}
 
-                {keywordsArr.length > 0 && (
-                    <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
-                        <div className="w-full border-t border-[#e5e9ef]" />
-                        <div className="pt-4">
-                            <div className="flex flex-wrap justify-start gap-2">
-                                {keywordsArr.map((kw, i) => (
-                                    <span
-                                        key={i}
-                                        className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
-                                    >
-                                        {kw}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {keywordsSection}
                 {footerSpacer}
             </SitePageShell>
         );
@@ -1285,23 +1319,7 @@ const firstPhone =
 
             {renderIncludedItems(pageContentBody)}
 
-            {keywordsArr.length > 0 && (
-                <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
-                    <div className="w-full border-t border-[#e5e9ef]" />
-                    <div className="pt-4">
-                        <div className="flex flex-wrap justify-start gap-2">
-                            {keywordsArr.map((kw, i) => (
-                                <span
-                                    key={i}
-                                    className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
-                                >
-                                    {kw}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {keywordsSection}
             {footerSpacer}
         </SitePageShell>
     );
