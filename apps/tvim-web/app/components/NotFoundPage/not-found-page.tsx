@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
 
@@ -24,8 +28,23 @@ const normalizeLocale = (locale: string): LocaleCode => {
     return SUPPORTED_LOCALES.includes(normalized as LocaleCode) ? (normalized as LocaleCode) : "az";
 };
 
+const localeFromPathname = (pathname: string): LocaleCode | null => {
+    const firstSegment = pathname.split("/").filter(Boolean)[0] ?? "";
+    const normalized = firstSegment.trim().toLowerCase();
+    return SUPPORTED_LOCALES.includes(normalized as LocaleCode) ? (normalized as LocaleCode) : null;
+};
+
 export function NotFoundPage({ locale }: { locale: string }) {
-    const currentLocale = normalizeLocale(locale);
+    const pathname = usePathname();
+    const [currentLocale, setCurrentLocale] = useState<LocaleCode>(() => normalizeLocale(locale));
+
+    useEffect(() => {
+        const localeFromUrl = localeFromPathname(pathname);
+        if (localeFromUrl) {
+            setCurrentLocale(localeFromUrl);
+        }
+    }, [pathname]);
+
     const t = copy[currentLocale];
 
     return (
