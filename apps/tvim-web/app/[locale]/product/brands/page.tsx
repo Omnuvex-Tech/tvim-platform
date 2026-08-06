@@ -6,7 +6,7 @@ import {
 import { getStaticLocaleCodes } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
-export const revalidate = 31_536_000;
+export const revalidate = 300;
 
 export async function generateStaticParams() {
     const localeCodes = await getStaticLocaleCodes();

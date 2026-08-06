@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { config } from "@/config";
 import { normalizeLocale } from "@/lib/site-locales";
 
-export const revalidate = 31_536_000;
+export const revalidate = 300;
 
 export default async function ProductBrandsPage({
 }: {

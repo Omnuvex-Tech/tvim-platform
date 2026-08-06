@@ -52,6 +52,8 @@ type MenuDetailData = {
     };
 };
 
+const BRAND_NEWS_MENU_LINK = "brand-news";
+
 const normalizeSlug = (value: string) => decodeURIComponent(String(value ?? "")).trim().toLowerCase().replace(/^\/+|\/+$/g, "");
 
 const normalizeSlugText = (value: string) => decodeURIComponent(String(value ?? "")).trim().replace(/[-_]+/g, " ").trim();
@@ -119,7 +121,7 @@ async function getMenuDetail(slug: string, locale: string) {
     };
 
     try {
-        const responseDetail = await getPublicMenuDetail<any>(slug, locale);
+        const responseDetail = await getPublicMenuDetail<any>(BRAND_NEWS_MENU_LINK, locale, normalizedSlug);
         if (responseDetail) {
             const fromDetail = tryResolveFromPayload(responseDetail);
             if (fromDetail) return fromDetail;
