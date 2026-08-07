@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
         return await proxyCompareRequest(request, {
             method: "GET",
             endpoint: config.endpoints.compare.list,
+            query: {
+                page: pageParam,
+                per_page: perPageParam,
+            },
         });
     } catch {
         return NextResponse.json(
