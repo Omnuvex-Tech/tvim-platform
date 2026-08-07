@@ -28,6 +28,14 @@ import {
 import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
+import {
+    flattenCategoryTree,
+    matchCategories,
+    normalizeSearchText,
+    prepareSearchQuery,
+    sortBySearchRelevance,
+    type FlatCategoryEntry,
+} from "../../lib/search-ranking";
 import Spinner from "../Spinner/Spinner";
 import "../../styles/components/navbar.css";
 
@@ -312,6 +320,84 @@ function normalizeSearchProducts(json: any, locale: string): NavbarSearchSection
     ];
 }
 
+/** Stable default so the search effect is not re-run on every render. */
+const EMPTY_CATALOG_CATEGORIES: FlatCategoryEntry[] = [];
+/** How many locally matched categories may be injected above the API results. */
+const LOCAL_CATEGORY_SUGGESTION_LIMIT = 6;
+/** Upper bound for the merged categories section so products stay visible. */
+const MERGED_CATEGORY_LIMIT = 8;
+
+function searchItemDedupeKey(item: NavbarSearchProduct) {
+    return normalizeSearchText(item.name) || String(item.href ?? "").toLowerCase();
+}
+
+/**
+ * Matches the query against the locally available category tree so a partially
+ * typed name surfaces its category even before the API replies with one.
+ */
+function buildLocalCategorySections(
+    categories: FlatCategoryEntry[],
+    query: string,
+    locale: string,
+    copy: { categoriesSection: string; categoryLabel: string }
+): NavbarSearchSection[] {
+    const matched = matchCategories(categories, query, LOCAL_CATEGORY_SUGGESTION_LIMIT);
+    if (matched.length === 0) return [];
+
+    return [
+        {
+            key: "categories",
+            name: copy.categoriesSection,
+            items: matched.map((category) => ({
+                id: category.id,
+                name: category.name,
+                subtitle: copy.categoryLabel,
+                imageUrl: category.imageUrl,
+                href: `/${locale}/${category.link}`,
+                type: "category" as const,
+            })),
+        },
+    ];
+}
+
+/**
+ * Re-orders every API section by relevance and puts the locally matched
+ * categories in front of the ones the API returned in catalog order.
+ */
+function mergeSearchSections(
+    apiSections: NavbarSearchSection[],
+    localSections: NavbarSearchSection[],
+    query: string
+): NavbarSearchSection[] {
+    const prepared = prepareSearchQuery(query);
+
+    const rankedSections = apiSections
+        .filter((section) => Array.isArray(section?.items) && section.items.length > 0)
+        .map((section) => ({
+            ...section,
+            items: sortBySearchRelevance(section.items, prepared, (item) => [item.name, item.model, item.subtitle]),
+        }));
+
+    const localCategories = localSections[0]?.items ?? [];
+    if (localCategories.length === 0) return rankedSections;
+
+    const categoriesIndex = rankedSections.findIndex((section) => section.key === "categories");
+    if (categoriesIndex === -1) {
+        return [...localSections, ...rankedSections];
+    }
+
+    const target = rankedSections[categoriesIndex]!;
+    const localKeys = new Set(localCategories.map(searchItemDedupeKey));
+    const mergedItems = [
+        ...localCategories,
+        ...target.items.filter((item) => !localKeys.has(searchItemDedupeKey(item))),
+    ].slice(0, MERGED_CATEGORY_LIMIT);
+
+    const merged = [...rankedSections];
+    merged[categoriesIndex] = { ...target, items: mergedItems };
+    return merged;
+}
+
 export interface NavbarMenuItem {
     label: string;
     href: string;
@@ -369,6 +455,8 @@ const navbarCopy = {
         catalog: "Kataloq",
         login: "Daxil ol",
         noResults: "Nəticə tapılmadı",
+        categoriesSection: "Kateqoriyalar",
+        categoryLabel: "Kateqoriya",
     },
     en: {
         tagline: "Construction and building materials",
@@ -376,6 +464,8 @@ const navbarCopy = {
         catalog: "Catalog",
         login: "Login",
         noResults: "No results found",
+        categoriesSection: "Categories",
+        categoryLabel: "Category",
     },
     ru: {
         tagline: "Строительные материалы",
@@ -383,6 +473,8 @@ const navbarCopy = {
         catalog: "Каталог",
         login: "Войти",
         noResults: "Ничего не найдено",
+        categoriesSection: "Категории",
+        categoryLabel: "Категория",
     },
 } as const;
 
@@ -543,11 +635,13 @@ function NavbarSearch({
     compact = false,
     locale = "az",
     onSearchProducts,
+    catalogCategories = EMPTY_CATALOG_CATEGORIES,
 }: {
     searchPlaceholder: string;
     compact?: boolean;
     locale?: string;
     onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchSection[]>;
+    catalogCategories?: FlatCategoryEntry[];
 }) {
     const [value, setValue] = useState("");
     const [results, setResults] = useState<NavbarSearchSection[]>([]);
@@ -577,11 +671,15 @@ function NavbarSearch({
 
         activeQueryRef.current = query;
 
+        // Show the categories we can match locally straight away, so a partially
+        // typed name surfaces its category without waiting for the API.
+        const localSections = buildLocalCategorySections(catalogCategories, query, localeCode, copy);
+        setResults(localSections);
+        setError(null);
+        setIsOpen(true);
+
         const timer = window.setTimeout(async () => {
             setIsLoading(true);
-            setError(null);
-            setIsOpen(true);
-            setResults([]);
 
             try {
                 const mapped = onSearchProducts
@@ -595,12 +693,16 @@ function NavbarSearch({
                     );
 
                 if (activeQueryRef.current !== query) return;
-                setResults((mapped || []).filter((section) => Array.isArray(section?.items) && section.items.length > 0));
+                setResults(mergeSearchSections(mapped || [], localSections, query));
                 setIsOpen(true);
             } catch (err: any) {
                 if (activeQueryRef.current !== query) return;
-                setResults([]);
-                setError(err?.message ?? "Axtarış xətası");
+                // Keep the local matches visible; only report the failure when
+                // there is nothing else to show.
+                if (localSections.length === 0) {
+                    setResults([]);
+                    setError(err?.message ?? "Axtarış xətası");
+                }
                 setIsOpen(true);
             } finally {
                 if (activeQueryRef.current === query) {
@@ -610,7 +712,7 @@ function NavbarSearch({
         }, 280);
 
         return () => window.clearTimeout(timer);
-    }, [value, localeCode, onSearchProducts]);
+    }, [value, localeCode, onSearchProducts, catalogCategories, copy]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -705,7 +807,7 @@ function NavbarSearch({
                     style={mobilePopupStyle ?? undefined}
                 >
                     <div className="max-h-[420px] overflow-y-auto">
-                        {isLoading ? (
+                        {isLoading && totalResults === 0 ? (
                             <div className="flex min-h-[78px] items-center justify-center px-4 py-5">
                                 <Spinner size={21} strokeWidth={1.5} className="text-black" />
                                 <span className="sr-only">Axtarılır...</span>
@@ -756,7 +858,7 @@ function NavbarSearch({
                         )}
                     </div>
 
-                    {!isLoading && totalResults > 0 ? (
+                    {totalResults > 0 ? (
                         <SmartLink
                             href={`/${localeCode}/search?q=${encodeURIComponent(value.trim())}`}
                             className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
@@ -1454,6 +1556,11 @@ export function Navbar({
         };
     }, [isCatalogOpen]);
 
+    const catalogSearchCategories = useMemo(
+        () => flattenCategoryTree(catalogItems, locale || "az"),
+        [catalogItems, locale]
+    );
+
     const catalogTree = useMemo(() => buildTree(catalogItems), [buildTree, catalogItems]);
     const rootCategories = useMemo(() => catalogTree.filter((cat: any) => !cat.parent_id || Number(cat.parent_id) === 0), [catalogTree]);
 
@@ -1631,7 +1738,12 @@ export function Navbar({
                 <div className={navbarClasses.topRow}>
                     <NavbarLogo logo={logo} logoHref={logoHref} tagline={copy.tagline} />
                     <div className="hidden lg:block">
-                        <NavbarSearch searchPlaceholder={effectiveSearchPlaceholder} locale={locale} onSearchProducts={onSearchProducts} />
+                        <NavbarSearch
+                            searchPlaceholder={effectiveSearchPlaceholder}
+                            locale={locale}
+                            onSearchProducts={onSearchProducts}
+                            catalogCategories={catalogSearchCategories}
+                        />
                     </div>
                     <div className="hidden lg:block">
                         <NavbarContact 
@@ -1883,7 +1995,13 @@ export function Navbar({
                             strokeWidth={2}
                         />
                     </button>
-                    <NavbarSearch searchPlaceholder={effectiveSearchPlaceholder} compact locale={locale} onSearchProducts={onSearchProducts} />
+                    <NavbarSearch
+                        searchPlaceholder={effectiveSearchPlaceholder}
+                        compact
+                        locale={locale}
+                        onSearchProducts={onSearchProducts}
+                        catalogCategories={catalogSearchCategories}
+                    />
                 </div>
             </div>
 
