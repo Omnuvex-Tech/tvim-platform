@@ -207,6 +207,13 @@ const getCanonicalPath = (canonical: unknown) => {
     }
 };
 
+/**
+ * Menus whose CMS content uses <hr> as a light separator and needs the
+ * `.prose-soft-hr` rule from globals.css. 347 = Geriqaytarma / Qaytarma və
+ * dəyişmə.
+ */
+const SOFT_HR_MENU_IDS = new Set([347]);
+
 const readSearchParamValue = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
 
@@ -452,9 +459,14 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
     const includedItemsSection = renderIncludedItems();
 
+    // The menu id is the same in every locale; the slug is not.
+    const contentProseClassName = SOFT_HR_MENU_IDS.has(Number(menu.id))
+        ? "prose prose-soft-hr max-w-none"
+        : "prose max-w-none";
+
     const pageContentBody = (
         <>
-            <div className="prose max-w-none">
+            <div className={contentProseClassName}>
                 {pageDescriptionHtml && (
                     <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
                 )}
@@ -862,7 +874,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         <input id={drawerId} type="checkbox" className="peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
                         <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
                             <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
                                 {filtersBody}
                             </aside>

@@ -83,10 +83,29 @@ const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
 const OPEN_CATALOG_EVENT = "tvim:open-catalog";
 
+// These caches survive navigation (the navbar is re-mounted per page), so the
+// optimistic +1/-1 applied on a toggle has to be written back here too —
+// otherwise the next mount seeds the badge from a pre-toggle value.
 let favoritesCountCache: number | null = null;
 let favoritesCountPromise: Promise<number> | null = null;
+let favoritesCountGeneration = 0;
 let compareCountCache: number | null = null;
 let compareCountPromise: Promise<number> | null = null;
+let compareCountGeneration = 0;
+
+function applyFavoritesCountDelta(delta: number) {
+    favoritesCountGeneration += 1;
+    const next = Math.max(0, (favoritesCountCache ?? 0) + delta);
+    favoritesCountCache = next;
+    return next;
+}
+
+function applyCompareCountDelta(delta: number) {
+    compareCountGeneration += 1;
+    const next = Math.max(0, (compareCountCache ?? 0) + delta);
+    compareCountCache = next;
+    return next;
+}
 
 async function getFavoritesCount(force = false) {
     if (force) {
@@ -118,7 +137,14 @@ async function getFavoritesCount(force = false) {
     })();
 
     favoritesCountPromise = promise;
+    const generation = favoritesCountGeneration;
     const value = await promise;
+
+    // A toggle landed while the request was in flight; its value is newer.
+    if (generation !== favoritesCountGeneration) {
+        return favoritesCountCache ?? value;
+    }
+
     favoritesCountCache = value;
     return value;
 }
@@ -153,7 +179,14 @@ async function getCompareCount(force = false) {
     })();
 
     compareCountPromise = promise;
+    const generation = compareCountGeneration;
     const value = await promise;
+
+    // A toggle landed while the request was in flight; its value is newer.
+    if (generation !== compareCountGeneration) {
+        return compareCountCache ?? value;
+    }
+
     compareCountCache = value;
     return value;
 }
@@ -1217,12 +1250,12 @@ export function Navbar({
             const detail = (event as CustomEvent<{ action?: "created" | "deleted" }>).detail;
 
             if (detail?.action === "created") {
-                setFavoritesCount((prev) => prev + 1);
+                setFavoritesCount(applyFavoritesCountDelta(1));
                 return;
             }
 
             if (detail?.action === "deleted") {
-                setFavoritesCount((prev) => Math.max(0, prev - 1));
+                setFavoritesCount(applyFavoritesCountDelta(-1));
                 return;
             }
 
@@ -1241,12 +1274,12 @@ export function Navbar({
             const detail = (event as CustomEvent<{ action?: "created" | "deleted" }>).detail;
 
             if (detail?.action === "created") {
-                setCompareCount((prev) => prev + 1);
+                setCompareCount(applyCompareCountDelta(1));
                 return;
             }
 
             if (detail?.action === "deleted") {
-                setCompareCount((prev) => Math.max(0, prev - 1));
+                setCompareCount(applyCompareCountDelta(-1));
                 return;
             }
 

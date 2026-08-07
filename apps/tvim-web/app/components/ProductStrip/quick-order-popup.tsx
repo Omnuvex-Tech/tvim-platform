@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { Hash, Package, Phone, UserRound } from "lucide-react";
-import { useNotify } from "@repo/ui";
+import React, { useEffect, useId, useRef, useState } from "react";
+import { cn, useNotify } from "@repo/ui";
 import { submitPurchaseRequest } from "@/lib/purchase-request/client";
 
 type QuickOrderPopupProps = {
@@ -16,17 +15,30 @@ type QuickOrderPopupProps = {
 const AZ_COUNTRY_CODE = "994";
 const AZ_LOCAL_PHONE_LENGTH = 9;
 
+/**
+ * The country code is rendered as a fixed prefix next to the input, so the
+ * field itself only ever holds the 9 local digits. A pasted international or
+ * trunk-prefixed number still resolves to the same local digits.
+ */
 const extractAzerbaijanLocalDigits = (value: string) => {
     const digits = value.replace(/\D/g, "");
 
-    if (digits.startsWith(AZ_COUNTRY_CODE)) {
-        return digits.slice(AZ_COUNTRY_CODE.length, AZ_COUNTRY_CODE.length + AZ_LOCAL_PHONE_LENGTH);
+    // Only strip a leading 994/0 when the value is too long to be local on its
+    // own — "99" is itself a valid local operator prefix.
+    if (digits.length > AZ_LOCAL_PHONE_LENGTH) {
+        if (digits.startsWith(AZ_COUNTRY_CODE)) {
+            return digits.slice(AZ_COUNTRY_CODE.length, AZ_COUNTRY_CODE.length + AZ_LOCAL_PHONE_LENGTH);
+        }
+
+        if (digits.startsWith("0")) {
+            return digits.slice(1, 1 + AZ_LOCAL_PHONE_LENGTH);
+        }
     }
 
     return digits.slice(0, AZ_LOCAL_PHONE_LENGTH);
 };
 
-const formatAzerbaijanPhone = (value: string) => {
+const formatAzerbaijanLocalPhone = (value: string) => {
     const localDigits = extractAzerbaijanLocalDigits(value);
     if (!localDigits) return "";
 
@@ -35,13 +47,10 @@ const formatAzerbaijanPhone = (value: string) => {
     const part3 = localDigits.slice(5, 7);
     const part4 = localDigits.slice(7, 9);
 
-    let formatted = "+994";
+    let formatted = `(${part1}`;
 
-    if (part1) {
-        formatted += ` (${part1}`;
-        if (part1.length === 2) {
-            formatted += ")";
-        }
+    if (part1.length === 2) {
+        formatted += ")";
     }
 
     if (part2) {
@@ -49,42 +58,46 @@ const formatAzerbaijanPhone = (value: string) => {
     }
 
     if (part3) {
-        formatted += ` ${part3}`;
+        formatted += `-${part3}`;
     }
 
     if (part4) {
-        formatted += ` ${part4}`;
+        formatted += `-${part4}`;
     }
 
     return formatted;
 };
 
+/** Matches the shape produced by formatAzerbaijanLocalPhone. */
+const PHONE_PLACEHOLDER = "(__) ___-__-__";
+
+/** Keep in sync with the duration-200 classes on the overlay and panel. */
+const MODAL_TRANSITION_MS = 200;
+
+const labelClassName = "block text-[13px] leading-none font-semibold text-[#1b2434]";
+const inputClassName =
+    "h-[42px] w-full rounded-[8px] border border-[#dfe3ea] bg-white px-4 text-[14px] font-normal text-[#161922] outline-none transition-colors placeholder:text-[#b3b9c4] focus:border-[#2050f5]";
+
 const countLocalDigitsBeforeCursor = (value: string, cursorPosition: number) => {
     const limit = Math.max(0, Math.min(cursorPosition, value.length));
-    const leftPart = value.slice(0, limit);
-    return extractAzerbaijanLocalDigits(leftPart).length;
+    const digitsBefore = value.slice(0, limit).replace(/\D/g, "").length;
+    return Math.min(digitsBefore, AZ_LOCAL_PHONE_LENGTH);
 };
 
 const getCursorPositionFromLocalDigits = (formatted: string, localDigitsCount: number) => {
     if (!formatted) return 0;
     if (localDigitsCount <= 0) {
-        return Math.min(formatted.length, 4);
+        // Just after the opening bracket, where the first digit goes.
+        return Math.min(formatted.length, 1);
     }
 
-    let countryDigitsLeft = AZ_COUNTRY_CODE.length;
-    let seenLocalDigits = 0;
+    let seenDigits = 0;
 
     for (let i = 0; i < formatted.length; i += 1) {
-        const char = formatted[i] ?? "";
-        if (!/\d/.test(char)) continue;
+        if (!/\d/.test(formatted[i] ?? "")) continue;
 
-        if (countryDigitsLeft > 0) {
-            countryDigitsLeft -= 1;
-            continue;
-        }
-
-        seenLocalDigits += 1;
-        if (seenLocalDigits >= localDigitsCount) {
+        seenDigits += 1;
+        if (seenDigits >= localDigitsCount) {
             let nextCursor = i + 1;
 
             while (nextCursor < formatted.length && /\D/.test(formatted[nextCursor] ?? "")) {
@@ -104,52 +117,86 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
     const [phone, setPhone] = useState("");
     const [quantity, setQuantity] = useState("1");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
     const phoneInputRef = useRef<HTMLInputElement | null>(null);
+    const closeTimerRef = useRef<number | null>(null);
+    const lastProductRef = useRef("");
+    const fieldIdPrefix = useId();
 
     const normalizeAzerbaijanPhone = (value: string) => {
-        const digits = value.replace(/\D/g, "");
-
-        if (digits.startsWith("994") && digits.length === 12) {
-            return `+${digits}`;
-        }
-
-        if (digits.length === 9) {
-            return `+994${digits}`;
-        }
-
-        if (digits.startsWith("0") && digits.length === 10) {
-            return `+994${digits.slice(1)}`;
-        }
-
-        return null;
+        const localDigits = extractAzerbaijanLocalDigits(value);
+        if (localDigits.length !== AZ_LOCAL_PHONE_LENGTH) return null;
+        return `+${AZ_COUNTRY_CODE}${localDigits}`;
     };
 
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) {
+            if (closeTimerRef.current !== null) {
+                window.clearTimeout(closeTimerRef.current);
+                closeTimerRef.current = null;
+            }
+
+            setIsMounted(true);
+            // Mount hidden, then flip on the next frame so the enter transition runs.
+            const enterFrame = window.requestAnimationFrame(() => setIsVisible(true));
+
+            const onKeyDown = (event: KeyboardEvent) => {
+                if (event.key === "Escape") {
+                    onClose();
+                }
+            };
+
+            window.addEventListener("keydown", onKeyDown);
+            return () => {
+                window.cancelAnimationFrame(enterFrame);
+                window.removeEventListener("keydown", onKeyDown);
+            };
+        }
+
+        if (!isMounted) return undefined;
+
+        // Play the exit transition first, then unmount and clear the form so the
+        // fields do not blank out mid-animation.
+        setIsVisible(false);
+
+        // The effect re-runs whenever the caller passes a new onClose identity,
+        // so replace any pending timer instead of orphaning it.
+        if (closeTimerRef.current !== null) {
+            window.clearTimeout(closeTimerRef.current);
+        }
+
+        closeTimerRef.current = window.setTimeout(() => {
+            closeTimerRef.current = null;
+            setIsMounted(false);
             setFullName("");
             setPhone("");
             setQuantity("1");
             setIsSubmitting(false);
-            return;
-        }
+        }, MODAL_TRANSITION_MS);
 
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                onClose();
+        return undefined;
+    }, [isOpen, isMounted, onClose]);
+
+    useEffect(() => {
+        return () => {
+            if (closeTimerRef.current !== null) {
+                window.clearTimeout(closeTimerRef.current);
             }
         };
+    }, []);
 
-        window.addEventListener("keydown", onKeyDown);
-        return () => {
-            window.removeEventListener("keydown", onKeyDown);
-        };
-    }, [isOpen, onClose]);
-
-    if (!isOpen) {
+    if (!isMounted) {
         return null;
     }
 
+    // Callers clear the selected product on close, so the last known value is
+    // kept for the duration of the exit transition.
     const composedProduct = `${productTitle} ${productCode}`.trim();
+    if (isOpen) {
+        lastProductRef.current = composedProduct;
+    }
+    const displayedProduct = isOpen ? composedProduct : lastProductRef.current;
 
     const handleQuantityChange = (value: string) => {
         const onlyDigits = value.replace(/\D/g, "");
@@ -176,7 +223,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
 
     const handlePhoneChange = (value: string, cursorPosition: number | null) => {
         const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(value, cursorPosition ?? value.length);
-        const formattedPhone = formatAzerbaijanPhone(value);
+        const formattedPhone = formatAzerbaijanLocalPhone(value);
 
         setPhone(formattedPhone);
 
@@ -214,7 +261,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
         event.preventDefault();
 
         const nextLocalDigits = localDigits.slice(0, deleteLocalIndex) + localDigits.slice(deleteLocalIndex + 1);
-        const nextFormattedPhone = formatAzerbaijanPhone(nextLocalDigits);
+        const nextFormattedPhone = formatAzerbaijanLocalPhone(nextLocalDigits);
 
         setPhone(nextFormattedPhone);
 
@@ -274,95 +321,121 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
     };
 
     return (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/45 px-4 py-6" role="dialog" aria-modal="true">
-            <div className="w-full max-w-[760px] overflow-hidden rounded-[14px] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
-                <div className="flex items-stretch border-b border-[#e9e9e9] bg-[#f2f2f2]">
-                    <h3 className="flex h-[52px] flex-1 items-center px-4 text-[18px] leading-[1.1] font-semibold text-[#111217]">Məhsulu sifariş etmək istəyirsiniz?</h3>
+        <div
+            // Only a press that starts on the backdrop closes, so selecting text
+            // inside the panel and releasing outside does not dismiss it.
+            onMouseDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                onClose();
+            }}
+            className={cn(
+                "fixed inset-0 z-[1200] flex items-center justify-center bg-black/45 px-4 py-6",
+                "transition-opacity duration-200 ease-out motion-reduce:transition-none",
+                isVisible ? "opacity-100" : "opacity-0"
+            )}
+        >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={`${fieldIdPrefix}-title`}
+                className={cn(
+                    "w-full max-w-[720px] overflow-hidden rounded-[12px] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
+                    "transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none",
+                    isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.97] opacity-0"
+                )}
+            >
+                <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
+                    <h3 id={`${fieldIdPrefix}-title`} className="text-[18px] leading-[1.3] font-bold text-[#111217]">
+                        Məhsulu sifariş etmək istəyirsiniz?
+                    </h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex h-[52px] w-[38px] cursor-pointer items-center justify-center border-l border-[#e4e4e4] text-[18px] font-bold text-[#757575] transition-colors hover:text-[#202020]"
+                        className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-[#ececec] text-[18px] leading-none font-semibold text-[#4b4b4b] transition-colors hover:bg-[#dedede] hover:text-[#161922]"
                         aria-label="Bağla"
                     >
                         ×
                     </button>
                 </div>
 
-                <div className="space-y-4 px-4 pt-4 pb-4">
-                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
-                        <UserRound className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
+                <div className="space-y-4 px-6 pt-2 pb-6">
+                    <div className="space-y-1.5">
+                        <label htmlFor={`${fieldIdPrefix}-fullname`} className={labelClassName}>
+                            Ad və soyadınız *
+                        </label>
                         <input
+                            id={`${fieldIdPrefix}-fullname`}
                             type="text"
                             value={fullName}
                             onChange={(event) => setFullName(event.target.value)}
-                            placeholder=""
-                            aria-label="Ad və soyadınız"
-                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                            placeholder="Ad və soyadınız *"
+                            className={inputClassName}
                         />
-                        <span
-                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${fullName ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
-                        >
-                            Ad və soyadınız *
-                        </span>
-                    </label>
+                    </div>
 
-                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
-                        <Phone className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
-                        <input
-                            ref={phoneInputRef}
-                            type="tel"
-                            value={phone}
-                            onChange={(event) => handlePhoneChange(event.target.value, event.target.selectionStart)}
-                            onKeyDown={handlePhoneBackspace}
-                            placeholder=""
-                            aria-label="Telefon"
-                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
-                        />
-                        <span
-                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${phone ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
+                    <div className="space-y-1.5">
+                        <label htmlFor={`${fieldIdPrefix}-phone`} className={labelClassName}>
+                            Nömrəniz *
+                        </label>
+                        <div
+                            onMouseDown={(event) => {
+                                if (event.target === phoneInputRef.current) return;
+                                event.preventDefault();
+                                phoneInputRef.current?.focus();
+                            }}
+                            className="flex h-[42px] w-full cursor-text items-center rounded-[8px] border border-[#dfe3ea] bg-white px-4 transition-colors focus-within:border-[#2050f5]"
                         >
-                            Telefon *
-                        </span>
-                    </label>
+                            <span className="shrink-0 text-[14px] leading-none text-[#161922] select-none">+{AZ_COUNTRY_CODE}</span>
+                            <input
+                                id={`${fieldIdPrefix}-phone`}
+                                ref={phoneInputRef}
+                                type="tel"
+                                value={phone}
+                                onChange={(event) => handlePhoneChange(event.target.value, event.target.selectionStart)}
+                                onKeyDown={handlePhoneBackspace}
+                                placeholder={PHONE_PLACEHOLDER}
+                                className="h-full w-full min-w-0 bg-transparent pl-1.5 text-[14px] font-normal text-[#161922] outline-none placeholder:text-[#b3b9c4]"
+                            />
+                        </div>
+                    </div>
 
-                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6] bg-[#f3f3f3]">
-                        <Package className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
-                        <input
-                            type="text"
-                            value={composedProduct}
-                            readOnly
-                            aria-label="Məhsul"
-                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#6a707a] outline-none"
-                        />
-                        <span className="pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] opacity-0">
+                    <div className="space-y-1.5">
+                        <label htmlFor={`${fieldIdPrefix}-product`} className={labelClassName}>
                             Məhsul
-                        </span>
-                    </label>
-
-                    <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
-                        <Hash className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
+                        </label>
                         <input
+                            id={`${fieldIdPrefix}-product`}
+                            type="text"
+                            value={displayedProduct}
+                            readOnly
+                            className={cn(
+                                inputClassName,
+                                "cursor-default border-[#e4e6ea] bg-[#eff0f2] text-[#6a707a] focus:border-[#e4e6ea]"
+                            )}
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label htmlFor={`${fieldIdPrefix}-quantity`} className={labelClassName}>
+                            Miqdar
+                        </label>
+                        <input
+                            id={`${fieldIdPrefix}-quantity`}
                             type="text"
                             inputMode="numeric"
                             value={quantity}
                             onChange={(event) => handleQuantityChange(event.target.value)}
                             onBlur={handleQuantityBlur}
-                            placeholder=""
-                            aria-label="Miqdar"
-                            className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
+                            placeholder="1"
+                            className={inputClassName}
                         />
-                        <span
-                            className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${quantity ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
-                        >
-                            Miqdar
-                        </span>
-                    </label>
+                    </div>
 
                     <button
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="mt-1 inline-flex h-[54px] w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#ffd500] text-[20px] font-bold text-[#111217] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[16px]"
+                        className="mt-6 inline-flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[10px] bg-[#ffd500] text-[17px] font-bold text-[#111217] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[15px]"
                     >
                         {isSubmitting ? "Göndərilir..." : "Sorğunu göndər"}
                     </button>
