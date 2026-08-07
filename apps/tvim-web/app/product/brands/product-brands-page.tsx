@@ -163,24 +163,30 @@ export async function renderProductBrandsPage({
 
     const brandsPayload = brandsResponse.success && brandsResponse.data ? brandsResponse.data : null;
     const brandItems = Array.isArray(brandsPayload?.values) ? brandsPayload.values : [];
-    const lastPage = Math.max(1, Math.ceil(brandItems.length / BRANDS_PER_PAGE));
-    const currentPage = Math.max(1, Math.min(requestedPage, lastPage));
-    const paginatedBrandItems = brandItems.slice((currentPage - 1) * BRANDS_PER_PAGE, currentPage * BRANDS_PER_PAGE);
-    const paginatedCompanies: Company[] = paginatedBrandItems
+
+    // Only brands that actually have a logo are listed. Most brands come back
+    // without an image and a grid of empty placeholder tiles reads as broken.
+    // This is display-only filtering; nothing is changed on the API side.
+    const brandCompanies: Company[] = brandItems
         .map((brand, index) => {
             const brandName = String(brand?.name ?? "").trim();
-            if (!brandName) return null;
+            const logo = resolveBrandImageUrl(brand?.image);
+            if (!brandName || !logo) return null;
 
             return {
                 id: String(brand?.value_id ?? brand?.slug ?? `brand-${index}`),
                 name: brandName,
-                logo: resolveBrandImageUrl(brand?.image),
+                logo,
                 url: buildBrandHref(locale, brand?.slug),
             };
         })
         .filter(Boolean) as Company[];
+
+    const lastPage = Math.max(1, Math.ceil(brandCompanies.length / BRANDS_PER_PAGE));
+    const currentPage = Math.max(1, Math.min(requestedPage, lastPage));
+    const paginatedCompanies = brandCompanies.slice((currentPage - 1) * BRANDS_PER_PAGE, currentPage * BRANDS_PER_PAGE);
     const infoMessage = brandsResponse.success
-        ? brandItems.length === 0
+        ? brandCompanies.length === 0
             ? t.empty
             : ""
         : brandsResponse.message || t.fallbackError;
@@ -214,7 +220,7 @@ export async function renderProductBrandsPage({
                 <PendingNavProvider>
                     <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
 
-                    {brandItems.length > 0 ? (
+                    {brandCompanies.length > 0 ? (
                         <>
                             <BrandListSlider companies={paginatedCompanies} />
 

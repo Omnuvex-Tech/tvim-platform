@@ -38,6 +38,16 @@ export {
 export { BlueHexIcon, BuildingGridIcon, ReturnArrowIcon, TicketCutIcon } from "./components/icon";
 
 export { cn } from "./lib/utils";
+export {
+    flattenCategoryTree,
+    getSearchRelevance,
+    matchCategories,
+    normalizeSearchText,
+    prepareSearchQuery,
+    sortBySearchRelevance,
+    type FlatCategoryEntry,
+    type PreparedSearchQuery,
+} from "./lib/search-ranking";
 export { CompanyCarousel } from "./components/CompanyCarousel";
 export type { Company } from "./components/CompanyCarousel";
 export { default as Spinner } from "./components/Spinner/Spinner";

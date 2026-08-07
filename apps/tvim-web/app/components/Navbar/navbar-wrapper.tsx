@@ -152,6 +152,18 @@ const getBrandsMenuLabel = (locale: string) => {
     return "Brendlər";
 };
 
+const searchCopy = {
+    az: { categories: "Kateqoriyalar", products: "Məhsullar", category: "Kateqoriya", model: "Model" },
+    en: { categories: "Categories", products: "Products", category: "Category", model: "Model" },
+    ru: { categories: "Категории", products: "Товары", category: "Категория", model: "Модель" },
+} as const;
+
+const getSearchCopy = (locale: string) => {
+    const normalizedLocale = locale.trim().toLowerCase();
+    if (normalizedLocale === "en" || normalizedLocale === "ru") return searchCopy[normalizedLocale];
+    return searchCopy.az;
+};
+
 const NavbarWrapper = ({
     logo,
     phone,
@@ -477,6 +489,8 @@ const localizedMenuItems = useMemo(() => {
             return `/${localeCode}${normalizedLink}`;
         };
 
+        const copy = getSearchCopy(localeCode);
+
         const mapSectionItems = (items: unknown, type: "category" | "product") => {
             if (!Array.isArray(items)) return [];
 
@@ -487,9 +501,9 @@ const localizedMenuItems = useMemo(() => {
                     const modelText = String(typedItem.model ?? typedItem.sku ?? "").trim();
                     const subtitle =
                         type === "category"
-                            ? "Kateqoriya"
+                            ? copy.category
                             : modelText
-                                ? `Model: ${modelText}`
+                                ? `${copy.model}: ${modelText}`
                                 : "";
 
                     return {
@@ -508,25 +522,15 @@ const localizedMenuItems = useMemo(() => {
                 .filter((item) => item.name);
         };
 
-        const resolveSectionName = (key: "brands" | "categories" | "products", rawName: unknown) => {
-            const fallbackMap = {
-                brands: "Brendlər",
-                categories: "Kateqoriyalar",
-                products: "Məhsullar",
-            } as const;
-
-            return fallbackMap[key];
-        };
-
         const sections: NavbarSearchSection[] = [
             {
                 key: "categories",
-                name: resolveSectionName("categories", payload.categories?.name),
+                name: copy.categories,
                 items: mapSectionItems(payload.categories?.items, "category"),
             },
             {
                 key: "products",
-                name: resolveSectionName("products", payload.products?.name),
+                name: copy.products,
                 items: mapSectionItems(payload.products?.items, "product"),
             },
         ];

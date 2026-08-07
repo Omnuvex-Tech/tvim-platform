@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Breadcrumb } from "@repo/ui";
+import { Breadcrumb, flattenCategoryTree, matchCategories, normalizeSearchText, sortBySearchRelevance } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getTranslations } from "@/lib/i18n";
@@ -42,6 +42,9 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const readSearchParamValue = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
+
+/** How many locally matched categories may be listed above the API results. */
+const CATEGORY_SUGGESTION_LIMIT = 6;
 
 type ProductListItem = Record<string, unknown>;
 
@@ -110,7 +113,34 @@ export default async function SearchPage({
         return isRecord(raw) ? (raw as LiveSearchPayload) : null;
     })();
 
-    const categories = Array.isArray(liveSearchPayload?.categories?.items) ? liveSearchPayload!.categories!.items! : [];
+    // The live-search API returns categories in catalog order and only matches a
+    // category once the query spells out its full name, so the locally available
+    // catalog tree is matched too and the result is ordered by relevance.
+    const apiCategories = (Array.isArray(liveSearchPayload?.categories?.items) ? liveSearchPayload!.categories!.items! : [])
+        .map((item) => ({
+            id: item.id ?? item.link ?? item.slug ?? item.name ?? "",
+            name: String(item.name ?? "").trim(),
+            link: String(item.link ?? item.slug ?? "").trim(),
+        }))
+        .filter((item) => item.name && item.link);
+
+    const localCategories = matchCategories(
+        flattenCategoryTree(chrome.initialCatalogItems, normalizedLocale),
+        query,
+        CATEGORY_SUGGESTION_LIMIT
+    ).map((category) => ({
+        id: category.id,
+        name: category.name,
+        link: category.link,
+    }));
+
+    const localCategoryKeys = new Set(localCategories.map((category) => normalizeSearchText(category.name)));
+    const categories = [
+        ...localCategories,
+        ...sortBySearchRelevance(apiCategories, query, (item) => [item.name]).filter(
+            (item) => !localCategoryKeys.has(normalizeSearchText(item.name))
+        ),
+    ];
 
     const productListPayload = await (async (): Promise<ProductListApiPayload | null> => {
         if (!query) return null;
@@ -298,8 +328,8 @@ export default async function SearchPage({
                             <div className="mb-6 px-1 sm:px-2">
                                 <div className="grid grid-cols-2 gap-y-7 gap-x-10 sm:grid-cols-3 lg:grid-cols-4">
                                     {categories.map((item) => {
-                                        const href = toLocalizedHref(item.link ?? item.slug, normalizedLocale);
-                                        const key = String(item.id ?? item.link ?? item.slug ?? item.name ?? href);
+                                        const href = toLocalizedHref(item.link, normalizedLocale);
+                                        const key = String(item.id || href);
                                         const isExternal = /^https?:\/\//i.test(href);
                                         return (
                                             isExternal ? (
