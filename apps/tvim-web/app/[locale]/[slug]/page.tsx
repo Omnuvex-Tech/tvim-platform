@@ -752,76 +752,103 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         const hasFilters = Array.isArray(productList?.filters) && productList.filters.length > 0;
         const drawerId = `filters-drawer-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
 
+        const showMoreFiltersText =
+            normalizedLocale === "en" ? "Show more" : normalizedLocale === "ru" ? "Показать больше" : "Daha çox göstər";
+        const showLessFiltersText =
+            normalizedLocale === "en" ? "Show less" : normalizedLocale === "ru" ? "Показать меньше" : "Daha az göstər";
+
         const filtersBody = (
             <>
-                {hasFilters ? (
-                    <>
-                        {productList!.filters!.map((filter) => {
-                            const filterId = Number(filter?.filter_id);
-                            if (!Number.isFinite(filterId) || filterId <= 0) return null;
-                            const values = Array.isArray(filter?.values) ? filter!.values! : [];
-                            if (values.length === 0) return null;
+                {hasFilters ? (() => {
+                    const filterGroups = productList!.filters!.map((filter) => {
+                        const filterId = Number(filter?.filter_id);
+                        if (!Number.isFinite(filterId) || filterId <= 0) return null;
+                        const values = Array.isArray(filter?.values) ? filter!.values! : [];
+                        if (values.length === 0) return null;
 
-                            const visible = values.slice(0, 5);
-                            const rest = values.slice(5);
+                        const visible = values.slice(0, 5);
+                        const rest = values.slice(5);
 
-                            const renderRow = (v: any, idx: number) => {
-                                const valueId = Number(v?.value_id);
-                                if (!Number.isFinite(valueId) || valueId <= 0) return null;
-                                const selected = selectedPairs.has(`${String(filterId)}:${String(valueId)}`);
-                                const countText = typeof v?.count === "number" ? String(v.count) : "";
-
-                                return (
-                                    <PendingLink
-                                        key={`${valueId}-${idx}`}
-                                        href={toggleFilterHref(filterId, valueId)}
-                                        className="flex items-center justify-between rounded-[12px] px-3 py-2 transition-colors hover:bg-[#f5f7fb]"
-                                    >
-                                        <span className="flex min-w-0 items-center gap-3">
-                                            <span
-                                                className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${selected ? "border-[#0f57d6] bg-[#0f57d6]" : "border-[#cfd7e3] bg-white"
-                                                    }`}
-                                                aria-hidden="true"
-                                            >
-                                                {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
-                                            </span>
-                                            <span className="min-w-0 truncate text-[14px] text-[#111318]">{String(v?.name ?? "").trim() || `#${valueId}`}</span>
-                                        </span>
-                                        {countText ? (
-                                            <span className="ml-3 inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#f1f3f6] px-2 text-[12px] font-medium text-[#4b5565]">
-                                                {countText}
-                                            </span>
-                                        ) : null}
-                                    </PendingLink>
-                                );
-                            };
+                        const renderRow = (v: any, idx: number) => {
+                            const valueId = Number(v?.value_id);
+                            if (!Number.isFinite(valueId) || valueId <= 0) return null;
+                            const selected = selectedPairs.has(`${String(filterId)}:${String(valueId)}`);
+                            const countText = typeof v?.count === "number" ? String(v.count) : "";
 
                             return (
-                                <div
-                                    key={filterId}
-                                    className="rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
+                                <PendingLink
+                                    key={`${valueId}-${idx}`}
+                                    href={toggleFilterHref(filterId, valueId)}
+                                    className="flex items-center justify-between rounded-[12px] px-3 py-2 transition-colors hover:bg-[#f5f7fb]"
                                 >
-                                    <div className="mb-3 border-b border-[#eee] pb-3 text-[13px] font-bold uppercase text-[#111318]">
-                                        {String(filter?.name ?? "").trim() || "Filter"}
-                                    </div>
-                                    <div className="space-y-1">
-                                        {visible.map(renderRow)}
-                                    </div>
-                                    {rest.length > 0 ? (
-                                        <details className="mt-2">
-                                            <summary className="cursor-pointer select-none px-3 py-2 text-[14px] font-medium text-[#0f57d6] hover:underline">
-                                                Əlavə {rest.length} ədəd göstər
-                                            </summary>
-                                            <div className="mt-1 space-y-1">
-                                                {rest.map(renderRow)}
-                                            </div>
-                                        </details>
+                                    <span className="flex min-w-0 items-center gap-3">
+                                        <span
+                                            className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border ${selected ? "border-[#0f57d6] bg-[#0f57d6]" : "border-[#cfd7e3] bg-white"
+                                                }`}
+                                            aria-hidden="true"
+                                        >
+                                            {selected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
+                                        </span>
+                                        <span className="min-w-0 truncate text-[14px] text-[#111318]">{String(v?.name ?? "").trim() || `#${valueId}`}</span>
+                                    </span>
+                                    {countText ? (
+                                        <span className="ml-3 inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#f1f3f6] px-2 text-[12px] font-medium text-[#4b5565]">
+                                            {countText}
+                                        </span>
                                     ) : null}
-                                </div>
+                                </PendingLink>
                             );
-                        })}
-                    </>
-                ) : null}
+                        };
+
+                        return (
+                            <div
+                                key={filterId}
+                                className="rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
+                            >
+                                <div className="mb-3 border-b border-[#eee] pb-3 text-[13px] font-bold uppercase text-[#111318]">
+                                    {String(filter?.name ?? "").trim() || "Filter"}
+                                </div>
+                                <div className="space-y-1">
+                                    {visible.map(renderRow)}
+                                </div>
+                                {rest.length > 0 ? (
+                                    <details className="mt-2">
+                                        <summary className="cursor-pointer select-none px-3 py-2 text-[14px] font-medium text-[#0f57d6] hover:underline">
+                                            Əlavə {rest.length} ədəd göstər
+                                        </summary>
+                                        <div className="mt-1 space-y-1">
+                                            {rest.map(renderRow)}
+                                        </div>
+                                    </details>
+                                ) : null}
+                            </div>
+                        );
+                    }).filter(Boolean);
+
+                    const visibleGroups = filterGroups.slice(0, 5);
+                    const restGroups = filterGroups.slice(5);
+
+                    return (
+                        <>
+                            {visibleGroups}
+                            {restGroups.length > 0 ? (
+                                <details className="group">
+                                    <summary className="flex cursor-pointer select-none list-none items-center justify-between gap-2 rounded-[16px] border border-dashed border-[#cfd7e3] bg-white px-5 py-3 text-[14px] font-semibold text-[#0f57d6] transition-colors hover:bg-[#f5f7fb] [&::-webkit-details-marker]:hidden">
+                                        <span className="group-open:hidden">{showMoreFiltersText}</span>
+                                        <span className="hidden group-open:inline">{showLessFiltersText}</span>
+                                        <i
+                                            className="fa-solid fa-chevron-down text-[12px] transition-transform duration-200 group-open:rotate-180"
+                                            aria-hidden="true"
+                                        />
+                                    </summary>
+                                    <div className="mt-5 space-y-5">
+                                        {restGroups}
+                                    </div>
+                                </details>
+                            ) : null}
+                        </>
+                    );
+                })() : null}
 
                 {productListPayload && productListPayload.success === false ? (
                     <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
@@ -875,7 +902,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         <DrawerScrollLock checkboxId={drawerId} />
                         <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-                            <aside className="hidden space-y-5 self-start lg:block lg:sticky lg:top-6">
+                            <aside className="hidden space-y-5 self-start lg:block">
                                 {filtersBody}
                             </aside>
 
