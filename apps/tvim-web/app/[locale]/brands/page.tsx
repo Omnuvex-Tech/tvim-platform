@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import {
-    generateProductBrandsMetadata,
-    renderProductBrandsPage,
-} from "@/app/product/brands/product-brands-page";
+    generateBrandsMetadata,
+    renderBrandsPage,
+} from "@/app/brands/brands-page";
 import { getStaticLocaleCodes } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
@@ -13,7 +13,7 @@ export async function generateStaticParams() {
     return localeCodes.map((locale) => ({ locale }));
 }
 
-export default async function LocalizedProductBrandsPage({
+export default async function LocalizedBrandsPage({
     params,
     searchParams,
 }: {
@@ -27,7 +27,7 @@ export default async function LocalizedProductBrandsPage({
         notFound();
     }
 
-    return renderProductBrandsPage({ locale: normalizedLocale, searchParams });
+    return renderBrandsPage({ locale: normalizedLocale, searchParams });
 }
 
 export async function generateMetadata({
@@ -44,7 +44,7 @@ export async function generateMetadata({
         return {};
     }
 
-    return generateProductBrandsMetadata({
+    return generateBrandsMetadata({
         locale: normalizedLocale,
         searchParams,
     });

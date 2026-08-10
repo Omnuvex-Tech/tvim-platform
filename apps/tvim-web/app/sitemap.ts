@@ -301,6 +301,11 @@ const collectLocalePaths = async (locale: string, siteUrl: string) => {
         paths.set(`${locale}/services/${slug}`, undefined);
     });
 
+    // The admin menu still points the brand list at the legacy /product/brands
+    // path, which now redirects; the sitemap lists the served URL instead.
+    paths.delete(`${locale}/product/brands`);
+    paths.set(`${locale}/brands`, undefined);
+
     await Promise.all([
         collectBrandPaths(locale, paths),
         collectProductPaths(locale, paths),

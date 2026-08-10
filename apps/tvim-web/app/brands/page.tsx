@@ -5,11 +5,8 @@ import { normalizeLocale } from "@/lib/site-locales";
 
 export const revalidate = 300;
 
-export default async function ProductBrandsPage({
-}: {
-    searchParams?: Promise<{ page?: string | string[] }>;
-}) {
+export default async function BrandsPage() {
     const cookieStore = await cookies();
     const locale = normalizeLocale(cookieStore.get("preferred-locale")?.value ?? config.project.defLang);
-    redirect(`/${locale}/product/brands`);
+    redirect(`/${locale}/brands`);
 }

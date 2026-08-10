@@ -260,7 +260,7 @@ export async function renderBrandSlugPage({
     const pageName = String(matchedBrand?.name ?? detailData?.menu?.name ?? fallbackPageName).trim() || fallbackPageName;
     const breadcrumbItems = [
         { label: locale === "en" ? "Home" : "Ana s\u0259hif\u0259", href: `/${locale}` },
-        { label: locale === "ru" ? "Бренды" : locale === "en" ? "Brands" : "Brendlər", href: `/${locale}/product/brands` },
+        { label: locale === "ru" ? "Бренды" : locale === "en" ? "Brands" : "Brendlər", href: `/${locale}/brands` },
         { label: pageName, isCurrent: true as const },
     ];
 

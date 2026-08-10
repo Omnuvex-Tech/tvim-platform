@@ -356,17 +356,23 @@ const NavbarWrapper = ({
     }, [hydrateCartAsync]);
 
 const localizedMenuItems = useMemo(() => {
-    const normalizedItems = Array.isArray(menuItems)
-        ? menuItems.map((item) => {
+    // The brand list has its own footer link, so the CMS "Brendlər" entry is
+    // dropped from the top navigation. The admin still stores the legacy
+    // /product/brands link, hence both spellings are matched here.
+    const visibleItems = Array.isArray(menuItems)
+        ? menuItems.filter((item) => {
+            const path = String(item?.href ?? "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+            const withoutLocale = path.replace(/^(az|en|ru)\//, "");
+            return withoutLocale !== "brands" && withoutLocale !== "product/brands";
+        })
+        : [];
+
+    return visibleItems.map((item) => {
         const href = typeof item?.href === "string" ? item.href : "";
         if (!href || href === "#") return item;
 
         if (href === "/") {
             return { ...item, href: `/${effectiveLocale}` };
-        }
-
-        if (href === "/product/brands") {
-            return { ...item, href: `/${effectiveLocale}/product/brands` };
         }
 
         if (!href.startsWith("/")) return item;
@@ -383,12 +389,6 @@ const localizedMenuItems = useMemo(() => {
 
         segments[0] = effectiveLocale;
         return { ...item, href: `/${segments.join("/")}` };
-        })
-        : [];
-
-    return normalizedItems.filter((item) => {
-        const href = String(item?.href ?? "").trim().toLowerCase();
-        return href !== "/product/brands" && !href.endsWith("/product/brands");
     });
 }, [effectiveLocale, menuItems, supportedLocales]);
     const resolveLocalePath = useCallback((nextLocale: string) => {

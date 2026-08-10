@@ -38,12 +38,12 @@ type ProductBrandValue = {
     meta_keywords?: string | null;
 };
 
-type RenderProductBrandsPageProps = {
+type RenderBrandsPageProps = {
     locale: string;
-    searchParams?: Promise<ProductBrandsPageSearchParams>;
+    searchParams?: Promise<BrandsPageSearchParams>;
 };
 
-type ProductBrandsPageSearchParams = {
+type BrandsPageSearchParams = {
     page?: string | string[];
 };
 
@@ -128,10 +128,10 @@ const parsePageNumber = (value: string | string[] | undefined) => {
 
 const BRANDS_PER_PAGE = 15;
 
-export async function renderProductBrandsPage({
+export async function renderBrandsPage({
     locale: incomingLocale,
     searchParams,
-}: RenderProductBrandsPageProps) {
+}: RenderBrandsPageProps) {
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
     const currentUiParams = new URLSearchParams();
     if (resolvedSearchParams) {
@@ -199,7 +199,7 @@ export async function renderProductBrandsPage({
         }
 
         const qs = nextParams.toString();
-        const basePath = `/${locale}/product/brands`;
+        const basePath = `/${locale}/brands`;
         return qs ? `${basePath}?${qs}` : basePath;
     };
 
@@ -242,10 +242,10 @@ export async function renderProductBrandsPage({
     );
 }
 
-export async function generateProductBrandsMetadata({
+export async function generateBrandsMetadata({
     locale: incomingLocale,
     searchParams,
-}: RenderProductBrandsPageProps): Promise<Metadata> {
+}: RenderBrandsPageProps): Promise<Metadata> {
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
@@ -256,7 +256,7 @@ export async function generateProductBrandsMetadata({
         description: `${t.pageTitle} uzre secilmis brendleri ve mehsullari TVIM daxilinde kesf edin.`,
         keywords: [t.pageTitle, "brands", "tvim"],
         locale,
-        canonicalPath: `${locale}/product/brands`,
+        canonicalPath: `${locale}/brands`,
         siteUrl: config.project.url,
         locales: [locale],
         defaultLocale: locale,
