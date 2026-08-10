@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
@@ -14,6 +14,7 @@ import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } fro
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
 
 type MenuDetailData = {
     type: string;
@@ -301,6 +302,11 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     ]);
 
     if (!menuDetail) {
+        const legacyTarget = await resolveLegacyFlatSlugTarget(slug, normalizedLocale);
+        if (legacyTarget) {
+            permanentRedirect(legacyTarget);
+        }
+
         notFound();
     }
 
