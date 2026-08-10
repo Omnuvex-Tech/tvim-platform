@@ -46,28 +46,34 @@ export const asRouteLocale = (locale: string): RouteLocale => {
 export const localizedHref = (key: LocalizedRouteKey, locale: string, suffix = "") =>
     routePath(key, asRouteLocale(locale), suffix);
 
-export const toPublicPath = (rest: string, locale: RouteLocale) => {
+const matchRule = (rest: string) => {
     for (const rule of ROUTE_RULES) {
-        const suffix = stripPrefix(rest, rule.internal);
-        if (suffix === null) continue;
+        const internalSuffix = stripPrefix(rest, rule.internal);
+        if (internalSuffix !== null) return { rule, suffix: internalSuffix };
 
-        const publicPath = `/${rule.segments[locale]}${suffix}`;
-        return publicPath === rest ? null : publicPath;
+        for (const routeLocale of ROUTE_LOCALES) {
+            const suffix = stripPrefix(rest, `/${rule.segments[routeLocale]}`);
+            if (suffix !== null) return { rule, suffix };
+        }
     }
 
     return null;
 };
 
-export const toInternalPath = (rest: string, locale: RouteLocale) => {
-    for (const rule of ROUTE_RULES) {
-        const suffix = stripPrefix(rest, `/${rule.segments[locale]}`);
-        if (suffix === null) continue;
+export const toPublicPath = (rest: string, locale: RouteLocale) => {
+    const matched = matchRule(rest);
+    if (!matched) return null;
 
-        const internalPath = `${rule.internal}${suffix}`;
-        return internalPath === rest ? null : internalPath;
-    }
+    const publicPath = `/${matched.rule.segments[locale]}${matched.suffix}`;
+    return publicPath === rest ? null : publicPath;
+};
 
-    return null;
+export const toInternalPath = (rest: string) => {
+    const matched = matchRule(rest);
+    if (!matched) return null;
+
+    const internalPath = `${matched.rule.internal}${matched.suffix}`;
+    return internalPath === rest ? null : internalPath;
 };
 
 export const localizedPathname = (internalPath: string, locale: string) => {
@@ -75,18 +81,14 @@ export const localizedPathname = (internalPath: string, locale: string) => {
     return `/${routeLocale}${toPublicPath(internalPath, routeLocale) ?? internalPath}`;
 };
 
-export const isSearchRoute = (rest: string, locale: RouteLocale) => {
-    const rule = ruleFor("search");
-    return rest === rule.internal || rest === `/${rule.segments[locale]}`;
-};
+export const isSearchRoute = (rest: string) => matchRule(rest)?.rule.key === "search";
 
 export const translatePath = (pathname: string, nextLocale: RouteLocale) => {
     const [maybeLocale, ...restSegments] = pathname.split("/").filter(Boolean);
     if (!maybeLocale || !isRouteLocale(maybeLocale)) return null;
 
-    const currentLocale = maybeLocale.toLowerCase() as RouteLocale;
     const rest = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
-    const internal = toInternalPath(rest, currentLocale) ?? rest;
+    const internal = toInternalPath(rest) ?? rest;
 
     return `/${nextLocale}${toPublicPath(internal, nextLocale) ?? internal}`;
 };
