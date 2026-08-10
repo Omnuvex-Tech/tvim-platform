@@ -26,7 +26,7 @@ export function middleware(request: NextRequest) {
     const rest = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
 
     const url = request.nextUrl.clone();
-    const renamedSearchParam = isSearchRoute(rest, locale) && renameLegacySearchParam(url);
+    const renamedSearchParam = isSearchRoute(rest) && renameLegacySearchParam(url);
 
     const publicPath = toPublicPath(rest, locale);
     if (publicPath !== null) {
@@ -38,7 +38,7 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 308);
     }
 
-    const internalPath = toInternalPath(rest, locale);
+    const internalPath = toInternalPath(rest);
     if (internalPath === null) return NextResponse.next();
 
     url.pathname = `/${locale}${internalPath}`;
