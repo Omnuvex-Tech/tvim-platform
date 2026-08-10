@@ -76,7 +76,7 @@ const MODAL_TRANSITION_MS = 200;
 
 const labelClassName = "block text-[13px] leading-none font-semibold text-[#1b2434]";
 const inputClassName =
-    "h-[42px] w-full rounded-[8px] border border-[#dfe3ea] bg-white px-4 text-[14px] font-normal text-[#161922] outline-none transition-colors placeholder:text-[#b3b9c4] focus:border-[#2050f5]";
+    "h-[42px] w-full rounded-[20px] border border-black/10 bg-white px-4 text-[14px] font-normal text-[#161922] outline-none transition-colors placeholder:text-[#b3b9c4] focus:border-black/20";
 
 const countLocalDigitsBeforeCursor = (value: string, cursorPosition: number) => {
     const limit = Math.max(0, Math.min(cursorPosition, value.length));
@@ -339,26 +339,26 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                 aria-modal="true"
                 aria-labelledby={`${fieldIdPrefix}-title`}
                 className={cn(
-                    "w-full max-w-[720px] overflow-hidden rounded-[12px] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
+                    "w-full max-w-[760px] overflow-hidden rounded-[16px] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
                     "transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none",
                     isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.97] opacity-0"
                 )}
             >
-                <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
-                    <h3 id={`${fieldIdPrefix}-title`} className="text-[18px] leading-[1.3] font-bold text-[#111217]">
+                <div className="relative flex items-center bg-[#f7f7f7] py-[15px] pr-[52px] pl-5">
+                    <h3 id={`${fieldIdPrefix}-title`} className="text-[18px] leading-[1.3] font-semibold text-[#111217]">
                         Məhsulu sifariş etmək istəyirsiniz?
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-[#ececec] text-[18px] leading-none font-semibold text-[#4b4b4b] transition-colors hover:bg-[#dedede] hover:text-[#161922]"
+                        className="absolute top-0 right-0 z-10 flex h-full w-[42px] cursor-pointer items-center justify-center bg-black/5 text-[22px] leading-none text-[#161922] opacity-60 transition-opacity hover:opacity-100"
                         aria-label="Bağla"
                     >
                         ×
                     </button>
                 </div>
 
-                <div className="space-y-4 px-6 pt-2 pb-6">
+                <div className="space-y-4 px-5 pt-2.5 pb-5">
                     <div className="space-y-1.5">
                         <label htmlFor={`${fieldIdPrefix}-fullname`} className={labelClassName}>
                             Ad və soyadınız *
@@ -383,7 +383,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                                 event.preventDefault();
                                 phoneInputRef.current?.focus();
                             }}
-                            className="flex h-[42px] w-full cursor-text items-center rounded-[8px] border border-[#dfe3ea] bg-white px-4 transition-colors focus-within:border-[#2050f5]"
+                            className="flex h-[42px] w-full cursor-text items-center rounded-[20px] border border-black/10 bg-white px-4 transition-colors focus-within:border-black/20"
                         >
                             <span className="shrink-0 text-[14px] leading-none text-[#161922] select-none">+{AZ_COUNTRY_CODE}</span>
                             <input
@@ -410,7 +410,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                             readOnly
                             className={cn(
                                 inputClassName,
-                                "cursor-default border-[#e4e6ea] bg-[#eff0f2] text-[#6a707a] focus:border-[#e4e6ea]"
+                                "cursor-default bg-[#eff0f2] text-[#6a707a] focus:border-black/10"
                             )}
                         />
                     </div>
@@ -435,7 +435,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="mt-6 inline-flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[10px] bg-[#ffd500] text-[17px] font-bold text-[#111217] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[15px]"
+                        className="mt-6 inline-flex w-full cursor-pointer items-center justify-center rounded-[20px] bg-[#ffda00] px-[50px] py-5 text-[16px] font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[15px]"
                     >
                         {isSubmitting ? "Göndərilir..." : "Sorğunu göndər"}
                     </button>
