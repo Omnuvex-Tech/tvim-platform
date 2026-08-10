@@ -68,7 +68,7 @@ const mapCategoriesToLinks = (menus: MenuItem[], locale?: string): FooterLinkIte
 const COMPANY_LINK_ORDER: string[][] = [
     ["haqqimizda", "about-us", "o-nas"],
     ["xeberler", "news", "novisti"],
-    ["product/brands"],
+    ["brands", "product/brands"],
     ["elaqe", "contacts", "kontakty"],
 ];
 
@@ -149,19 +149,26 @@ const getFooterSections = (menus: MenuItem[], locale?: string) => {
     }
 
     const normalizedLocale = String(locale || "").trim().toLowerCase() || "az";
-    const brandsHref = `/${normalizedLocale}/product/brands`;
+    const brandsHref = `/${normalizedLocale}/brands`;
     const brandsLink = {
         label: getBrandsFooterLabel(locale),
         href: brandsHref,
     };
-    const hasBrandsInCustomer = customerLinks.some((item) => {
-        const href = String(item.href ?? "").trim().toLowerCase();
-        return href === "/product/brands" || href.endsWith("/product/brands");
-    });
-    const hasBrandsInCompany = companyLinks.some((item) => {
-        const href = String(item.href ?? "").trim().toLowerCase();
-        return href === "/product/brands" || href.endsWith("/product/brands");
-    });
+    // The admin menu still stores the legacy /product/brands link, so both
+    // spellings count as "brands is already in this column".
+    const isBrandsHref = (value: string | null | undefined) => {
+        const path = String(value ?? "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+        const withoutLocale = path.replace(/^(az|en|ru)\//, "");
+        return withoutLocale === "brands" || withoutLocale === "product/brands";
+    };
+    const pointBrandsLinkAtBrandsPage = (items: FooterLinkItem[]) =>
+        items.map((item) => (isBrandsHref(item.href) ? { ...item, href: brandsHref } : item));
+
+    customerLinks = pointBrandsLinkAtBrandsPage(customerLinks);
+    companyLinks = pointBrandsLinkAtBrandsPage(companyLinks);
+
+    const hasBrandsInCustomer = customerLinks.some((item) => isBrandsHref(item.href));
+    const hasBrandsInCompany = companyLinks.some((item) => isBrandsHref(item.href));
 
     if (!hasBrandsInCustomer && !hasBrandsInCompany && companyTitle) {
         companyLinks = [...companyLinks, brandsLink];

@@ -74,7 +74,7 @@ export async function resolveLegacyFlatSlugTarget(slug: string, locale: string) 
     const normalizedLocale = String(locale ?? "").trim().toLowerCase();
 
     if (BRAND_INDEX_SLUGS.has(normalizedSlug.toLowerCase())) {
-        return `/${normalizedLocale}/product/brands`;
+        return `/${normalizedLocale}/brands`;
     }
 
     if (await isProductSlug(normalizedSlug, normalizedLocale)) {
