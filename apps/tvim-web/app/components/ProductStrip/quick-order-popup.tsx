@@ -435,7 +435,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="mt-6 inline-flex w-full cursor-pointer items-center justify-center rounded-[20px] bg-[#ffda00] px-[50px] py-5 text-[16px] font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[15px]"
+                        className="mt-6 inline-flex h-[55px] w-full cursor-pointer items-center justify-center rounded-[20px] bg-[#ffda00] px-[50px] text-[16px] font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[15px]"
                     >
                         {isSubmitting ? "Göndərilir..." : "Sorğunu göndər"}
                     </button>
