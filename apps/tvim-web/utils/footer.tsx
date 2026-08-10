@@ -3,7 +3,6 @@ import { toHref } from "@repo/shared/utils";
 import {
     type MenuItem,
     type ProjectSettingsData,
-    type ProjectSettingsSocialConfigItem,
     type FooterContactItem,
     type FooterLinkItem,
     type FooterSocialItem,
@@ -58,6 +57,26 @@ const mapCategoriesToLinks = (menus: MenuItem[], locale?: string): FooterLinkIte
     });
 
     return links;
+};
+
+/**
+ * The "Tvim" footer column is pinned to this order regardless of the menu
+ * sort_order coming from the admin: Haqqımızda → Bloq → Brendlər → Əlaqə.
+ * Each entry lists the slug that menu uses across locales. Anything not
+ * listed keeps its API order and lands after these.
+ */
+const COMPANY_LINK_ORDER: string[][] = [
+    ["haqqimizda", "about-us", "o-nas"],
+    ["xeberler", "news", "novisti"],
+    ["product/brands"],
+    ["elaqe", "contacts", "kontakty"],
+];
+
+const getCompanyLinkRank = (href: string) => {
+    const path = String(href ?? "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+    const withoutLocale = path.replace(/^(az|en|ru)\//, "");
+    const index = COMPANY_LINK_ORDER.findIndex((slugs) => slugs.includes(withoutLocale));
+    return index === -1 ? COMPANY_LINK_ORDER.length : index;
 };
 
 const getBrandsFooterLabel = (locale?: string) => {
@@ -148,6 +167,11 @@ const getFooterSections = (menus: MenuItem[], locale?: string) => {
         companyLinks = [...companyLinks, brandsLink];
     }
 
+    // Array.prototype.sort is stable, so unranked links keep their API order.
+    companyLinks = [...companyLinks].sort(
+        (first, second) => getCompanyLinkRank(first.href) - getCompanyLinkRank(second.href),
+    );
+
     // Static category section: only top-level categories (parent_id === null)
     categoryTitle = "Kateqoriya";
     categoryLinks = mapCategoriesToLinks(menus, locale);
@@ -193,42 +217,49 @@ if (settings.general.address) {
     return contacts;
 };
 
-const mapSettingsToSocials = (settings: ProjectSettingsData): FooterSocialItem[] => {
-    const socials: FooterSocialItem[] = [];
-    const socialEntries: ProjectSettingsSocialConfigItem[] = [
-        { key: "instagram", label: "Instagram", short: "IG" },
-        { key: "facebook", label: "Facebook", short: "FB" },
-        { key: "twitter", label: "Twitter", short: "TW" },
-        { key: "linkedin", label: "LinkedIn", short: "IN" },
-    ];
+/**
+ * The footer socials are fixed in code rather than read from the admin
+ * `settings.social` block, because that block only carries four networks and
+ * has no slot for TikTok or YouTube. Order and brand colours follow the
+ * reference footer: Instagram → TikTok → Facebook → YouTube → LinkedIn.
+ */
+const FOOTER_SOCIALS: Array<FooterSocialItem & { colorClass: string }> = [
+    {
+        label: "Instagram",
+        href: "https://www.instagram.com/tvim.az/",
+        icon: <i className="fab fa-instagram text-[16px] text-white" aria-hidden="true" />,
+        colorClass: "bg-[#125688]",
+    },
+    {
+        label: "TikTok",
+        href: "https://www.tiktok.com/@tvim.az",
+        icon: <i className="fab fa-tiktok text-[16px] text-white" aria-hidden="true" />,
+        colorClass: "bg-[#fe2c55]",
+    },
+    {
+        label: "Facebook",
+        href: "https://www.facebook.com/p/Tvimaz-100095715123358/?_rdr",
+        icon: <i className="fab fa-facebook text-[16px] text-white" aria-hidden="true" />,
+        colorClass: "bg-[#3a5795]",
+    },
+    {
+        label: "YouTube",
+        href: "https://www.youtube.com/@tvimaz",
+        icon: <i className="fab fa-youtube text-[16px] text-white" aria-hidden="true" />,
+        colorClass: "bg-[#e62117]",
+    },
+    {
+        label: "LinkedIn",
+        href: "https://www.linkedin.com/company/tvim/",
+        icon: <i className="fab fa-linkedin text-[16px] text-white" aria-hidden="true" />,
+        colorClass: "bg-[#0a66c2]",
+    },
+];
 
-    socialEntries.forEach((entryItem) => {
-        const item = settings.social[entryItem.key];
-        if (item && item.link) {
-            let isActive = true;
+const getFooterSocials = (): FooterSocialItem[] =>
+    FOOTER_SOCIALS.map(({ colorClass: _colorClass, ...social }) => social);
 
-            if (item.active === "0") {
-                isActive = false;
-            }
-
-            if (isActive) {
-                let iconClass = "fas fa-link";
-
-                if (item.icon) {
-                    iconClass = item.icon;
-                }
-
-                socials.push({
-                    label: entryItem.label,
-                    href: item.link,
-                    icon: <i className={`${iconClass} text-[17px] text-white`} aria-hidden="true" />,
-                });
-            }
-        }
-    });
-
-    return socials;
-};
+const getFooterSocialColorClasses = (): string[] => FOOTER_SOCIALS.map((social) => social.colorClass);
 
 const mapSettingsToFooterMeta = (settings: ProjectSettingsData) => {
     let logo: ReactNode | undefined;
@@ -269,6 +300,7 @@ const mapSettingsToFooterMeta = (settings: ProjectSettingsData) => {
 export const footerUtils = {
     getFooterSections,
     mapSettingsToContacts,
-    mapSettingsToSocials,
+    getFooterSocials,
+    getFooterSocialColorClasses,
     mapSettingsToFooterMeta,
 };

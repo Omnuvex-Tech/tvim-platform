@@ -64,11 +64,10 @@ const Footer = ({ footerMenus, footerSettings, locale }: FooterComponentProps) =
     let description: string | undefined;
     let rightsText: string | undefined;
     let contacts: FooterContactItem[] = [];
-    let socials: FooterSocialItem[] = [];
+    const socials: FooterSocialItem[] = utils.footer.getFooterSocials();
 
     if (footerSettings) {
         contacts = utils.footer.mapSettingsToContacts(footerSettings);
-        socials = utils.footer.mapSettingsToSocials(footerSettings);
         const footerMeta = utils.footer.mapSettingsToFooterMeta(footerSettings);
         logo = footerMeta.logo;
         description = footerMeta.description;
@@ -89,6 +88,7 @@ const Footer = ({ footerMenus, footerSettings, locale }: FooterComponentProps) =
             categoryLinks={dynamicSections.categoryLinks}
             contacts={contacts}
             socials={socials}
+            socialColorClasses={utils.footer.getFooterSocialColorClasses()}
         />
     );
 };

@@ -187,15 +187,15 @@ const Footer = ({
 
             {socials.length > 0 ? (
                 <div className="hidden w-full bg-black/5 [box-shadow:0_0_0_100vmax_rgba(0,0,0,0.05)] [clip-path:inset(0_-100vmax)] lg:block">
-                    <div className={cn("mx-auto w-full max-w-[1280px] px-1 py-3 lg:px-2 lg:grid lg:items-center", lgColsClass)}>
-                        <div className="flex flex-wrap items-center justify-start gap-2.5 lg:col-start-1">
+                    <div className={cn("mx-auto w-full max-w-[1280px] px-1 py-[15px] lg:px-2 lg:grid lg:items-center", lgColsClass)}>
+                        <div className="flex flex-wrap items-center justify-start gap-[15px] lg:col-start-1">
                             {socials.map((item, index) => (
                                 <a
                                     key={item.label}
                                     href={item.href}
                                     aria-label={item.label}
                                     className={cn(
-                                        "flex size-[34px] items-center justify-center rounded-full transition-opacity hover:opacity-90",
+                                        "flex size-[30px] items-center justify-center rounded-full opacity-80 transition-opacity duration-150 ease-in-out hover:opacity-100",
                                         socialColorClasses[index % socialColorClasses.length]
                                     )}
                                 >
