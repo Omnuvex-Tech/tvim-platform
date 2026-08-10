@@ -10,6 +10,7 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../../account-navigation";
+import { localizedHref } from "@/lib/routes";
 
 type OrderStatus = {
     code?: string | null;
@@ -218,7 +219,7 @@ export default async function OrderDetailPage({
     const guestToken = decodeGuestTokenFromCookie(cookieStore.get(GUEST_TOKEN_COOKIE)?.value);
 
     if (!authToken && !guestToken) {
-        redirect(`/${locale}/signin`);
+        redirect(localizedHref("signin", locale));
     }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);

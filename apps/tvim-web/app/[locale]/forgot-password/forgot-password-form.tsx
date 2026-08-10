@@ -7,6 +7,7 @@ import { Mail } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
+import { localizedHref } from "@/lib/routes";
 
 type ForgotPasswordFormProps = {
     locale: string;
@@ -127,7 +128,7 @@ const ForgotPasswordForm = ({ locale }: ForgotPasswordFormProps) => {
                 notify.success(message);
                 setErrors({});
                 const nextEmail = encodeURIComponent(email);
-                router.push(`/${effectiveLocale}/signup/verify${nextEmail ? `?email=${nextEmail}&flow=forgot` : "?flow=forgot"}`);
+                router.push(`${localizedHref("signup", effectiveLocale, "/verify")}${nextEmail ? `?email=${nextEmail}&flow=forgot` : "?flow=forgot"}`);
                 return;
             }
 
@@ -181,7 +182,7 @@ const ForgotPasswordForm = ({ locale }: ForgotPasswordFormProps) => {
             </div>
 
             <div className="pt-2 text-center text-[15px]">
-                <Link href={`/${effectiveLocale}/signin`} className="font-semibold text-[#2258f6] no-underline hover:no-underline">
+                <Link href={localizedHref("signin", effectiveLocale)} className="font-semibold text-[#2258f6] no-underline hover:no-underline">
                     Giriş səhifəsinə qayıt
                 </Link>
             </div>

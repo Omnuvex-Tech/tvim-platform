@@ -9,6 +9,7 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation, AccountNavigationGrid } from "./account-navigation";
+import { localizedHref } from "@/lib/routes";
 
 export default async function AccountPage({
     params,
@@ -24,7 +25,7 @@ export default async function AccountPage({
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     if (!authToken) {
-        redirect(`/${locale}/signin`);
+        redirect(localizedHref("signin", locale));
     }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Breadcrumb, flattenCategoryTree, matchCategories, normalizeSearchText, sortBySearchRelevance } from "@repo/ui";
+import { SEARCH_QUERY_PARAM } from "@repo/shared/routes";
 import { config } from "@/config";
+import { localizedHref } from "@/lib/routes";
 import { api } from "@/lib/api";
 import { getTranslations } from "@/lib/i18n";
 import { getSiteChromeData } from "@/lib/site-chrome";
@@ -97,7 +99,7 @@ export default async function SearchPage({
     const normalizedLocale = locale.trim().toLowerCase();
     const t = getTranslations(normalizedLocale);
     const resolvedSearchParams = searchParams ? await searchParams : {};
-    const query = String(readSearchParamValue(resolvedSearchParams.q) ?? "").trim();
+    const query = String(readSearchParamValue(resolvedSearchParams[SEARCH_QUERY_PARAM]) ?? "").trim();
 
     const chrome = await getSiteChromeData(normalizedLocale);
 
@@ -164,7 +166,7 @@ export default async function SearchPage({
         };
 
         for (const [key, value] of Object.entries(resolvedSearchParams)) {
-            if (key === "q") continue;
+            if (key === SEARCH_QUERY_PARAM) continue;
             if (!allowKey(key)) continue;
             if (value == null) continue;
             if (Array.isArray(value)) {
@@ -202,9 +204,9 @@ export default async function SearchPage({
     const listItems = Array.isArray(productList?.items) ? productList!.items! : [];
 
     const currentUiParams = new URLSearchParams();
-    if (query) currentUiParams.set("q", query);
+    if (query) currentUiParams.set(SEARCH_QUERY_PARAM, query);
     for (const [key, value] of Object.entries(resolvedSearchParams)) {
-        if (key === "q") continue;
+        if (key === SEARCH_QUERY_PARAM) continue;
         if (value == null) continue;
         const allowKey = (k: string) => {
             if (k === "page") return true;
@@ -232,7 +234,8 @@ export default async function SearchPage({
 
     const buildHrefWithParams = (nextParams: URLSearchParams) => {
         const qs = nextParams.toString();
-        return qs ? `/${normalizedLocale}/search?${qs}` : `/${normalizedLocale}/search`;
+        const searchHref = localizedHref("search", normalizedLocale);
+        return qs ? `${searchHref}?${qs}` : searchHref;
     };
 
     const parsePageNumber = (value: string | string[] | undefined) => {
@@ -283,9 +286,9 @@ export default async function SearchPage({
             />
 
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pb-12">
-                <form action={`/${normalizedLocale}/search`} method="GET" className="mb-6">
+                <form action={localizedHref("search", normalizedLocale)} method="GET" className="mb-6">
                     {Object.entries(resolvedSearchParams).map(([key, value]) => {
-                        if (key === "q" || key === "page") return null;
+                        if (key === SEARCH_QUERY_PARAM || key === "page") return null;
                         if (value == null) return null;
 
                         if (Array.isArray(value)) {
@@ -304,7 +307,7 @@ export default async function SearchPage({
                     <div className="flex items-center gap-2 rounded-[20px] bg-[#ecf4fc] px-4 py-2">
                         <input
                             type="text"
-                            name="q"
+                            name={SEARCH_QUERY_PARAM}
                             defaultValue={query}
                             placeholder={t.common.searchPlaceholder}
                             aria-label={t.common.searchPlaceholder}

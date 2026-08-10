@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { Heart, LogOut, Lock, MapPin, Package, UserRound } from "lucide-react";
+import { localizedPathname } from "@/lib/routes";
 
 export type AccountNavIcon = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -55,7 +56,7 @@ export function AccountNavigationGrid({
 
                 return (
                     <Link
-                        href={`/${locale}${href}`}
+                        href={localizedPathname(href, locale)}
                         key={label}
                         className={`flex min-h-[118px] flex-col items-center justify-center rounded-[18px] border px-4 py-4 text-center transition-colors ${
                             isActive
@@ -95,7 +96,7 @@ export function AccountNavigation({ locale, activeHref, showMobile = true }: Acc
                         return (
                             <li key={label}>
                                 <Link
-                                    href={`/${locale}${href}`}
+                                    href={localizedPathname(href, locale)}
                                     className={`group inline-flex min-h-0 w-full items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium transition-colors ${
                                         isActive
                                             ? "bg-[#F0F1F3] text-[#0D47FF]"

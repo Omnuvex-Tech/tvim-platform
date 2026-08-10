@@ -10,6 +10,7 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../account-navigation";
+import { localizedHref } from "@/lib/routes";
 
 type OrderStatus = {
     code?: string | null;
@@ -186,7 +187,7 @@ export default async function OrdersPage({
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
 
     if (!authToken) {
-        redirect(`/${locale}/signin`);
+        redirect(localizedHref("signin", locale));
     }
 
     const query = await searchParams;
@@ -249,7 +250,7 @@ export default async function OrdersPage({
         { label: "Təhvil verildi", value: "completed" },
         { label: "Ləğv edildi", value: "canceled" },
     ];
-    const ordersPageUrl = `/${locale}/account/orders`;
+    const ordersPageUrl = localizedHref("orders", locale);
     const activeHref = "/account/orders";
 
     return (

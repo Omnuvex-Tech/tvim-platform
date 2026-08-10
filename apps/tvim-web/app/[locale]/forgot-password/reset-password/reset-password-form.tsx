@@ -6,6 +6,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
+import { localizedHref } from "@/lib/routes";
 
 type ResetPasswordFormProps = {
     locale: string;
@@ -156,7 +157,7 @@ const ResetPasswordForm = ({ locale, email, code }: ResetPasswordFormProps) => {
             }
 
             notify.success(payload.message || "Şifrə uğurla yeniləndi");
-            router.push(`/${effectiveLocale}/signin`);
+            router.push(localizedHref("signin", effectiveLocale));
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
         } finally {

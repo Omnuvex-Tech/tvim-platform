@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { HeaderCategoryItem, Language } from "@repo/types/types";
 import type { NavbarMenuItem, NavbarSearchSection } from "@repo/ui";
 import { Navbar } from "@repo/ui";
+import { asRouteLocale, translatePath } from "@repo/shared/routes";
 import { useLanguageStore } from "@/stores";
 import { config } from "@/config";
 import { api } from "@/lib/api";
@@ -412,8 +413,9 @@ const localizedMenuItems = useMemo(() => {
                     const cleanLink = localizedLink.replace(/^\/+/, "");
                     nextPath = `/${normalizedNextLocale}/${cleanLink}`;
                 } else {
-                    segments[0] = normalizedNextLocale;
-                    nextPath = `/${segments.join("/")}`;
+                    nextPath =
+                        translatePath(pathname, asRouteLocale(normalizedNextLocale)) ??
+                        `/${[normalizedNextLocale, ...segments.slice(1)].join("/")}`;
                 }
             } else if (["signin", "signup", "forgot-password"].includes(firstSegment)) {
                 nextPath = `/${normalizedNextLocale}/${segments.join("/")}`;

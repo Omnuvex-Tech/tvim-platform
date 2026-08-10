@@ -10,6 +10,7 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../account-navigation";
 import { AddressClient } from "./address-client";
+import { localizedHref } from "@/lib/routes";
 
 type Address = {
     id: number;
@@ -45,7 +46,7 @@ export default async function AccountAddressPage({
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     if (!authToken) {
-        redirect(`/${locale}/signin`);
+        redirect(localizedHref("signin", locale));
     }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);

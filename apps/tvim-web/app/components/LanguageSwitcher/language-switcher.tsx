@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { Language, Translation } from "@repo/types/types";
 import { LanguageSwitcher as LanguageSwitcherUI } from "@repo/ui";
+import { asRouteLocale, translatePath } from "@repo/shared/routes";
 import { useLanguageStore } from "@/stores";
 import { api } from "@/lib/api";
 import { config } from "@/config";
@@ -40,8 +41,7 @@ const LanguageSwitcher = ({
         }
 
         if (routeLocale) {
-            segments[0] = nextLocale;
-            router.push(`/${segments.join("/")}`);
+            router.push(translatePath(pathname, asRouteLocale(nextLocale)) ?? `/${[nextLocale, ...segments.slice(1)].join("/")}`);
             return;
         }
 

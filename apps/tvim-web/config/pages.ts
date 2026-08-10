@@ -1,3 +1,5 @@
+import { routePath } from "@repo/shared/routes";
+
 export const pages = {
     home: {
         az: {
@@ -18,51 +20,51 @@ export const pages = {
     },
     signin: {
         az: {
-            url: "/az/signin",
+            url: routePath("signin", "az"),
             title: "Giriş",
             name: "Giriş",
         },
         ru: {
-            url: "/ru/signin",
+            url: routePath("signin", "ru"),
             title: "Вход",
             name: "Вход",
         },
         en: {
-            url: "/en/signin",
+            url: routePath("signin", "en"),
             title: "Sign in",
             name: "Sign in",
         },
     },
     signup: {
         az: {
-            url: "/az/signup",
+            url: routePath("signup", "az"),
             title: "Hesab qeydiyyatı",
             name: "Hesab qeydiyyatı",
         },
         ru: {
-            url: "/ru/signup",
+            url: routePath("signup", "ru"),
             title: "Регистрация",
             name: "Регистрация",
         },
         en: {
-            url: "/en/signup",
+            url: routePath("signup", "en"),
             title: "Sign up",
             name: "Sign up",
         },
     },
     signupVerify: {
         az: {
-            url: "/az/signup/verify",
+            url: routePath("signup", "az", "/verify"),
             title: "Kod təsdiqi",
             name: "Kod təsdiqi",
         },
         ru: {
-            url: "/ru/signup/verify",
+            url: routePath("signup", "ru", "/verify"),
             title: "Подтверждение кода",
             name: "Подтверждение кода",
         },
         en: {
-            url: "/en/signup/verify",
+            url: routePath("signup", "en", "/verify"),
             title: "Code verification",
             name: "Code verification",
         },
@@ -103,153 +105,153 @@ export const pages = {
     },
     account: {
         az: {
-            url: "/az/account",
+            url: routePath("account", "az"),
             title: "Hesabım",
             name: "Hesabım",
         },
         ru: {
-            url: "/ru/account",
+            url: routePath("account", "ru"),
             title: "Мой аккаунт",
             name: "Мой аккаунт",
         },
         en: {
-            url: "/en/account",
+            url: routePath("account", "en"),
             title: "My account",
             name: "My account",
         },
     },
     accountEdit: {
         az: {
-            url: "/az/account/edit",
+            url: routePath("account", "az", "/edit"),
             title: "Məlumatları redaktə et",
             name: "Məlumatları redaktə et",
         },
         ru: {
-            url: "/ru/account/edit",
+            url: routePath("account", "ru", "/edit"),
             title: "Редактировать профиль",
             name: "Редактировать профиль",
         },
         en: {
-            url: "/en/account/edit",
+            url: routePath("account", "en", "/edit"),
             title: "Edit profile",
             name: "Edit profile",
         },
     },
     accountPassword: {
         az: {
-            url: "/az/account/password",
+            url: routePath("account", "az", "/password"),
             title: "Şifrəni dəyiş",
             name: "Şifrəni dəyiş",
         },
         ru: {
-            url: "/ru/account/password",
+            url: routePath("account", "ru", "/password"),
             title: "Сменить пароль",
             name: "Сменить пароль",
         },
         en: {
-            url: "/en/account/password",
+            url: routePath("account", "en", "/password"),
             title: "Change password",
             name: "Change password",
         },
     },
     accountAddress: {
         az: {
-            url: "/az/account/address",
+            url: routePath("account", "az", "/address"),
             title: "Ünvan kitabçası",
             name: "Ünvan kitabçası",
         },
         ru: {
-            url: "/ru/account/address",
+            url: routePath("account", "ru", "/address"),
             title: "Адресная книга",
             name: "Адресная книга",
         },
         en: {
-            url: "/en/account/address",
+            url: routePath("account", "en", "/address"),
             title: "Address book",
             name: "Address book",
         },
     },
     accountReturns: {
         az: {
-            url: "/az/account/returns",
+            url: routePath("account", "az", "/returns"),
             title: "Geri qaytarma",
             name: "Geri qaytarma",
         },
         ru: {
-            url: "/ru/account/returns",
+            url: routePath("account", "ru", "/returns"),
             title: "Возврат",
             name: "Возврат",
         },
         en: {
-            url: "/en/account/returns",
+            url: routePath("account", "en", "/returns"),
             title: "Returns",
             name: "Returns",
         },
     },
     orderHistory: {
         az: {
-            url: "/az/account/orders",
+            url: routePath("orders", "az"),
             title: "Sifariş tarixçəsi",
             name: "Sifariş tarixçəsi",
         },
         ru: {
-            url: "/ru/account/orders",
+            url: routePath("orders", "ru"),
             title: "История заказов",
             name: "История заказов",
         },
         en: {
-            url: "/en/account/orders",
+            url: routePath("orders", "en"),
             title: "Order history",
             name: "Order history",
         },
     },
     orderDetail: {
         az: {
-            url: "/az/account/orders",
+            url: routePath("orders", "az"),
             title: "Sifariş detalı",
             name: "Sifariş detalı",
         },
         ru: {
-            url: "/ru/account/orders",
+            url: routePath("orders", "ru"),
             title: "Детали заказа",
             name: "Детали заказа",
         },
         en: {
-            url: "/en/account/orders",
+            url: routePath("orders", "en"),
             title: "Order details",
             name: "Order details",
         },
     },
     wishlist: {
         az: {
-            url: "/az/wishlist",
+            url: routePath("wishlist", "az"),
             title: "Bəyənilənlər",
             name: "Bəyənilənlər",
         },
         ru: {
-            url: "/ru/wishlist",
+            url: routePath("wishlist", "ru"),
             title: "Избранное",
             name: "Избранное",
         },
         en: {
-            url: "/en/wishlist",
+            url: routePath("wishlist", "en"),
             title: "Wishlist",
             name: "Wishlist",
         },
     },
     compare: {
         az: {
-            url: "/az/compare",
+            url: routePath("compare", "az"),
             title: "Məhsul müqayisəsi",
             name: "Məhsul müqayisəsi",
         },
         ru: {
-            url: "/ru/compare",
+            url: routePath("compare", "ru"),
             title: "Сравнение товаров",
             name: "Сравнение товаров",
         },
         en: {
-            url: "/en/compare",
+            url: routePath("compare", "en"),
             title: "Compare products",
             name: "Compare products",
         },

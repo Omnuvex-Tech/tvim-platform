@@ -6,6 +6,7 @@ import type { AuthSessionUser } from "@/lib/auth/session";
 import type { CheckoutData } from "../checkout-client";
 import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-client";
 import { hydrateCart } from "@/lib/cart/client";
+import { localizedHref } from "@/lib/routes";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 const toNumber = (value: unknown) => {
@@ -585,7 +586,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
             }
 
             if (isAuthenticated) {
-                router.push(`/${effectiveLocale}/account/orders`);
+                router.push(localizedHref("orders", effectiveLocale));
             } else {
                 router.push(`/${effectiveLocale}`);
             }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Heart, House, LayoutGrid, ShoppingCart, UserRound } from "lucide-react";
 import { useCart } from "@/lib/cart/client";
+import { localizedHref } from "@/lib/routes";
 
 const SUPPORTED_LOCALES = new Set(["az", "en", "ru"]);
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
@@ -145,16 +146,16 @@ export const MobileBottomTabs = () => {
             },
             {
                 label: LABELS[locale].wishlist,
-                href: `/${locale}/wishlist`,
+                href: localizedHref("wishlist", locale),
                 icon: Heart,
-                active: pathname?.startsWith(`/${locale}/wishlist`) ?? false,
+                active: pathname?.startsWith(localizedHref("wishlist", locale)) ?? false,
                 count: favoritesCount,
             },
             {
                 label: LABELS[locale].login,
-                href: `/${locale}/signin`,
+                href: localizedHref("signin", locale),
                 icon: UserRound,
-                active: pathname?.startsWith(`/${locale}/signin`) ?? false,
+                active: pathname?.startsWith(localizedHref("signin", locale)) ?? false,
             },
         ],
         [locale, pathname]
