@@ -13,6 +13,7 @@ import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-l
 import { generateServiceMetadata, renderServiceSlugPage } from "@/app/services/[slug]/page";
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { localizedHref } from "@/lib/routes";
 
 type GridItem = {
     id?: number | string;
@@ -417,7 +418,7 @@ export default async function GridDetailPage({
         if (!productResult.ok) {
             const msg = String(productResult.message ?? "").toLowerCase();
             if (msg.includes("unauth") || msg.includes("unauthorized")) {
-                redirect(`/${normalizedLocale}/signin`);
+                redirect(localizedHref("signin", normalizedLocale));
             }
             notFound();
         }

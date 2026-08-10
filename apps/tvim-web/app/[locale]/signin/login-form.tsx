@@ -7,6 +7,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { useLanguageStore } from "@/stores";
 import { hydrateCart } from "@/lib/cart/client";
+import { localizedHref } from "@/lib/routes";
 
 type LoginFormProps = {
     locale: string;
@@ -154,7 +155,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
 
                 if (needsVerification) {
                     const nextEmail = encodeURIComponent(formData.email.trim());
-                    router.push(`/${effectiveLocale}/signup/verify${nextEmail ? `?email=${nextEmail}` : ""}`);
+                    router.push(`${localizedHref("signup", effectiveLocale, "/verify")}${nextEmail ? `?email=${nextEmail}` : ""}`);
                 }
                 return;
             }
@@ -271,7 +272,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             </div>
 
             <div className="-mt-2 text-center text-[15px]">
-                <Link href={`/${effectiveLocale}/signup`} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
+                <Link href={localizedHref("signup", effectiveLocale)} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
             </div>
         </form>
     );

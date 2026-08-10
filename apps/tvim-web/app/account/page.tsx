@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { config } from "@/config";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { normalizeLocale } from "@/lib/site-locales";
+import { localizedHref } from "@/lib/routes";
 
 export default async function AccountPage() {
     const cookieStore = await cookies();
@@ -10,7 +11,7 @@ export default async function AccountPage() {
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
 
     if (!authToken) {
-        redirect(`/${locale}/signin`);
+        redirect(localizedHref("signin", locale));
     }
-    redirect(`/${locale}/account`);
+    redirect(localizedHref("account", locale));
 }

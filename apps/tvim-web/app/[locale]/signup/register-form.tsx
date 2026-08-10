@@ -8,6 +8,7 @@ import { Eye, EyeOff, Lock, Mail, Phone, UserRound, X } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
+import { localizedHref } from "@/lib/routes";
 
 type RegisterFormProps = {
     locale: string;
@@ -728,7 +729,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             }
 
             const nextEmail = encodeURIComponent(formData.email.trim());
-            router.push(`/${effectiveLocale}/signup/verify${nextEmail ? `?email=${nextEmail}` : ""}`);
+            router.push(`${localizedHref("signup", effectiveLocale, "/verify")}${nextEmail ? `?email=${nextEmail}` : ""}`);
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
             resetRecaptchaWidget();
@@ -959,7 +960,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                 </div>
 
                 <p className="pt-3 text-center text-[13px] font-[495] text-[#1f2430]">
-                    Əgər artıq hesabınızı yaratmısınızsa, <Link href={`/${effectiveLocale}/signin`} className="underline">giriş səhifəsinə</Link> keçin.
+                    Əgər artıq hesabınızı yaratmısınızsa, <Link href={localizedHref("signin", effectiveLocale)} className="underline">giriş səhifəsinə</Link> keçin.
                 </p>
             </form>
 

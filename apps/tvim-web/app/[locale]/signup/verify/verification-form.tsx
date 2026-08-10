@@ -7,6 +7,7 @@ import { CheckCircle2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
+import { localizedHref } from "@/lib/routes";
 
 type VerificationFormProps = {
     locale: string;
@@ -317,7 +318,7 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
                 // If user provided a new password in this step, assume the server reset it
                 // and redirect to signin. Otherwise, navigate to the reset-password page.
                 if (password) {
-                    router.push(`/${effectiveLocale}/signin`);
+                    router.push(localizedHref("signin", effectiveLocale));
                     return;
                 }
 
@@ -328,7 +329,7 @@ const VerificationForm = ({ locale, email, flow = "signup" }: VerificationFormPr
             }
 
             notify.success(extractVerifyMessage(payload, "Email uğurla təsdiqləndi."));
-            router.push(`/${effectiveLocale}/signin`);
+            router.push(localizedHref("signin", effectiveLocale));
         } catch {
             notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
         } finally {

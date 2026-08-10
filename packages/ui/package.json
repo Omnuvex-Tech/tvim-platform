@@ -24,6 +24,7 @@
         "typescript": "5.9.2"
     },
     "dependencies": {
+        "@repo/shared": "*",
         "@repo/types": "*",
         "@tailwindcss/postcss": "^4.2.2",
         "class-variance-authority": "^0.7.1",

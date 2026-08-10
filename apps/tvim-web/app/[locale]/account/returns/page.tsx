@@ -11,6 +11,7 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { getTranslations } from "@/lib/i18n";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../account-navigation";
+import { localizedHref } from "@/lib/routes";
 
 export default async function AccountReturnsPage({
     params,
@@ -26,7 +27,7 @@ export default async function AccountReturnsPage({
     const cookieStore = await cookies();
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     if (!authToken) {
-        redirect(`/${locale}/signin`);
+        redirect(localizedHref("signin", locale));
     }
 
     const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
@@ -55,7 +56,7 @@ export default async function AccountReturnsPage({
             <Breadcrumb
                 items={[
                     { label: homePageMeta.name, href: homePageMeta.url },
-                    { label: accountPageMeta.name, href: `/${locale}/account` },
+                    { label: accountPageMeta.name, href: localizedHref("account", locale) },
                     { label: pageTitle, isCurrent: true },
                 ]}
                 className="[&_ul.breadcrumb]:mb-0 [&_ul.breadcrumb]:pb-0"

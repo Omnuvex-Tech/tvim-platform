@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { localizedHref } from "@/lib/routes";
 
 export default async function CompareRedirectPage() {
     const cookieStore = await cookies();
@@ -8,5 +9,5 @@ export default async function CompareRedirectPage() {
         ? cookieLocale
         : "az") as "az" | "ru" | "en";
 
-    redirect(`/${normalizedPreferredLocale}/compare`);
+    redirect(localizedHref("compare", normalizedPreferredLocale));
 }

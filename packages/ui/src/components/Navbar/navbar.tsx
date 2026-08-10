@@ -38,6 +38,7 @@ import {
 } from "../../lib/search-ranking";
 import Spinner from "../Spinner/Spinner";
 import "../../styles/components/navbar.css";
+import { localizedHref, SEARCH_QUERY_PARAM } from "@repo/shared/routes";
 
 const navbarClasses = {
     root: "w-full bg-white font-[family-name:var(--font-inter)]",
@@ -893,7 +894,7 @@ function NavbarSearch({
 
                     {totalResults > 0 ? (
                         <SmartLink
-                            href={`/${localeCode}/search?q=${encodeURIComponent(value.trim())}`}
+                            href={`${localizedHref("search", localeCode)}?${SEARCH_QUERY_PARAM}=${encodeURIComponent(value.trim())}`}
                             className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
                             onClick={() => setIsOpen(false)}
                         >
@@ -1097,7 +1098,7 @@ function NavbarActions({
         <div className="ml-auto flex items-center gap-3 lg:ml-0 lg:justify-self-end">
             {isAuthenticated ? (
                 <Link
-                    href={`/${locale.toLowerCase()}/account`}
+                    href={localizedHref("account", locale)}
                     className="inline-flex h-12 cursor-pointer items-center gap-2.5 rounded-full bg-[#1448F4] px-7 text-[15px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                     aria-label="Profil"
                 >
@@ -1106,7 +1107,7 @@ function NavbarActions({
                 </Link>
             ) : (
                 <Link
-                    href={`/${locale.toLowerCase()}/signin`}
+                    href={localizedHref("signin", locale)}
                     className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-full bg-[#1f4fff] px-11 text-[16px] font-medium text-white"
                 >
                     <UserRound className="size-[17px]" />
@@ -1115,7 +1116,7 @@ function NavbarActions({
             )}
 
             <Link
-                href={`/${locale.toLowerCase()}/wishlist`}
+                href={localizedHref("wishlist", locale)}
                 aria-label="Seçilmişlər"
                 className="relative inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
             >
@@ -1127,7 +1128,7 @@ function NavbarActions({
                 ) : null}
             </Link>
             <Link
-                href={`/${locale.toLowerCase()}/compare`}
+                href={localizedHref("compare", locale)}
                 aria-label="Müqayisə"
                 className="relative inline-flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
             >
@@ -2106,7 +2107,7 @@ export function Navbar({
                     <div className="pb-3">
                         {isAuthenticated ? (
                             <Link
-                                href={`/${locale.toLowerCase()}/account`}
+                                href={localizedHref("account", locale)}
                                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#1448F4] px-6 text-[14px] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
@@ -2115,7 +2116,7 @@ export function Navbar({
                             </Link>
                         ) : (
                             <Link
-                                href={`/${locale.toLowerCase()}/signin`}
+                                href={localizedHref("signin", locale)}
                                 className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1f4fff] px-6 text-[15px] font-medium text-white transition-opacity hover:opacity-95"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
@@ -2127,7 +2128,7 @@ export function Navbar({
 
                     <div className="flex items-center gap-3 pb-5">
                         <Link
-                            href={`/${locale.toLowerCase()}/wishlist`}
+                            href={localizedHref("wishlist", locale)}
                             aria-label="Seçilmişlər"
                             className="relative inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
                             onClick={() => setIsMobileMenuOpen(false)}
@@ -2140,7 +2141,7 @@ export function Navbar({
                             ) : null}
                         </Link>
                         <Link
-                            href={`/${locale.toLowerCase()}/compare`}
+                            href={localizedHref("compare", locale)}
                             aria-label="Müqayisə"
                             className="relative inline-flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-[#8ea1c8] text-[#2350ff] transition-colors duration-200 hover:bg-[#f1f3f7]"
                             onClick={() => setIsMobileMenuOpen(false)}

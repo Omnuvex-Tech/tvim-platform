@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
+import { localizedHref } from "@/lib/routes";
 
 export default async function OrdersRedirectPage() {
     const cookieStore = await cookies();
@@ -9,8 +10,8 @@ export default async function OrdersRedirectPage() {
     const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
 
     if (!authToken) {
-        redirect(`/${normalizedPreferredLocale}/signin`);
+        redirect(localizedHref("signin", normalizedPreferredLocale));
     }
 
-    redirect(`/${normalizedPreferredLocale}/account/orders`);
+    redirect(localizedHref("orders", normalizedPreferredLocale));
 }
