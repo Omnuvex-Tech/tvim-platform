@@ -99,7 +99,7 @@ const buildEntry = (
     lastModified?: Date,
 ): SitemapEntry => {
     const normalizedPath = normalizePath(path);
-    const url = normalizedPath ? `${siteUrl}/${normalizedPath}` : siteUrl;
+    const url = normalizedPath ? `${siteUrl}/${encodeURI(normalizedPath)}` : siteUrl;
 
     return {
         url,

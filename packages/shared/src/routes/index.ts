@@ -20,6 +20,30 @@ const ROUTE_RULES: readonly RouteRule[] = [
     { key: "search", internal: "/search", segments: { az: "axtaris", en: "search", ru: "poisk" } },
 ] as const;
 
+type TvimPageRule = {
+    slugs: Record<RouteLocale, string>;
+    tvimSlugs: readonly string[];
+};
+
+const TVIM_PAGE_RULES: readonly TvimPageRule[] = [
+    {
+        slugs: { az: "catdirilma-ve-odenis", en: "delivery-and-payment", ru: "dostavka-i-oplata" },
+        tvimSlugs: ["Catdirilma-ve-odeme"],
+    },
+    {
+        slugs: { az: "geri-qaytarma-ve-deyisdirilme", en: "redemption-and-replacement", ru: "iskuplenie-i-zamena" },
+        tvimSlugs: ["Geri-qaytarma", "refund", "vozvraschat-dengi"],
+    },
+    {
+        slugs: { az: "bonus-kartlari", en: "bonus-cards", ru: "bonusnye-karty" },
+        tvimSlugs: ["Bonus-kartları"],
+    },
+    {
+        slugs: { az: "İstifade-sertleri", en: "terms-of-use", ru: "ispolzovanie-zavod" },
+        tvimSlugs: ["istifade-sertleri"],
+    },
+] as const;
+
 export const SEARCH_QUERY_PARAM = "search";
 export const LEGACY_SEARCH_QUERY_PARAM = "q";
 
@@ -82,6 +106,40 @@ export const localizedPathname = (internalPath: string, locale: string) => {
 };
 
 export const isSearchRoute = (rest: string) => matchRule(rest)?.rule.key === "search";
+
+const decodeSlug = (value: string) => {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+};
+
+const COMBINING_MARKS = /[\u0300-\u036f]/g;
+
+const foldSlug = (value: string) =>
+    value.toLowerCase().normalize("NFD").replace(COMBINING_MARKS, "");
+
+export const resolveTvimPageRedirect = (rest: string, locale: RouteLocale) => {
+    const [firstSegment, ...restSegments] = rest.split("/").filter(Boolean);
+    if (!firstSegment) return null;
+
+    const decoded = decodeSlug(firstSegment);
+    if (!decoded) return null;
+
+    if (TVIM_PAGE_RULES.some((rule) => rule.slugs[locale] === decoded)) return null;
+
+    const folded = foldSlug(decoded);
+    const matched = TVIM_PAGE_RULES.find((rule) =>
+        [...Object.values(rule.slugs), ...rule.tvimSlugs].some(
+            (candidate) => candidate === decoded || foldSlug(candidate) === folded,
+        ),
+    );
+    if (!matched) return null;
+
+    const suffix = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
+    return `/${encodeURIComponent(matched.slugs[locale])}${suffix}`;
+};
 
 export const translatePath = (pathname: string, nextLocale: RouteLocale) => {
     const [maybeLocale, ...restSegments] = pathname.split("/").filter(Boolean);

@@ -2,11 +2,37 @@ import { PendingLink } from "@/app/components/DrawerScrollLock/drawer-scroll-loc
 
 type PaginationToken = number | "ellipsis";
 
+type PaginationVariant = "default" | "accent";
+
 type PaginationProps = {
     currentPage: number;
     lastPage: number;
     buildHref: (page: number) => string;
     className?: string;
+    variant?: PaginationVariant;
+};
+
+const VARIANT_STYLES: Record<PaginationVariant, {
+    arrow: string;
+    page: string;
+    activePage: string;
+    ellipsis: string;
+    gap: string;
+}> = {
+    default: {
+        arrow: "h-9 w-9 rounded-full border border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb] sm:h-10 sm:w-10",
+        page: "h-9 w-9 rounded-full border border-[#e5e7eb] bg-white text-[13px] font-semibold text-[#111318] hover:bg-[#f5f7fb] sm:h-10 sm:w-10 sm:text-[14px]",
+        activePage: "h-9 w-9 rounded-full border border-[#0f57d6] bg-[#0f57d6] text-[13px] font-semibold text-white sm:h-10 sm:w-10 sm:text-[14px]",
+        ellipsis: "h-9 w-9 text-[16px] text-[#8b97a9] sm:h-10 sm:w-10",
+        gap: "gap-2 sm:gap-3",
+    },
+    accent: {
+        arrow: "h-[46px] w-[46px] rounded-[20px] bg-white font-bold text-black",
+        page: "h-[46px] w-[46px] rounded-[20px] bg-white font-bold text-black",
+        activePage: "h-[46px] w-[46px] rounded-[20px] bg-[#ffda00] font-bold text-black",
+        ellipsis: "h-[46px] w-[46px] text-[#888]",
+        gap: "gap-[10px]",
+    },
 };
 
 const buildPaginationTokens = (currentPage: number, lastPage: number): PaginationToken[] => {
@@ -52,19 +78,21 @@ function Pagination({
     lastPage,
     buildHref,
     className = "",
+    variant = "default",
 }: PaginationProps) {
     if (lastPage <= 1) return null;
 
     const safeCurrentPage = Math.max(1, Math.min(currentPage, lastPage));
     const tokens = buildPaginationTokens(safeCurrentPage, lastPage);
+    const styles = VARIANT_STYLES[variant];
 
     return (
-        <div className={`mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3 ${className}`.trim()}>
+        <div className={`mt-8 flex flex-wrap items-center justify-center ${styles.gap} ${className}`.trim()}>
             <PendingLink
                 href={buildHref(Math.max(1, safeCurrentPage - 1))}
                 aria-disabled={safeCurrentPage <= 1}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${
-                    safeCurrentPage <= 1 ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
+                className={`inline-flex items-center justify-center transition-colors duration-150 ease-linear ${styles.arrow} ${
+                    safeCurrentPage <= 1 ? "pointer-events-none opacity-40" : ""
                 }`}
             >
                 <i className="fa-solid fa-chevron-left text-[12px]" />
@@ -75,7 +103,7 @@ function Pagination({
                     return (
                         <span
                             key={`ellipsis-${idx}`}
-                            className="inline-flex h-9 w-9 items-center justify-center text-[16px] text-[#8b97a9] sm:h-10 sm:w-10"
+                            className={`inline-flex items-center justify-center ${styles.ellipsis}`}
                         >
                             ...
                         </span>
@@ -89,10 +117,8 @@ function Pagination({
                         key={`page-${token}`}
                         href={buildHref(token)}
                         aria-current={isActive ? "page" : undefined}
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border text-[13px] font-semibold transition-colors sm:h-10 sm:w-10 sm:text-[14px] ${
-                            isActive
-                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
-                                : "border-[#e5e7eb] bg-white text-[#111318] hover:bg-[#f5f7fb]"
+                        className={`inline-flex items-center justify-center transition-colors duration-150 ease-linear ${
+                            isActive ? styles.activePage : styles.page
                         }`}
                     >
                         {token}
@@ -103,7 +129,7 @@ function Pagination({
             <PendingLink
                 href={buildHref(Math.min(lastPage, safeCurrentPage + 1))}
                 aria-disabled={safeCurrentPage >= lastPage}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#111318] transition-colors sm:h-10 sm:w-10 ${
+                className={`inline-flex items-center justify-center transition-colors ${styles.arrow} ${
                     safeCurrentPage >= lastPage ? "pointer-events-none opacity-40" : "hover:bg-[#f5f7fb]"
                 }`}
             >
