@@ -28,9 +28,10 @@ export const endpoints = {
     
     menus: {
         list: "/menus",
-        detail: (link: string, dataSlug?: string) => {
+        detail: (link: string, dataSlug?: string, page?: number) => {
             const base = `/menus/detail?link=${encodeURIComponent(link)}`;
-            return dataSlug ? `${base}&data_slug=${encodeURIComponent(dataSlug)}` : base;
+            const withDataSlug = dataSlug ? `${base}&data_slug=${encodeURIComponent(dataSlug)}` : base;
+            return page && page > 1 ? `${withDataSlug}&page=${page}` : withDataSlug;
         },
     },
 

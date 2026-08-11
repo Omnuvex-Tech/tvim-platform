@@ -1,5 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
+import { Roboto } from "next/font/google";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
@@ -7,9 +8,10 @@ import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
 import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
-import { getPublicMenuDetail } from "@/lib/public-data";
+import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
+import { Pagination } from "@/app/components/Pagination/pagination";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
@@ -21,6 +23,7 @@ type MenuDetailData = {
     menu: {
         id: number;
         uuid: string;
+        parent_id?: number | null;
         type: string;
         view_type: string;
         name: string;
@@ -45,6 +48,13 @@ type MenuDetailData = {
             route: string;
         };
         fields?: any[];
+        categories?: Array<{
+            id?: number | string;
+            name?: string;
+            slug?: string;
+            icon?: string | null;
+            logo?: string | null;
+        }>;
         items?: Array<{
             id?: number | string;
             slug?: string;
@@ -194,8 +204,64 @@ const getCachedProductListPayload = unstable_cache(
     { revalidate: 300, tags: ["public-product-list-payload"] }
 );
 
-async function getMenuDetail(slug: string, locale: string) {
-    return await getPublicMenuDetail<MenuDetailData>(slug, locale);
+async function getMenuDetail(slug: string, locale: string, page?: number) {
+    return await getPublicMenuDetail<MenuDetailData>(slug, locale, undefined, page);
+}
+
+const roboto = Roboto({
+    subsets: ["latin", "latin-ext", "cyrillic"],
+    weight: ["400", "500", "700", "900"],
+    display: "swap",
+});
+
+const formatBlogDate = (value?: string | null) => {
+    const matched = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return matched ? `${matched[3]}/${matched[2]}/${matched[1]}` : "";
+};
+
+type BlogCategoryTile = {
+    id?: number | string;
+    name: string;
+    slug: string;
+    icon: string;
+};
+
+const readMenuNodeSlug = (node: any, locale: string) =>
+    String(node?.multi_links?.[locale] ?? node?.link ?? "").trim().replace(/^\/+|\/+$/g, "");
+
+async function getBlogCategoryTiles(parentId: unknown, locale: string) {
+    const targetId = Number(parentId);
+    if (!Number.isFinite(targetId) || targetId <= 0) return { parent: null as any, tiles: [] as BlogCategoryTile[] };
+
+    const menus = await getPublicMenuList(locale);
+    if (!menus) return { parent: null as any, tiles: [] as BlogCategoryTile[] };
+
+    const stack: any[] = [menus];
+    let parent: any = null;
+
+    while (stack.length > 0) {
+        const node = stack.shift();
+        if (!node || typeof node !== "object") continue;
+        if (!Array.isArray(node) && Number(node.id) === targetId && Array.isArray(node.children)) {
+            parent = node;
+            break;
+        }
+        for (const value of Object.values(node)) {
+            if (value && typeof value === "object") stack.push(value);
+        }
+    }
+
+    const children = Array.isArray(parent?.children) ? parent.children : [];
+    const tiles: BlogCategoryTile[] = children
+        .map((child: any) => ({
+            id: child?.id,
+            name: String(child?.name ?? "").trim(),
+            slug: readMenuNodeSlug(child, locale),
+            icon: String(child?.icon?.image_url ?? "").trim(),
+        }))
+        .filter((tile: BlogCategoryTile) => tile.name && tile.slug);
+
+    return { parent, tiles };
 }
 
 const decodeSlugParam = (slug: string) => {
@@ -305,9 +371,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.toLowerCase();
+    const requestedPage = (() => {
+        const raw = Number(readSearchParamValue(resolvedSearchParams.page) ?? 1);
+        return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+    })();
 
     const [menuDetail, chrome] = await Promise.all([
-        getMenuDetail(slug, normalizedLocale),
+        getMenuDetail(slug, normalizedLocale, requestedPage),
         getSiteChromeData(normalizedLocale),
     ]);
 
@@ -366,11 +436,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     : (v?.url ?? v?.link ?? v?.website ?? "").toString().trim() || undefined,
             }))
             .filter((c) => Boolean(c.name));
-    }
-
-    function stripHtml(input?: string | null) {
-        if (!input) return "";
-        return input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     }
 
     function resolveGridItemHref(item: {
@@ -1160,66 +1225,211 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     }
 
     if (isGridView) {
+        const isBlogView = String(menu.view_type ?? "").trim().toLowerCase() === "blog";
+        const ownCategories: BlogCategoryTile[] = (Array.isArray(pageData?.categories) ? pageData.categories : [])
+            .map((category) => ({
+                id: category?.id,
+                name: String(category?.name ?? "").trim(),
+                slug: String(category?.slug ?? "").trim().replace(/^\/+|\/+$/g, ""),
+                icon: String(category?.icon ?? category?.logo ?? "").trim(),
+            }))
+            .filter((category) => category.slug && category.name);
+
+        const siblings = isBlogView && ownCategories.length === 0
+            ? await getBlogCategoryTiles(menu.parent_id, normalizedLocale)
+            : { parent: null, tiles: [] as BlogCategoryTile[] };
+
+        const blogCategories = ownCategories.length > 0 ? ownCategories : siblings.tiles;
+        const blogRoot = siblings.parent
+            ? { name: String(siblings.parent.name ?? "").trim(), slug: readMenuNodeSlug(siblings.parent, normalizedLocale) }
+            : ownCategories.length > 0
+                ? { name: String(menu.name ?? "").trim(), slug }
+                : null;
+        const hasBlogSidebar = Boolean(blogRoot?.slug && blogRoot.name && blogCategories.length > 0);
+
+        const blogMenuToggleId = `blog-menu-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
+        const gridCurrentPage = Math.max(1, Number(pageData?.meta?.page ?? requestedPage));
+        const gridLastPage = Math.max(1, Number(pageData?.meta?.last_page ?? 1));
+
+        const buildGridPageHref = (page: number) => {
+            const next = new URLSearchParams();
+            for (const [key, value] of Object.entries(resolvedSearchParams)) {
+                if (key === "page" || value == null) continue;
+                if (Array.isArray(value)) {
+                    for (const entry of value) {
+                        const trimmed = String(entry ?? "").trim();
+                        if (trimmed) next.append(key, trimmed);
+                    }
+                } else {
+                    const trimmed = String(value).trim();
+                    if (trimmed) next.set(key, trimmed);
+                }
+            }
+            if (page > 1) next.set("page", String(page));
+            const query = next.toString();
+            return query ? `/${normalizedLocale}/${slug}?${query}` : `/${normalizedLocale}/${slug}`;
+        };
+
         return (
             <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
+                <div className={`${roboto.className} w-full text-[14px] leading-[1.42857143]`}>
                 <Breadcrumb
                     items={[
                         { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        ...(blogRoot?.slug && blogRoot.name && blogRoot.slug !== slug
+                            ? [{ label: blogRoot.name, href: `/${normalizedLocale}/${blogRoot.slug}` }]
+                            : []),
                         { label: menu.name, isCurrent: true },
                     ]}
-                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
-                    showTitle
-                    pageTitle={menu.title || menu.name}
-                    titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
+                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2 [&_.breadcrumb_li]:!text-[13px] [&_.breadcrumb-current]:!text-[#8496ab] [&_.breadcrumb-previous]:!text-[#8496ab]"
                 />
 
-                <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pt-7 lg:pb-12">
-                    {gridItems.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {gridItems.map((item, index) => {
-                                const href = resolveGridItemHref(item);
-                                const image = item.banner || item.main_photo || null;
-                                const summary = stripHtml(item.content).slice(0, 170);
-                                return (
-                                    <Link
-                                        key={item.id ?? `${item.slug ?? "grid-item"}-${index}`}
-                                        href={href}
-                                        className="group flex h-full flex-col overflow-hidden rounded-[14px] border border-[#edf1f6] bg-white shadow-[0_8px_24px_-18px_rgba(15,23,42,0.5)] transition hover:-translate-y-[2px] hover:shadow-[0_14px_30px_-18px_rgba(15,23,42,0.55)]"
-                                    >
-                                        <div className="h-[210px] w-full overflow-hidden bg-[#f5f7fb]">
-                                            {image ? (
-                                                <img
-                                                    src={image}
-                                                    alt={item.name || menu.name}
-                                                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full w-full items-center justify-center text-[14px] text-[#8a96a8]">
-                                                    TVIM
+                <div className="mx-auto w-full max-w-[1280px] px-1 lg:px-2">
+                    <h1 className="m-0 text-left text-[24px] leading-[24px] font-bold text-[#0f0f0f] min-[768px]:mb-[25px] min-[768px]:text-[39px] min-[768px]:leading-[39px]">
+                        {menu.title || menu.name}
+                    </h1>
+                </div>
+
+                <section className="mx-auto w-full max-w-[1280px] px-1 pb-10 lg:px-2 lg:pb-12">
+                    <div className="-mx-[10px] flex flex-wrap">
+                        {hasBlogSidebar ? (
+                            <aside className="hidden px-[10px] min-[768px]:block min-[768px]:w-1/3 min-[992px]:w-1/4 min-[1600px]:w-1/5">
+                                <nav>
+                                    <ul className="m-0 mb-[25px] list-none rounded-[20px] bg-[#f3f3f3] p-0">
+                                        <li className="mb-[10px] overflow-hidden rounded-[20px] bg-[#ffda00]">
+                                            <input id={blogMenuToggleId} type="checkbox" className="peer hidden" />
+                                            <div className="flex items-center justify-between px-[15px] py-[13px] peer-checked:[&>label]:rotate-0 peer-checked:[&>label]:bg-transparent">
+                                                <Link
+                                                    href={`/${normalizedLocale}/${blogRoot!.slug}`}
+                                                    className="text-[14px] font-bold text-black transition-colors duration-150 ease-linear"
+                                                >
+                                                    {blogRoot!.name}
+                                                </Link>
+                                                <label
+                                                    htmlFor={blogMenuToggleId}
+                                                    aria-label={blogRoot!.name}
+                                                    className="-mr-[5px] flex h-[20px] w-[24px] rotate-180 cursor-pointer items-center justify-center rounded-[20px] bg-black/5 text-[14px] text-black transition-transform duration-150 ease-linear"
+                                                >
+                                                    <i className="fa-solid fa-chevron-down" aria-hidden="true" />
+                                                </label>
+                                            </div>
+                                            <div className="grid grid-rows-[1fr] transition-[grid-template-rows] duration-[350ms] ease-[ease] peer-checked:grid-rows-[0fr]">
+                                                <div className="overflow-hidden">
+                                                    {blogCategories.map((category) => (
+                                                        <Link
+                                                            key={`side-${category.id ?? category.slug}`}
+                                                            href={`/${normalizedLocale}/${category.slug}`}
+                                                            aria-current={category.slug === slug ? "page" : undefined}
+                                                            className="flex items-center px-[15px] pb-[7px] text-[13.3px] text-[#222] transition-colors duration-150 ease-linear first:-mt-[2px] last:pb-[15px] hover:text-[#e66761]"
+                                                        >
+                                                            {category.name}
+                                                        </Link>
+                                                    ))}
                                                 </div>
-                                            )}
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </aside>
+                        ) : null}
+
+                        <div
+                            className={`w-full px-[10px] ${
+                                hasBlogSidebar
+                                    ? "min-[768px]:w-2/3 min-[992px]:w-3/4 min-[1600px]:w-4/5"
+                                    : ""
+                            }`}
+                        >
+                            {blogCategories.length > 0 ? (
+                                <div className="-mx-[10px] mb-[25px] flex flex-wrap">
+                                    {blogCategories.map((category) => (
+                                        <div
+                                            key={category.id ?? category.slug}
+                                            className="mb-[20px] w-1/2 px-[10px] min-[768px]:w-1/3 min-[992px]:w-1/4 min-[1200px]:w-1/6"
+                                        >
+                                            <Link
+                                                href={`/${normalizedLocale}/${category.slug}`}
+                                                aria-current={category.slug === slug ? "page" : undefined}
+                                                title={category.name}
+                                                className="flex h-full w-full flex-wrap items-start justify-center rounded-[20px] border border-black/[0.06] bg-white bg-clip-padding p-[15px] text-center text-[13.3px] font-medium text-black transition-shadow duration-100 ease-linear min-[992px]:hover:shadow-[0_5px_15px_rgba(0,0,0,0.12)]"
+                                            >
+                                                {category.icon ? (
+                                                    <img
+                                                        src={category.icon}
+                                                        alt={category.name}
+                                                        className="mx-auto block h-auto max-w-full rounded-t-[4px]"
+                                                    />
+                                                ) : null}
+                                                <span className="w-full p-[15px]">{category.name}</span>
+                                            </Link>
                                         </div>
-                                        <div className="flex flex-1 flex-col p-4">
-                                            <h3 className="line-clamp-2 text-[18px] leading-[1.3] font-semibold text-[#111827]">
-                                                {item.name || menu.name}
-                                            </h3>
-                                            {item.datetime1 ? (
-                                                <p className="mt-2 text-[13px] text-[#8a96a8]">{item.datetime1}</p>
-                                            ) : null}
-                                            {summary ? (
-                                                <p className="mt-3 line-clamp-3 text-[14px] leading-[1.45] text-[#4b5563]">{summary}</p>
-                                            ) : null}
-                                        </div>
-                                    </Link>
-                                );
-                            })}
+                                    ))}
+                                </div>
+                            ) : null}
+
+                            {gridItems.length > 0 ? (
+                                <div className="-mx-[10px] mb-[10px] flex flex-wrap">
+                                    {gridItems.map((item, index) => {
+                                        const href = resolveGridItemHref(item);
+                                        const image = item.banner || item.main_photo || null;
+                                        const postedOn = formatBlogDate(item.datetime1);
+
+                                        return (
+                                            <div
+                                                key={item.id ?? `${item.slug ?? "grid-item"}-${index}`}
+                                                className="flex w-full px-[10px] min-[768px]:w-1/2"
+                                            >
+                                                <Link
+                                                    href={href}
+                                                    className="mb-[20px] flex w-full overflow-hidden rounded-[20px] bg-white p-[15px] transition-shadow duration-100 ease-linear min-[992px]:hover:shadow-[0_5px_15px_rgba(0,0,0,0.12)]"
+                                                >
+                                                    <div className="w-1/4 shrink-0">
+                                                        {image ? (
+                                                            <img
+                                                                src={image}
+                                                                alt={item.name || menu.name}
+                                                                className="h-full w-full rounded-t-[4px] object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full min-h-[100px] w-full items-center justify-center rounded-t-[4px] bg-[#f5f7fb] text-[13px] text-[#8a96a8]">
+                                                                TVIM
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="w-3/4 p-[15px]">
+                                                        {postedOn ? (
+                                                            <div className="mb-[10px] flex items-center text-[#888]">
+                                                                <span className="mr-[15px] flex items-center gap-[5px] text-[12px]">
+                                                                    <i className="far fa-clock" aria-hidden="true" />
+                                                                    {postedOn}
+                                                                </span>
+                                                            </div>
+                                                        ) : null}
+                                                        <span className="mb-[10px] block text-[16px] font-medium text-black">
+                                                            {item.name || menu.name}
+                                                        </span>
+                                                    </div>
+                                                </Link>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="rounded-[4px] bg-[#f7f7f7] p-[20px] text-[15px] text-[#888]">
+                                    Bu bölmədə hələ kontent yoxdur.
+                                </div>
+                            )}
+
+                            <Pagination
+                                currentPage={gridCurrentPage}
+                                lastPage={gridLastPage}
+                                buildHref={buildGridPageHref}
+                                variant="accent"
+                            />
                         </div>
-                    ) : (
-                        <div className="rounded-[12px] border border-dashed border-[#d9e0ea] bg-[#fafcff] px-4 py-10 text-center text-[15px] text-[#6b7280]">
-                            Bu bölmədə hələ kontent yoxdur.
-                        </div>
-                    )}
+                    </div>
                 </section>
+                </div>
 
                 {includedItemsSection}
                 {footerSpacer}
