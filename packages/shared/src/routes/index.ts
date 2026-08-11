@@ -44,6 +44,15 @@ const TVIM_PAGE_RULES: readonly TvimPageRule[] = [
     },
 ] as const;
 
+// tvim.az serves the blog behind an extra "bloq" segment and repeats the blog
+// root inside deeper URLs (/az/bloq/xeberler, /az/bloq/xeberler/mehsullar,
+// /az/xeberler/mehsullar/{yazi}). We serve the same pages flat
+// (/az/xeberler, /az/mehsullar, /az/mehsullar/{yazi}), so the legacy shape is
+// folded back regardless of which locale's wording the incoming link uses.
+const BLOG_PREFIX_SLUGS = ["bloq", "blog", "blogi"] as const;
+
+const BLOG_ROOT_SLUGS: Record<RouteLocale, string> = { az: "xeberler", en: "news", ru: "novisti" };
+
 export const SEARCH_QUERY_PARAM = "search";
 export const LEGACY_SEARCH_QUERY_PARAM = "q";
 
@@ -139,6 +148,58 @@ export const resolveTvimPageRedirect = (rest: string, locale: RouteLocale) => {
 
     const suffix = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
     return `/${encodeURIComponent(matched.slugs[locale])}${suffix}`;
+};
+
+const matchesSlug = (segment: string, candidates: readonly string[]) => {
+    const folded = foldSlug(segment);
+    return candidates.some((candidate) => candidate === segment || foldSlug(candidate) === folded);
+};
+
+const isBlogPrefixSlug = (segment: string) => matchesSlug(segment, BLOG_PREFIX_SLUGS);
+
+const isBlogRootSlug = (segment: string) => matchesSlug(segment, Object.values(BLOG_ROOT_SLUGS));
+
+export const isBlogPath = (rest: string) => {
+    const [firstSegment] = rest.split("/").filter(Boolean);
+    if (!firstSegment) return false;
+
+    const decoded = decodeSlug(firstSegment);
+    return isBlogPrefixSlug(decoded) || isBlogRootSlug(decoded);
+};
+
+export const resolveBlogRedirect = (rest: string, locale: RouteLocale) => {
+    const segments = rest.split("/").filter(Boolean).map(decodeSlug);
+    if (segments.length === 0) return null;
+
+    let changed = false;
+
+    if (isBlogPrefixSlug(segments[0]!)) {
+        segments.shift();
+        changed = true;
+    }
+
+    // A bare "/bloq" is the blog itself on tvim.az.
+    if (segments.length === 0) return `/${encodeURIComponent(BLOG_ROOT_SLUGS[locale])}`;
+
+    // The root is repeated in front of a category ("/bloq/xeberler/mehsullar")
+    // and in front of an article ("/xeberler/mehsullar/{yazi}"). Both are one
+    // segment shorter here, so the root is dropped whenever something follows
+    // it — except for "/xeberler/{slug}", which is one of our own item URLs.
+    if (isBlogRootSlug(segments[0]!) && segments.length > (changed ? 1 : 2)) {
+        segments.shift();
+        changed = true;
+    }
+
+    // Whatever root is left answers in the locale being browsed, so /az/news
+    // and /az/novisti both land on /az/xeberler.
+    if (isBlogRootSlug(segments[0]!) && segments[0] !== BLOG_ROOT_SLUGS[locale]) {
+        segments[0] = BLOG_ROOT_SLUGS[locale];
+        changed = true;
+    }
+
+    if (!changed) return null;
+
+    return `/${segments.map((segment) => encodeURIComponent(segment)).join("/")}`;
 };
 
 export const translatePath = (pathname: string, nextLocale: RouteLocale) => {
