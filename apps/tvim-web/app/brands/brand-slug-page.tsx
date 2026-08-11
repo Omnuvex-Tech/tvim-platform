@@ -8,6 +8,8 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
+import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 
 type ProductListApiResponse = {
     menu?: {
@@ -242,13 +244,13 @@ export async function renderBrandSlugPage({
 
     const perPageRaw = Number(currentUiParams.get("per_page") ?? "20");
     const perPage = Number.isFinite(perPageRaw) ? Math.min(60, Math.max(1, perPageRaw)) : 20;
-    const sort = String(currentUiParams.get("sort") ?? "").trim();
+    // Sorting is applied on the frontend, so `sort` is never forwarded to the API.
+    const activeSort = normalizeProductSort(currentUiParams.get("sort"));
 
     const productListResponse = await api.get<ProductListApiResponse>(config.endpoints.products.paginatedList, {
         params: {
             page: String(requestedPage),
             per_page: String(perPage),
-            ...(sort ? { sort } : null),
             ...(hasBrandFilter ? { [`filters[${brandFilterId}][]`]: String(brandValueId) } : { q: String(slug ?? "").trim() }),
         },
         locale,
@@ -276,98 +278,7 @@ export async function renderBrandSlugPage({
         return qs ? `${basePath}?${qs}` : basePath;
     };
 
-    const sortOptions = Array.isArray(detailData?.sort_options) ? detailData.sort_options : [];
-    const sortOptionsFallback = [
-        { key: "newest", label: "Yenilər: üstdə" },
-        { key: "name_asc", label: "Ad (A-Z)" },
-        { key: "name_desc", label: "Ad (Z-A)" },
-        { key: "price_asc", label: "Qiymət (artan)" },
-        { key: "price_desc", label: "Qiymət (azalan)" },
-        { key: "popular", label: "Reytinq" },
-        { key: "most_sale", label: "Model" },
-    ];
-    const effectiveSortOptions = sortOptions.length > 0 ? sortOptions : sortOptionsFallback;
-    const activeSort = String(sort || "newest").trim() || "newest";
-    const sortedItems = (() => {
-        if (listItems.length <= 1) return listItems;
-
-        const readName = (item: any) => {
-            const vName = typeof item?.variation?.name === "string" ? item.variation.name : "";
-            const iName = typeof item?.name === "string" ? item.name : "";
-            return String(vName || iName || "").trim();
-        };
-
-        const readPrice = (item: any) => {
-            const candidate =
-                item?.variation?.discount_price ??
-                item?.variation?.price ??
-                item?.discount_price ??
-                item?.price ??
-                item?.old_price;
-            const parsed = typeof candidate === "number" ? candidate : Number(String(candidate ?? "").replace(",", "."));
-            return Number.isFinite(parsed) ? parsed : null;
-        };
-
-        const readFlag = (item: any, key: "is_new" | "is_popular" | "most_sale") => {
-            const raw = item?.[key] ?? item?.variation?.[key];
-            if (raw === true || raw === 1 || raw === "1" || raw === "true") return 1;
-            return 0;
-        };
-
-        const readId = (item: any) => {
-            const raw = item?.variation_id ?? item?.product_id ?? item?.id ?? item?.variation?.id ?? item?.variation?.uuid ?? item?.uuid ?? 0;
-            const parsed = typeof raw === "number" ? raw : Number(raw ?? 0);
-            return Number.isFinite(parsed) ? parsed : 0;
-        };
-
-        const localeForCompare = locale || "az";
-        const dir = activeSort;
-        const next = [...listItems];
-
-        next.sort((a: any, b: any) => {
-            if (dir === "price_asc" || dir === "price_desc") {
-                const pa = readPrice(a);
-                const pb = readPrice(b);
-                const na = pa == null ? Number.POSITIVE_INFINITY : pa;
-                const nb = pb == null ? Number.POSITIVE_INFINITY : pb;
-                if (na !== nb) return dir === "price_asc" ? na - nb : nb - na;
-                return readId(b) - readId(a);
-            }
-
-            if (dir === "name_asc" || dir === "name_desc") {
-                const na = readName(a).toLowerCase();
-                const nb = readName(b).toLowerCase();
-                const cmp = na.localeCompare(nb, localeForCompare);
-                if (cmp !== 0) return dir === "name_asc" ? cmp : -cmp;
-                return readId(b) - readId(a);
-            }
-
-            if (dir === "popular") {
-                const fa = readFlag(a, "is_popular");
-                const fb = readFlag(b, "is_popular");
-                if (fa !== fb) return fb - fa;
-                return readId(b) - readId(a);
-            }
-
-            if (dir === "most_sale") {
-                const fa = readFlag(a, "most_sale");
-                const fb = readFlag(b, "most_sale");
-                if (fa !== fb) return fb - fa;
-                return readId(b) - readId(a);
-            }
-
-            if (dir === "newest") {
-                const fa = readFlag(a, "is_new");
-                const fb = readFlag(b, "is_new");
-                if (fa !== fb) return fb - fa;
-                return readId(b) - readId(a);
-            }
-
-            return 0;
-        });
-
-        return next;
-    })();
+    const sortedItems = sortProductItems(listItems, activeSort, locale);
 
     return (
         <SitePageShell chrome={chrome}>
@@ -383,30 +294,12 @@ export async function renderBrandSlugPage({
                 <PendingNavProvider>
                     <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
 
-                    <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {effectiveSortOptions.map((opt) => {
-                            const key = String(opt?.key ?? "").trim();
-                            if (!key) return null;
-                            const next = new URLSearchParams(currentUiParams.toString());
-                            next.set("page", "1");
-                            next.set("sort", key);
-                            const isActive = key === activeSort;
-                            return (
-                                <PendingLink
-                                    key={key}
-                                    href={buildHrefWithParams(next)}
-                                    className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${
-                                        isActive
-                                            ? "bg-[#0f57d6] font-semibold text-white"
-                                            : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
-                                    }`}
-                                >
-                                    {opt?.label ?? key}
-                                </PendingLink>
-                            );
-                        })}
-
-                    </div>
+                    <ProductSortBar
+                        locale={locale}
+                        activeSort={activeSort}
+                        currentParams={currentUiParams.toString()}
+                        basePath={`/${locale}/brands/${slug}`}
+                    />
 
                     <div className="relative min-h-[360px]">
                         {sortedItems.length > 0 ? (

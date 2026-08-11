@@ -339,7 +339,7 @@ export function ProductGridCartButton(props: ProductGridCardActionItem) {
             type="button"
             disabled={isCartPending}
             onClick={(event) => void context.handleCartClick(props, event)}
-            className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full ${
+            className={`relative z-[2] mt-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                 props.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"
             } ${isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
             aria-label={props.cartVariant === "blue" ? "Sebete elave et" : "Mehsul stokda yoxdur"}

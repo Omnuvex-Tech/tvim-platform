@@ -28,6 +28,7 @@ type TranslationDictionary = {
             newest: string;
             nameAsc: string;
             nameDesc: string;
+            price: string;
             priceAsc: string;
             priceDesc: string;
             popular: string;
@@ -101,6 +102,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
                 newest: "Yenilər: üstdə",
                 nameAsc: "Ad (A-Z)",
                 nameDesc: "Ad (Z-A)",
+                price: "Qiymət",
                 priceAsc: "Qiymət (artan)",
                 priceDesc: "Qiymət (azalan)",
                 popular: "Reytinq",
@@ -172,6 +174,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
                 newest: "Newest first",
                 nameAsc: "Name (A-Z)",
                 nameDesc: "Name (Z-A)",
+                price: "Price",
                 priceAsc: "Price (low-high)",
                 priceDesc: "Price (high-low)",
                 popular: "Rating",
@@ -243,6 +246,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
                 newest: "Сначала новые",
                 nameAsc: "Название (A-Z)",
                 nameDesc: "Название (Z-A)",
+                price: "Цена",
                 priceAsc: "Цена (возр.)",
                 priceDesc: "Цена (убыв.)",
                 popular: "Рейтинг",

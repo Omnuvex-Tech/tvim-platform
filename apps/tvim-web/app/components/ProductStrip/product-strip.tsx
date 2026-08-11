@@ -1663,13 +1663,16 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
             <article
 
-                className={`group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 ${compactMobileCard ? "max-[512px]:px-2.5 max-[512px]:pt-2.5 max-[512px]:pb-3.5" : "max-[512px]:pt-4 max-[512px]:pb-5"} text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
+                className={`group relative flex h-full flex-col items-center justify-start overflow-hidden rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 ${compactMobileCard ? "max-[512px]:px-2.5 max-[512px]:pt-2.5 max-[512px]:pb-3.5" : "max-[512px]:pt-4 max-[512px]:pb-5"} text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none ${opts.dragging ? "cursor-grabbing" : "cursor-pointer"}`}
 
             >
 
                 <Link href={product.href} className="block w-full text-center">
 
-                        <div className={`product-thumb mx-auto mt-0 flex aspect-square items-center justify-center ${variant === "special" ? (compactMobileCard ? "w-full max-w-[120px] sm:max-w-[145px] max-[512px]:max-w-[128px]" : "w-full max-w-[120px] sm:max-w-[145px] max-[512px]:max-w-[160px]") : (compactMobileCard ? "w-full max-w-[135px] sm:max-w-[150px] max-[512px]:max-w-[128px]" : "w-full max-w-[135px] sm:max-w-[150px] max-[512px]:max-w-[160px]")} overflow-visible rounded-[10px]`}>
+                        {/* Full-bleed square thumb: the negative margins cancel the card
+                            padding so the image spans the whole card width, and
+                            aspect-square derives its height from that width. */}
+                        <div className={`product-thumb product-thumb--bleed -mx-3 -mt-3 flex aspect-square items-center justify-center self-stretch overflow-hidden p-2 ${compactMobileCard ? "max-[512px]:-mx-2.5 max-[512px]:-mt-2.5" : "max-[512px]:-mt-4"}`}>
 
                     {product.discount ? (
     
@@ -1853,14 +1856,14 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
     
     
 
-                            <div className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                            <div className="relative z-[1] h-full w-full overflow-hidden">
                                 {product.imageUrl ? (
 
                                     <img
                                         draggable={false}
                                         src={product.imageUrl}
                                         alt={product.title}
-                                        className="h-full w-full object-cover transition-transform duration-200 ease-out"
+                                        className="h-full w-full object-contain transition-transform duration-200 ease-out"
                                         loading="lazy"
                                     />
 
@@ -1921,7 +1924,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
                         }}
 
-                        className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"} ${
+                        className={`relative z-[2] mt-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${product.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"} ${
                             "cursor-pointer"
                         }`}
 

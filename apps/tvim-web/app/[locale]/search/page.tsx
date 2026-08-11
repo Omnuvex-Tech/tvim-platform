@@ -5,6 +5,8 @@ import { config } from "@/config";
 import { localizedHref } from "@/lib/routes";
 import { api } from "@/lib/api";
 import { getTranslations } from "@/lib/i18n";
+import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
+import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
@@ -156,7 +158,7 @@ export default async function SearchPage({
         const allowKey = (key: string) => {
             if (key === "page") return true;
             if (key === "per_page") return true;
-            if (key === "sort") return true;
+            // `sort` is intentionally not forwarded: sorting is applied on the frontend.
             if (key === "is_new") return true;
             if (key === "is_popular") return true;
             if (key === "most_sale") return true;
@@ -269,8 +271,8 @@ export default async function SearchPage({
     const currentPage = Math.max(1, Number(productList?.pagination?.current_page ?? parsePageNumber(resolvedSearchParams.page)));
     const lastPage = Math.max(1, Number(productList?.pagination?.last_page ?? 1));
     const paginationTokens = buildPaginationTokens(currentPage, lastPage);
-    const sortOptions = Array.isArray(productList?.sort_options) ? productList!.sort_options! : [];
-    const activeSort = String(productList?.applied?.sort ?? currentUiParams.get("sort") ?? "").trim() || "newest";
+    const activeSort = normalizeProductSort(currentUiParams.get("sort"));
+    const sortedListItems = sortProductItems(listItems, activeSort, normalizedLocale);
 
     return (
         <SitePageShell chrome={chrome} includeLogoutToast>
@@ -362,58 +364,15 @@ export default async function SearchPage({
                             <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
 
                             <div className="relative min-h-[360px]">
-                                {(() => {
-                                    const labelByKey: Record<string, string> = {
-                                        newest: t.search.sort.newest,
-                                        name_asc: t.search.sort.nameAsc,
-                                        name_desc: t.search.sort.nameDesc,
-                                        price_asc: t.search.sort.priceAsc,
-                                        price_desc: t.search.sort.priceDesc,
-                                        popular: t.search.sort.popular,
-                                        most_sale: t.search.sort.mostSale,
-                                    };
+                                <ProductSortBar
+                                    locale={normalizedLocale}
+                                    activeSort={activeSort}
+                                    currentParams={currentUiParams.toString()}
+                                    basePath={localizedHref("search", normalizedLocale)}
+                                />
 
-                                    const sortOptionsFallback = [
-                                        { key: "newest", label: t.search.sort.newest },
-                                        { key: "name_asc", label: t.search.sort.nameAsc },
-                                        { key: "name_desc", label: t.search.sort.nameDesc },
-                                        { key: "price_asc", label: t.search.sort.priceAsc },
-                                        { key: "price_desc", label: t.search.sort.priceDesc },
-                                        { key: "popular", label: t.search.sort.popular },
-                                        { key: "most_sale", label: t.search.sort.mostSale },
-                                    ];
-
-                                    const effectiveSortOptions = sortOptions.length > 0 ? sortOptions : sortOptionsFallback;
-
-                                    return (
-                                        <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                            {effectiveSortOptions.map((opt) => {
-                                                const key = String(opt?.key ?? "").trim();
-                                                if (!key) return null;
-                                                const next = new URLSearchParams(currentUiParams.toString());
-                                                next.set("page", "1");
-                                                next.set("sort", key);
-                                                const isActive = key === activeSort;
-                                                return (
-                                                    <PendingLink
-                                                        key={key}
-                                                        href={buildHrefWithParams(next)}
-                                                        className={`inline-flex shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${
-                                                            isActive
-                                                                ? "bg-[#0f57d6] font-semibold text-white"
-                                                                : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
-                                                        }`}
-                                                    >
-                                                        {labelByKey[key] ?? opt?.label ?? key}
-                                                    </PendingLink>
-                                                );
-                                            })}
-                                        </div>
-                                    );
-                                })()}
-
-                                {listItems.length > 0 ? (
-                                    <ProductGrid items={listItems} locale={normalizedLocale} />
+                                {sortedListItems.length > 0 ? (
+                                    <ProductGrid items={sortedListItems} locale={normalizedLocale} />
                                 ) : (
                                     <div className="text-[15px] text-[#4b5565]">{t.search.noResults}</div>
                                 )}

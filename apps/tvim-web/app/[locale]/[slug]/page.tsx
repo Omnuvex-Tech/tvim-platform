@@ -17,6 +17,8 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
+import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
+import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 
 type MenuDetailData = {
     type: string;
@@ -643,7 +645,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             if (key === "page") return true;
             if (key === "per_page") return true;
             if (key === "q") return true;
-            if (key === "sort") return true;
+            // `sort` is intentionally not forwarded: sorting is applied on the frontend.
             if (key === "is_new") return true;
             if (key === "is_popular") return true;
             if (key === "most_sale") return true;
@@ -755,76 +757,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             return buildHrefWithParams(next);
         };
 
-        const sortOptions = Array.isArray(productList?.sort_options) ? productList!.sort_options! : [];
-        const activeSort = String(productList?.applied?.sort ?? currentUiParams.get("sort") ?? "").trim() || "newest";
-        const sortedListItems = (() => {
-            if (listItems.length <= 1) return listItems;
-
-            const readName = (item: any) => String(item?.name ?? "").trim();
-            const readPrice = (item: any) => {
-                const candidate = item?.discount_price ?? item?.price ?? item?.old_price;
-                const parsed = typeof candidate === "number" ? candidate : Number(String(candidate ?? "").replace(",", "."));
-                return Number.isFinite(parsed) ? parsed : null;
-            };
-            const readFlag = (item: any, key: "is_new" | "is_popular" | "most_sale") => {
-                const raw = item?.[key];
-                if (raw === true || raw === 1 || raw === "1" || raw === "true") return 1;
-                return 0;
-            };
-            const readId = (item: any) => {
-                const raw = item?.variation_id ?? item?.product_id ?? item?.id ?? 0;
-                const parsed = typeof raw === "number" ? raw : Number(raw ?? 0);
-                return Number.isFinite(parsed) ? parsed : 0;
-            };
-
-            const localeForCompare = normalizedLocale || "az";
-            const dir = activeSort;
-            const next = [...listItems];
-
-            next.sort((a: any, b: any) => {
-                if (dir === "price_asc" || dir === "price_desc") {
-                    const pa = readPrice(a);
-                    const pb = readPrice(b);
-                    const na = pa == null ? Number.POSITIVE_INFINITY : pa;
-                    const nb = pb == null ? Number.POSITIVE_INFINITY : pb;
-                    if (na !== nb) return dir === "price_asc" ? na - nb : nb - na;
-                    return readId(b) - readId(a);
-                }
-
-                if (dir === "name_asc" || dir === "name_desc") {
-                    const na = readName(a).toLowerCase();
-                    const nb = readName(b).toLowerCase();
-                    const cmp = na.localeCompare(nb, localeForCompare);
-                    if (cmp !== 0) return dir === "name_asc" ? cmp : -cmp;
-                    return readId(b) - readId(a);
-                }
-
-                if (dir === "popular") {
-                    const fa = readFlag(a, "is_popular");
-                    const fb = readFlag(b, "is_popular");
-                    if (fa !== fb) return fb - fa;
-                    return readId(b) - readId(a);
-                }
-
-                if (dir === "most_sale") {
-                    const fa = readFlag(a, "most_sale");
-                    const fb = readFlag(b, "most_sale");
-                    if (fa !== fb) return fb - fa;
-                    return readId(b) - readId(a);
-                }
-
-                if (dir === "newest") {
-                    const fa = readFlag(a, "is_new");
-                    const fb = readFlag(b, "is_new");
-                    if (fa !== fb) return fb - fa;
-                    return readId(b) - readId(a);
-                }
-
-                return 0;
-            });
-
-            return next;
-        })();
+        const activeSort = normalizeProductSort(currentUiParams.get("sort"));
+        const sortedListItems = sortProductItems(listItems, activeSort, normalizedLocale);
 
         const currentPage = Math.max(1, Number(productList?.pagination?.current_page ?? parsePageNumber(resolvedSearchParams.page)));
         const lastPage = Math.max(1, Number(productList?.pagination?.last_page ?? 1));
@@ -1024,94 +958,12 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                     </div>
                                 ) : null}
 
-                                {(() => {
-                                    const labelByKey: Record<string, string> = {
-                                        newest: "Yenilər: üstdə",
-                                        name_asc: "Ad (A-Z)",
-                                        name_desc: "Ad (Z-A)",
-                                        price_asc: "Qiymət",
-                                        price_desc: "Qiymət",
-                                        popular: "Reytinq",
-                                        most_sale: "Model",
-                                    };
-
-                                    const isPriceKey = (key: string) => key === "price_asc" || key === "price_desc";
-
-                                    type SortButton = {
-                                        id: string;
-                                        label: string;
-                                        targetKey: string;
-                                        isActive: boolean;
-                                        priceDirection?: "asc" | "desc";
-                                    };
-
-                                    const sortButtons: SortButton[] = [];
-                                    let priceButtonPlaced = false;
-
-                                    for (const opt of sortOptions) {
-                                        const key = String(opt?.key ?? "").trim();
-                                        if (!key) continue;
-
-                                        if (isPriceKey(key)) {
-                                            if (priceButtonPlaced) continue;
-                                            priceButtonPlaced = true;
-
-                                            const currentDirection = activeSort === "price_desc" ? "desc" : "asc";
-                                            sortButtons.push({
-                                                id: "price",
-                                                label: labelByKey.price_asc ?? "Qiymət",
-                                                targetKey: activeSort === "price_asc" ? "price_desc" : "price_asc",
-                                                isActive: isPriceKey(activeSort),
-                                                priceDirection: currentDirection,
-                                            });
-                                            continue;
-                                        }
-
-                                        sortButtons.push({
-                                            id: key,
-                                            label: labelByKey[key] ?? opt?.label ?? key,
-                                            targetKey: key,
-                                            isActive: key === activeSort,
-                                        });
-                                    }
-
-                                    return (
-                                        <div className="relative z-30 mb-4 flex min-h-[64px] flex-nowrap items-center gap-3 overflow-x-auto rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                            {sortButtons.map((button) => {
-                                                const next = new URLSearchParams(currentUiParams.toString());
-                                                next.set("page", "1");
-                                                next.set("sort", button.targetKey);
-                                                return (
-                                                    <PendingLink
-                                                        key={button.id}
-                                                        href={buildHrefWithParams(next)}
-                                                        aria-label={
-                                                            button.priceDirection
-                                                                ? `${button.label}: ${button.priceDirection === "desc" ? "azalan" : "artan"}`
-                                                                : undefined
-                                                        }
-                                                        className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-[9px] px-4 py-2 text-center text-[14px] transition-colors ${button.isActive
-                                                                ? "bg-[#0f57d6] font-semibold text-white"
-                                                                : "bg-[#f7f8fa] font-medium text-[#4b5565] hover:bg-[#eef1f5]"
-                                                            }`}
-                                                    >
-                                                        {button.label}
-                                                        {button.priceDirection ? (
-                                                            <i
-                                                                className={`fa-solid ${button.priceDirection === "desc"
-                                                                        ? "fa-arrow-down-wide-short"
-                                                                        : "fa-arrow-up-short-wide"
-                                                                    } text-[13px]`}
-                                                                aria-hidden="true"
-                                                            />
-                                                        ) : null}
-                                                    </PendingLink>
-                                                );
-                                            })}
-
-                                        </div>
-                                    );
-                                })()}
+                                <ProductSortBar
+                                    locale={normalizedLocale}
+                                    activeSort={activeSort}
+                                    currentParams={currentUiParams.toString()}
+                                    basePath={`/${normalizedLocale}/${slug}`}
+                                />
 
                                 <div className="relative min-h-[360px]">
                                     {sortedListItems.length > 0 ? (
@@ -1371,7 +1223,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 <div className="-mx-[10px] mb-[10px] flex flex-wrap">
                                     {gridItems.map((item, index) => {
                                         const href = resolveGridItemHref(item);
-                                        const image = item.banner || item.main_photo || null;
+                                        // The banner is a wide hero image; the main photo is the one
+                                        // meant for thumbnails, so it wins when the item has both.
+                                        const image = item.main_photo || item.banner || null;
                                         const postedOn = formatBlogDate(item.datetime1);
 
                                         return (
@@ -1381,31 +1235,38 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                             >
                                                 <Link
                                                     href={href}
-                                                    className="mb-[20px] flex w-full overflow-hidden rounded-[20px] bg-white p-[15px] transition-shadow duration-100 ease-linear min-[992px]:hover:shadow-[0_5px_15px_rgba(0,0,0,0.12)]"
+                                                    className="mb-[20px] flex w-full items-stretch overflow-hidden rounded-[20px] bg-white p-[15px] transition-shadow duration-100 ease-linear min-[992px]:hover:shadow-[0_5px_15px_rgba(0,0,0,0.12)]"
                                                 >
-                                                    <div className="w-1/4 shrink-0">
+                                                    {/* The square thumb sets the card's minimum height, so cards
+                                                        with short titles stay as tall as the rest. */}
+                                                    <div className="aspect-square w-2/5 shrink-0">
                                                         {image ? (
                                                             <img
                                                                 src={image}
                                                                 alt={item.name || menu.name}
+                                                                loading="lazy"
                                                                 className="h-full w-full rounded-t-[4px] object-cover"
                                                             />
                                                         ) : (
-                                                            <div className="flex h-full min-h-[100px] w-full items-center justify-center rounded-t-[4px] bg-[#f5f7fb] text-[13px] text-[#8a96a8]">
+                                                            <div className="flex h-full w-full items-center justify-center rounded-t-[4px] bg-[#f5f7fb] text-[13px] text-[#8a96a8]">
                                                                 TVIM
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="w-3/4 p-[15px]">
-                                                        {postedOn ? (
-                                                            <div className="mb-[10px] flex items-center text-[#888]">
+                                                    <div className="w-3/5 p-[15px]">
+                                                        {/* Always rendered so an item without a date does not end
+                                                            up shorter than the others. */}
+                                                        <div className="mb-[10px] flex min-h-[17px] items-center text-[#888]">
+                                                            {postedOn ? (
                                                                 <span className="mr-[15px] flex items-center gap-[5px] text-[12px]">
                                                                     <i className="far fa-clock" aria-hidden="true" />
                                                                     {postedOn}
                                                                 </span>
-                                                            </div>
-                                                        ) : null}
-                                                        <span className="mb-[10px] block text-[16px] font-medium text-black">
+                                                            ) : null}
+                                                        </div>
+                                                        {/* No `block` here: it would override the display the line
+                                                            clamp relies on and let long titles grow the card. */}
+                                                        <span className="mb-[10px] line-clamp-4 text-[16px] leading-[23px] font-medium text-black">
                                                             {item.name || menu.name}
                                                         </span>
                                                     </div>

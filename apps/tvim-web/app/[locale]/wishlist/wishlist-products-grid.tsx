@@ -146,7 +146,10 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
                     const media = (
                         <>
-                            <div className="product-thumb mx-auto mt-0 flex aspect-square w-full max-w-[135px] items-center justify-center overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
+                            {/* Full-bleed square thumb: negative margins cancel the card padding
+                                so the image spans the whole card width and aspect-square
+                                derives its height from that width. */}
+                            <div className="product-thumb product-thumb--bleed -mx-3 -mt-3 flex aspect-square items-center justify-center self-stretch overflow-hidden p-2 max-[512px]:-mt-4">
                                 {typeof discountPercent === "number" ? (
                                     <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
                                         -{discountPercent}%
@@ -186,12 +189,12 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                     </button>
                                 </div>
 
-                                <div className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                <div className="relative z-[1] h-full w-full overflow-hidden">
                                     {item.main_image ? (
                                         <img
                                             src={item.main_image}
                                             alt={item.name}
-                                            className="h-full w-full object-cover transition-transform duration-200 ease-out"
+                                            className="h-full w-full object-contain transition-transform duration-200 ease-out"
                                             loading="lazy"
                                         />
                                     ) : null}
@@ -203,8 +206,8 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
                     return (
                         <li key={itemKey}>
-                            <article className="group relative flex h-full flex-col items-center justify-center rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none max-[512px]:pb-5 max-[512px]:pt-4">
-                                <div className="flex w-full flex-col items-center text-center">
+                            <article className="group relative flex h-full flex-col items-center justify-start overflow-hidden rounded-[14px] border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-center transition-transform duration-200 ease-out hover:z-10 hover:-translate-y-1 shadow-none select-none max-[512px]:pb-5 max-[512px]:pt-4">
+                                <div className="flex w-full flex-1 flex-col items-center text-center">
                                     {href ? (
                                         <Link href={href} className="block w-full text-center">
                                             {media}
@@ -241,7 +244,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                             event.stopPropagation();
                                             void handleAddToCart(item);
                                         }}
-                                        className={`relative z-[2] mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none ${
+                                        className={`relative z-[2] mt-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none ${
                                             isOutOfStock ? "bg-[#ffd500] text-[#1b212e]" : "bg-[#0f57d6] text-white"
                                         } ${isCartPending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                                         aria-label={isOutOfStock ? "Məhsul stokda yoxdur" : "Səbətə əlavə et"}

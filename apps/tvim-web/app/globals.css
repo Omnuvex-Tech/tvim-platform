@@ -87,15 +87,17 @@
 	}
 }
 
-/* Increase thumbnail height on very small screens (<512px) */
+/* Increase thumbnail height on very small screens (<512px).
+   Full-bleed thumbs are excluded: their height comes from their own width so
+   that they stay square. */
 @media (max-width: 511px) {
-	.product-carousel .product-thumb {
+	.product-carousel .product-thumb:not(.product-thumb--bleed) {
 		height: 220px !important;
 	}
 }
 
 @media (max-width: 367px) {
-	.product-carousel .product-thumb {
+	.product-carousel .product-thumb:not(.product-thumb--bleed) {
 		height: 260px !important;
 	}
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image, { type StaticImageData } from "next/image";
 import styles from "../../styles/components/company-carousel.module.css";
@@ -20,7 +20,12 @@ type Props = {
 const SLIDE_DURATION = 3000;
 const ANIMATION_DURATION = 600;
 const DEFAULT_VISIBLE_COUNT = 6;
-const DRAG_CLICK_THRESHOLD = 24;
+/** Pointer travel (px) that turns a press into a drag instead of a click. */
+const DRAG_START_THRESHOLD = 8;
+/** Share of a slide that has to be dragged before the release snaps to the next one. */
+const DRAG_SNAP_RATIO = 0.2;
+
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const getVisibleCount = (width: number) => {
   if (width >= 1024) return 6;
@@ -28,218 +33,274 @@ const getVisibleCount = (width: number) => {
   return 3;
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
 function imageHeightFor(visibleCount: number) {
   return visibleCount >= 6 ? 100 : visibleCount >= 5 ? 90 : 75;
 }
 
 export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
-  if (!companies || companies.length === 0) return null;
+  const items = useMemo(() => (Array.isArray(companies) ? companies.filter(Boolean) : []), [companies]);
+  const itemCount = items.length;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
 
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_COUNT);
   const [itemWidth, setItemWidth] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [dragDx, setDragDx] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [tooltip, setTooltip] = useState<{ text: string; left: number } | null>(null);
 
-  const pausedRef = useRef(false);
-  const draggingRef = useRef(false);
+  const hoveredRef = useRef(false);
   const pointerDownRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
+  const draggingRef = useRef(false);
   const suppressClickRef = useRef(false);
-  const dragStartXRef = useRef(0);
+  /** Pointer position when the press started, used for the drag threshold only. */
+  const pressStartXRef = useRef(0);
+  /** Pointer position that maps to "no offset"; shifts by a slide on every wrap. */
+  const dragOriginXRef = useRef(0);
   const dragDxRef = useRef(0);
-  const [, setDragTick] = useState(0);
+  const settleTimerRef = useRef<number | null>(null);
+  const clickResetTimerRef = useRef<number | null>(null);
 
-  // clones for infinite scroll
-  const cloneCount = visibleCount;
+  // Looping only makes sense when there are more logos than fit on screen; with
+  // fewer, cloning would leave the track shorter than the offset it is moved by
+  // and the carousel would render empty.
+  const canLoop = itemCount > visibleCount;
+  const cloneCount = canLoop ? visibleCount : 0;
+  const firstRealIndex = cloneCount;
+  const lastRealIndex = cloneCount + itemCount - 1;
+
   const extended = useMemo(() => {
-    const left = companies.slice(-cloneCount);
-    const right = companies.slice(0, cloneCount);
-    return [...left, ...companies, ...right];
-  }, [companies, cloneCount]);
+    if (!canLoop) return items;
+    return [...items.slice(-cloneCount), ...items, ...items.slice(0, cloneCount)];
+  }, [items, canLoop, cloneCount]);
 
-  const [currentIndex, setCurrentIndex] = useState(cloneCount);
-  const [isAnimating, setIsAnimating] = useState(false);
+  /** Brings an index back into the real (non-cloned) range. */
+  const wrapIndex = useCallback(
+    (index: number) => {
+      if (!canLoop || itemCount === 0) return 0;
+      let next = index;
+      while (next > lastRealIndex) next -= itemCount;
+      while (next < firstRealIndex) next += itemCount;
+      return next;
+    },
+    [canLoop, itemCount, firstRealIndex, lastRealIndex]
+  );
 
-  useEffect(() => {
+  const applyDragDx = useCallback((value: number) => {
+    dragDxRef.current = value;
+    setDragDx(value);
+  }, []);
+
+  useIsomorphicLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
-    const calculate = () => {
+    const measure = () => {
+      const width = viewport.getBoundingClientRect().width;
       const count = getVisibleCount(window.innerWidth);
       setVisibleCount(count);
-      setItemWidth(Math.floor(viewport.offsetWidth / count));
+      setItemWidth(width > 0 ? width / count : 0);
     };
 
-    calculate();
-    window.addEventListener("resize", calculate);
-    return () => window.removeEventListener("resize", calculate);
+    measure();
+
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    observer?.observe(viewport);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, []);
 
-  // reset currentIndex when companies or visibleCount change
   useEffect(() => {
-    setCurrentIndex(cloneCount);
-  }, [cloneCount, companies.length]);
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
-  const firstRealIndex = cloneCount;
-  const lastRealIndex = cloneCount + companies.length - 1;
+  // Re-centre on the first real slide whenever the layout or the data changes.
+  useEffect(() => {
+    setCurrentIndex(firstRealIndex);
+    applyDragDx(0);
+  }, [firstRealIndex, itemCount, applyDragDx]);
 
-  const goToIndex = useCallback(
-    (index: number) => {
-      setIsAnimating(true);
-      setCurrentIndex(index);
-
-      window.setTimeout(() => {
-        setIsAnimating(false);
-        // wrap without animation if we crossed clones
-        if (index > lastRealIndex) {
-          setCurrentIndex(index - companies.length);
-        } else if (index < firstRealIndex) {
-          setCurrentIndex(index + companies.length);
-        }
-      }, ANIMATION_DURATION);
+  useEffect(
+    () => () => {
+      if (settleTimerRef.current) window.clearTimeout(settleTimerRef.current);
+      if (clickResetTimerRef.current) window.clearTimeout(clickResetTimerRef.current);
     },
-    [companies.length, firstRealIndex, lastRealIndex]
+    []
   );
 
-  // auto slide
-  useEffect(() => {
-    if (companies.length <= visibleCount) return;
+  /** Ends the running transition and pulls the index back out of the clones. */
+  const settle = useCallback(() => {
+    if (settleTimerRef.current) window.clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = window.setTimeout(() => {
+      settleTimerRef.current = null;
+      setIsAnimating(false);
+      setCurrentIndex((prev) => wrapIndex(prev));
+    }, ANIMATION_DURATION);
+  }, [wrapIndex]);
 
-    const iv = setInterval(() => {
-      if (pausedRef.current || draggingRef.current) return;
-      goToIndex(currentIndex + 1);
+  const slideBy = useCallback(
+    (delta: number) => {
+      if (!canLoop || delta === 0) return;
+      setIsAnimating(true);
+      setCurrentIndex((prev) => prev + delta);
+      settle();
+    },
+    [canLoop, settle]
+  );
+
+  useEffect(() => {
+    if (!canLoop || prefersReducedMotion) return;
+
+    const timer = window.setInterval(() => {
+      if (hoveredRef.current || pointerDownRef.current || draggingRef.current) return;
+      if (document.hidden) return;
+      slideBy(1);
     }, SLIDE_DURATION);
 
-    return () => clearInterval(iv);
-  }, [companies.length, visibleCount, currentIndex, goToIndex]);
+    return () => window.clearInterval(timer);
+  }, [canLoop, prefersReducedMotion, slideBy]);
+
+  /** Current on-screen offset of the track, so a grab can continue from it. */
+  const readTrackTranslate = () => {
+    const track = trackRef.current;
+    if (!track) return null;
+    const transform = window.getComputedStyle(track).transform;
+    if (!transform || transform === "none") return 0;
+    try {
+      return new DOMMatrixReadOnly(transform).m41;
+    } catch {
+      return null;
+    }
+  };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (companies.length <= visibleCount) return;
-    if (e.button !== 0) return;
-    pausedRef.current = true;
+    if (!canLoop || itemWidth <= 0) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+
+    // Freeze an in-flight transition where it currently sits instead of letting
+    // the track jump to the slide it was heading for.
+    if (settleTimerRef.current) {
+      window.clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+
+    const wrapped = wrapIndex(currentIndex);
+    let startOffset = 0;
+    if (isAnimating) {
+      const translate = readTrackTranslate();
+      if (translate != null) startOffset = translate + wrapped * itemWidth;
+      setIsAnimating(false);
+    }
+    setCurrentIndex(wrapped);
+
     pointerDownRef.current = true;
     activePointerIdRef.current = e.pointerId;
-    suppressClickRef.current = false;
     draggingRef.current = false;
-    dragStartXRef.current = e.clientX;
-    dragDxRef.current = 0;
-    setDragTick((t) => t + 1);
+    suppressClickRef.current = false;
+    pressStartXRef.current = e.clientX;
+    dragOriginXRef.current = e.clientX - startOffset;
+    applyDragDx(startOffset);
+    setTooltip(null);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!pointerDownRef.current) return;
     if (activePointerIdRef.current !== e.pointerId) return;
-    const nextDxRaw = e.clientX - dragStartXRef.current;
-    const maxDrag = itemWidth > 0 ? itemWidth * cloneCount : 0;
-    dragDxRef.current = maxDrag > 0 ? clamp(nextDxRaw, -maxDrag, maxDrag) : nextDxRaw;
+    if (itemWidth <= 0) return;
 
-    if (!draggingRef.current && Math.abs(dragDxRef.current) > DRAG_CLICK_THRESHOLD) {
+    if (!draggingRef.current) {
+      if (Math.abs(e.clientX - pressStartXRef.current) <= DRAG_START_THRESHOLD) return;
       draggingRef.current = true;
+      setIsDragging(true);
+      setIsAnimating(false);
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch {
+        // capture is best effort; the drag still works without it
       }
-      setIsAnimating(false);
     }
 
-    if (!draggingRef.current) return;
-    e.preventDefault();
-    setDragTick((t) => t + 1);
+    let offset = e.clientX - dragOriginXRef.current;
+
+    // Keep the offset below one slide by moving the index instead. Without this
+    // the track can be dragged past its last clone and show empty space.
+    const steps = Math.trunc(offset / itemWidth);
+    if (steps !== 0) {
+      offset -= steps * itemWidth;
+      dragOriginXRef.current += steps * itemWidth;
+      setCurrentIndex((prev) => wrapIndex(prev - steps));
+    }
+
+    applyDragDx(offset);
   };
 
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const endPointer = (e: React.PointerEvent<HTMLDivElement>, commit: boolean) => {
     if (!pointerDownRef.current) return;
     if (activePointerIdRef.current !== e.pointerId) return;
+
     pointerDownRef.current = false;
     activePointerIdRef.current = null;
 
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      try {
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
       }
+    } catch {
+      // nothing to release
     }
 
-    if (!draggingRef.current) {
-      pausedRef.current = false;
-      suppressClickRef.current = false;
-      dragDxRef.current = 0;
-      setDragTick((t) => t + 1);
-      return;
-    }
-
+    const wasDragging = draggingRef.current;
     draggingRef.current = false;
-    suppressClickRef.current = Math.abs(dragDxRef.current) > DRAG_CLICK_THRESHOLD;
+    setIsDragging(false);
 
     const dx = dragDxRef.current;
-    if (itemWidth > 0) {
-      // negative dx means user dragged left (advance forward), so -dx/itemWidth
-      const deltaItems = Math.round(-dx / itemWidth);
-      if (deltaItems !== 0) {
-        goToIndex(currentIndex + deltaItems);
-      } else {
-        goToIndex(currentIndex);
-      }
-    } else {
-      goToIndex(currentIndex);
+    applyDragDx(0);
+
+    if (wasDragging) {
+      suppressClickRef.current = true;
+      if (clickResetTimerRef.current) window.clearTimeout(clickResetTimerRef.current);
+      clickResetTimerRef.current = window.setTimeout(() => {
+        clickResetTimerRef.current = null;
+        suppressClickRef.current = false;
+      }, 400);
     }
 
-    pausedRef.current = false;
-    dragDxRef.current = 0;
-    setDragTick((t) => t + 1);
-    window.setTimeout(() => {
-      suppressClickRef.current = false;
-    }, 0);
+    if (dx === 0) return;
+
+    let delta = 0;
+    if (commit && itemWidth > 0) {
+      delta = Math.round(-dx / itemWidth);
+      if (delta === 0 && Math.abs(dx) > itemWidth * DRAG_SNAP_RATIO) delta = dx < 0 ? 1 : -1;
+    }
+
+    setIsAnimating(true);
+    if (delta !== 0) setCurrentIndex((prev) => prev + delta);
+    settle();
   };
 
   const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!suppressClickRef.current) return;
-
-    const target = e.target as HTMLElement | null;
-    const hasLink = target?.closest("a") || false;
-    if (hasLink) {
-      suppressClickRef.current = false;
-      return;
-    }
-
-    const path = (e.nativeEvent as MouseEvent).composedPath?.() ?? [];
-    const hasLinkInPath = path.some((node) => node instanceof Element && node.closest("a") !== null);
-    if (hasLinkInPath) {
-      suppressClickRef.current = false;
-      return;
-    }
-
     suppressClickRef.current = false;
+    // A drag must never open the brand it happened to end on.
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const onPointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!pointerDownRef.current) return;
-    if (activePointerIdRef.current !== e.pointerId) return;
-
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-      }
-    }
-
-    pointerDownRef.current = false;
-    activePointerIdRef.current = null;
-    draggingRef.current = false;
-    suppressClickRef.current = false;
-    dragDxRef.current = 0;
-    pausedRef.current = false;
-    setDragTick((t) => t + 1);
-  };
-
-  const [tooltip, setTooltip] = useState<{ text: string; left: number } | null>(null);
-  const showTooltipReal = (el: HTMLDivElement, name?: string) => {
-    if (!name || !containerRef.current) {
+  const showTooltipFor = (el: HTMLElement, name?: string) => {
+    if (!name || draggingRef.current || !containerRef.current) {
       setTooltip(null);
       return;
     }
@@ -248,19 +309,29 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
     setTooltip({ text: name, left: itemRect.left - containerRect.left + itemRect.width / 2 });
   };
 
-  const translate = -currentIndex * itemWidth + (draggingRef.current ? dragDxRef.current : 0);
-  const preloadCenterIndex =
-    itemWidth > 0 && draggingRef.current ? currentIndex + Math.round(-dragDxRef.current / itemWidth) : currentIndex;
-  const preloadWindow = Math.max(visibleCount * 3, 10);
+  const measured = itemWidth > 0;
+  const translate = -currentIndex * itemWidth + dragDx;
+  const preloadCenterIndex = measured ? currentIndex + Math.round(-dragDx / itemWidth) : currentIndex;
+  // Logos further ahead than this stay lazy; anything closer is fetched before
+  // it can be dragged into view.
+  const preloadWindow = Math.max(visibleCount * 4, 12);
+  const logoHeight = Math.max(44, Math.floor(imageHeightFor(visibleCount) * 0.8));
+
+  if (itemCount === 0) return null;
 
   return (
     <div
       className={styles.containerWrap}
       ref={containerRef}
-      onMouseEnter={() => (pausedRef.current = true)}
-      onMouseLeave={() => (pausedRef.current = false)}
-      onFocus={() => (pausedRef.current = true)}
-      onBlur={() => (pausedRef.current = false)}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") hoveredRef.current = true;
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") hoveredRef.current = false;
+        setTooltip(null);
+      }}
+      onFocus={() => (hoveredRef.current = true)}
+      onBlur={() => (hoveredRef.current = false)}
     >
       {tooltip ? (
         <span className={styles.blockTooltip} style={{ left: tooltip.left }}>
@@ -270,30 +341,42 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
 
       <div className={styles.container}>
         <div
-          className={cn(styles.viewport, draggingRef.current ? styles.viewportDragging : "")}
+          className={cn(
+            styles.viewport,
+            canLoop ? styles.viewportDraggable : "",
+            isDragging ? styles.viewportDragging : ""
+          )}
           ref={viewportRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
-          onLostPointerCapture={onPointerCancel}
+          onPointerUp={(e) => endPointer(e, true)}
+          onPointerCancel={(e) => endPointer(e, false)}
+          onLostPointerCapture={(e) => endPointer(e, false)}
           onClickCapture={onClickCapture}
+          onDragStart={(e) => e.preventDefault()}
         >
           <div
-            className={cn(styles.track, !draggingRef.current && isAnimating ? styles.animating : styles.noTransition)}
-            style={{ width: itemWidth * extended.length, transform: `translateX(${translate}px)` }}
+            ref={trackRef}
+            className={cn(
+              styles.track,
+              canLoop ? "" : styles.trackStatic,
+              isAnimating && !isDragging ? styles.animating : styles.noTransition
+            )}
+            style={{
+              width: measured && canLoop ? itemWidth * extended.length : "100%",
+              transform: measured ? `translate3d(${translate}px, 0, 0)` : undefined,
+            }}
           >
             {extended.map((c, i) => {
               const shouldEagerLoad = Math.abs(i - preloadCenterIndex) <= preloadWindow;
-              const logoHeight = Math.max(44, Math.floor(imageHeightFor(visibleCount) * 0.8));
               const logoNode = c.logo ? (
                 <div className={styles.logoInner} style={{ height: logoHeight }}>
                   <Image
-                    src={c.logo as any}
+                    src={c.logo}
                     alt={c.name ?? ""}
                     fill
                     style={{ objectFit: "contain" }}
-                    sizes={`${itemWidth}px`}
+                    sizes={measured ? `${Math.round(itemWidth)}px` : "200px"}
                     unoptimized={typeof c.logo === "string" && c.logo.startsWith("http")}
                     loading={shouldEagerLoad ? "eager" : "lazy"}
                     draggable={false}
@@ -305,16 +388,23 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
               const href = typeof c.url === "string" ? c.url.trim() : "";
               const isExternalHref = /^https?:\/\//i.test(href);
               const hasLink = Boolean(href);
+              const linkLabel = c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi";
 
               return (
                 <div
                   key={key}
                   className={styles.companyItem}
-                  style={{ width: itemWidth, height: imageHeightFor(visibleCount) }}
-                  onMouseEnter={(e) => showTooltipReal(e.currentTarget, c.name)}
-                  onMouseMove={(e) => showTooltipReal(e.currentTarget, c.name)}
-                  onMouseLeave={() => setTooltip(null)}
-                  onFocusCapture={(e) => showTooltipReal(e.currentTarget, c.name)}
+                  style={{
+                    width: measured ? itemWidth : `${100 / visibleCount}%`,
+                    height: imageHeightFor(visibleCount),
+                  }}
+                  onPointerEnter={(e) => {
+                    if (e.pointerType === "mouse") showTooltipFor(e.currentTarget, c.name);
+                  }}
+                  onPointerLeave={(e) => {
+                    if (e.pointerType === "mouse") setTooltip(null);
+                  }}
+                  onFocusCapture={(e) => showTooltipFor(e.currentTarget, c.name)}
                   onBlur={(e) => {
                     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
                       setTooltip(null);
@@ -328,8 +418,8 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                         className={styles.companyLink}
                         target="_blank"
                         rel="noreferrer"
-                        onClickCapture={(event) => event.stopPropagation()}
-                        aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}
+                        draggable={false}
+                        aria-label={linkLabel}
                       >
                         {logoNode}
                       </a>
@@ -338,8 +428,8 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                         href={href}
                         className={styles.companyLink}
                         prefetch={false}
-                        onClickCapture={(event) => event.stopPropagation()}
-                        aria-label={c.name ? `${c.name} partner səhifəsi` : "Partner səhifəsi"}
+                        draggable={false}
+                        aria-label={linkLabel}
                       >
                         {logoNode}
                       </Link>

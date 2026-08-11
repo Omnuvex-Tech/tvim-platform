@@ -42,23 +42,33 @@
 .viewport {
     overflow: hidden;
     width: 100%;
+    /* pan-y keeps vertical page scrolling working while we handle horizontal drags */
     touch-action: pan-y;
-    cursor: pointer;
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
 
-.viewportDragging {
-    cursor: pointer;
+.viewportDraggable {
+    cursor: grab;
+}
+
+.viewportDragging,
+.viewportDragging .companyLink {
+    cursor: grabbing;
 }
 
 .track {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    touch-action: none;
+    touch-action: pan-y;
     -webkit-user-drag: none;
+    will-change: transform;
+}
+
+.trackStatic {
+    justify-content: center;
 }
 
 .animating {

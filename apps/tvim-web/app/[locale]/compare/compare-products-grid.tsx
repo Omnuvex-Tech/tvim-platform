@@ -282,7 +282,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                         return (
                             <article
                                 key={itemKey}
-                                className={`group relative flex h-full flex-col rounded-none border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-left ${index > 0 ? "-ml-px" : ""}`}
+                                className={`group relative flex h-full flex-col overflow-hidden rounded-none border border-[#e2e6ef] bg-white px-3 pb-4 pt-3 text-left ${index > 0 ? "-ml-px" : ""}`}
                             >
                                 {typeof item.discount_percent === "number" && item.discount_percent > 0 ? (
                                     <span className="absolute top-3 right-4 z-[4] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#ff2e43] text-[14px] leading-none font-bold text-white">
@@ -326,10 +326,12 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
 
                                     {href ? (
                                         <Link href={href} className="block w-full">
-                                            <span className="mt-0 inline-flex aspect-square w-full max-w-[135px] items-start justify-start overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
-                                                <span className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                            {/* Full-bleed square thumb: the offset cancels the cell
+                                                padding so the image spans the whole column width. */}
+                                            <span className="product-thumb product-thumb--bleed -ml-4 -mt-3 inline-flex aspect-square w-[calc(100%+2rem)] items-center justify-center overflow-hidden p-2">
+                                                <span className="relative z-[1] h-full w-full overflow-hidden">
                                                     {item.main_image ? (
-                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-cover" />
+                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
                                                     ) : null}
                                                 </span>
                                             </span>
@@ -337,10 +339,12 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                         </Link>
                                     ) : (
                                         <div className="w-full">
-                                            <span className="mt-0 inline-flex aspect-square w-full max-w-[135px] items-start justify-start overflow-visible rounded-[10px] sm:max-w-[150px] max-[512px]:max-w-[160px]">
-                                                <span className="relative z-[1] aspect-square w-full overflow-hidden rounded-[10px]">
+                                            {/* Full-bleed square thumb: the offset cancels the cell
+                                                padding so the image spans the whole column width. */}
+                                            <span className="product-thumb product-thumb--bleed -ml-4 -mt-3 inline-flex aspect-square w-[calc(100%+2rem)] items-center justify-center overflow-hidden p-2">
+                                                <span className="relative z-[1] h-full w-full overflow-hidden">
                                                     {item.main_image ? (
-                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-cover" />
+                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
                                                     ) : null}
                                                 </span>
                                             </span>
