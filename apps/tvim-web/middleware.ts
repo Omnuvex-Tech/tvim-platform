@@ -2,8 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
     LEGACY_SEARCH_QUERY_PARAM,
     SEARCH_QUERY_PARAM,
+    asRouteLocale,
+    isBlogPath,
     isRouteLocale,
     isSearchRoute,
+    resolveBlogRedirect,
     resolveTvimPageRedirect,
     toInternalPath,
     toPublicPath,
@@ -19,9 +22,22 @@ const renameLegacySearchParam = (url: URL) => {
     return true;
 };
 
+const preferredLocale = (request: NextRequest) =>
+    asRouteLocale(request.cookies.get("preferred-locale")?.value ?? "");
+
 export function middleware(request: NextRequest) {
     const [maybeLocale, ...restSegments] = request.nextUrl.pathname.split("/").filter(Boolean);
-    if (!maybeLocale || !isRouteLocale(maybeLocale)) return NextResponse.next();
+    if (!maybeLocale || !isRouteLocale(maybeLocale)) {
+        // Legacy blog links also exist without a locale prefix; send those to
+        // the visitor's locale instead of letting them fall through to a 404.
+        const path = `/${[maybeLocale, ...restSegments].filter(Boolean).join("/")}`;
+        if (!maybeLocale || !isBlogPath(path)) return NextResponse.next();
+
+        const fallbackLocale = preferredLocale(request);
+        const url = request.nextUrl.clone();
+        url.pathname = `/${fallbackLocale}${resolveBlogRedirect(path, fallbackLocale) ?? path}`;
+        return NextResponse.redirect(url, 308);
+    }
 
     const locale = maybeLocale.toLowerCase() as RouteLocale;
     const rest = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
@@ -43,6 +59,12 @@ export function middleware(request: NextRequest) {
     if (internalPath !== null) {
         url.pathname = `/${locale}${internalPath}`;
         return NextResponse.rewrite(url);
+    }
+
+    const blogPath = resolveBlogRedirect(rest, locale);
+    if (blogPath !== null) {
+        url.pathname = `/${locale}${blogPath}`;
+        return NextResponse.redirect(url, 308);
     }
 
     const tvimPagePath = resolveTvimPageRedirect(rest, locale);
