@@ -198,6 +198,14 @@ async function getMenuDetail(slug: string, locale: string) {
     return await getPublicMenuDetail<MenuDetailData>(slug, locale);
 }
 
+const decodeSlugParam = (slug: string) => {
+    try {
+        return decodeURIComponent(slug);
+    } catch {
+        return slug;
+    }
+};
+
 const getCanonicalPath = (canonical: unknown) => {
     if (typeof canonical !== "string" || !canonical.trim()) return "";
 
@@ -233,7 +241,8 @@ const hasListingSeoRefinement = (searchParams: Record<string, string | string[] 
 };
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-    const { slug, locale } = await params;
+    const { slug: rawSlug, locale } = await params;
+    const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.trim().toLowerCase();
     const detail = await getMenuDetail(slug, normalizedLocale);
@@ -292,7 +301,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 export default async function DynamicMenuPage({ params, searchParams }: Props) {
-    const { locale, slug } = await params;
+    const { locale, slug: rawSlug } = await params;
+    const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.toLowerCase();
 
