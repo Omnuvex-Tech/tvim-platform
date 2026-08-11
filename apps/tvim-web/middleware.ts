@@ -4,6 +4,7 @@ import {
     SEARCH_QUERY_PARAM,
     isRouteLocale,
     isSearchRoute,
+    resolveTvimPageRedirect,
     toInternalPath,
     toPublicPath,
     type RouteLocale,
@@ -39,10 +40,16 @@ export function middleware(request: NextRequest) {
     }
 
     const internalPath = toInternalPath(rest);
-    if (internalPath === null) return NextResponse.next();
+    if (internalPath !== null) {
+        url.pathname = `/${locale}${internalPath}`;
+        return NextResponse.rewrite(url);
+    }
 
-    url.pathname = `/${locale}${internalPath}`;
-    return NextResponse.rewrite(url);
+    const tvimPagePath = resolveTvimPageRedirect(rest, locale);
+    if (tvimPagePath === null) return NextResponse.next();
+
+    url.pathname = `/${locale}${tvimPagePath}`;
+    return NextResponse.redirect(url, 308);
 }
 
 export const config = {
