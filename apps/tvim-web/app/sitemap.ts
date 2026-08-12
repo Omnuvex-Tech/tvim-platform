@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import type { Language } from "@repo/types/types";
 import { headers } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { config } from "@/config";
 import { defaultLocale } from "@/lib/site-locales";
 import { resolveSettingsSitemap, resolveSiteUrlWithFallbacks } from "@/lib/settings";
@@ -142,17 +143,22 @@ const fetchApiJson = async (
     }
 };
 
+// Menu groups that only exist as footer headings carry "#" as their link.
+const isPlaceholderLink = (value: string) => !value || value === "#";
+
 const readLocalizedLink = (node: Record<string, unknown>, locale: string) => {
     const multiLinks = node.multi_links;
     if (multiLinks && typeof multiLinks === "object" && !Array.isArray(multiLinks)) {
         const localized = (multiLinks as Record<string, unknown>)[locale];
         if (typeof localized === "string" && localized.trim()) {
-            return normalizePath(localized);
+            const path = normalizePath(localized);
+            if (!isPlaceholderLink(path)) return path;
         }
     }
 
     if (typeof node.link === "string" && node.link.trim()) {
-        return normalizePath(node.link);
+        const path = normalizePath(node.link);
+        if (!isPlaceholderLink(path)) return path;
     }
 
     return "";
@@ -237,7 +243,11 @@ const collectCategoryPaths = (
     children.forEach((child) => collectCategoryPaths(child, locale, paths));
 }
 
-const collectBrandPaths = async (locale: string, paths: Map<string, Date | undefined>) => {
+const collectBrandPaths = async (
+    locale: string,
+    paths: Map<string, Date | undefined>,
+    groupKeyByPath: Map<string, string>,
+) => {
     const payload = await fetchApiJson("/product/brands", locale);
     const values = Array.isArray(payload?.data?.values)
         ? payload.data.values
@@ -248,7 +258,17 @@ const collectBrandPaths = async (locale: string, paths: Map<string, Date | undef
     values.forEach((item: Record<string, unknown>) => {
         const slug = normalizePath(String(item.slug ?? ""));
         if (!slug) return;
-        paths.set(`${locale}/brands/${slug}`, toIsoDate(item.updated_at ?? item.created_at));
+
+        const path = `${locale}/brands/${slug}`;
+        paths.set(path, toIsoDate(item.updated_at ?? item.created_at));
+
+        // A brand's slug differs per language, so its translations cannot be
+        // found by comparing url suffixes. `value_id` is the same in every
+        // language and is what pairs them up.
+        const valueId = Number(item.value_id);
+        if (Number.isFinite(valueId) && valueId > 0) {
+            groupKeyByPath.set(path, `brand:${valueId}`);
+        }
     });
 };
 
@@ -287,8 +307,9 @@ const collectProductPaths = async (locale: string, paths: Map<string, Date | und
     });
 };
 
-const collectLocalePaths = async (locale: string, siteUrl: string) => {
+const collectLocalePathEntries = async (locale: string) => {
     const paths = new Map<string, Date | undefined>();
+    const groupKeyByPath = new Map<string, string>();
     const [menusPayload, categoriesPayload] = await Promise.all([
         fetchApiJson(config.endpoints.menus.list, locale),
         fetchApiJson("/product/categories", locale),
@@ -307,14 +328,30 @@ const collectLocalePaths = async (locale: string, siteUrl: string) => {
     paths.set(`${locale}/brands`, undefined);
 
     await Promise.all([
-        collectBrandPaths(locale, paths),
+        collectBrandPaths(locale, paths, groupKeyByPath),
         collectProductPaths(locale, paths),
     ]);
 
-    return Array.from(paths.entries()).map(([path, lastModified]) =>
-        buildEntry(siteUrl, path, undefined, undefined, lastModified)
-    );
+    return Array.from(paths.entries()).map(([path, lastModified]) => ({
+        path,
+        // Defaults to the url suffix, which is shared across languages for
+        // every route whose slug is not localized.
+        groupKey: groupKeyByPath.get(path) ?? path.slice(locale.length),
+        // Dates do not survive the cache as Date objects.
+        lastModified: lastModified ? lastModified.toISOString() : undefined,
+    }));
 };
+
+/**
+ * Walking every menu, category, brand and product page for one language costs
+ * several seconds and a few hundred upstream requests. Without this the whole
+ * crawl ran again on every single sitemap.xml hit.
+ */
+const getCachedLocalePathEntries = unstable_cache(
+    collectLocalePathEntries,
+    ["sitemap-locale-paths"],
+    { revalidate: 3600, tags: ["sitemap-locale-paths"] },
+);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [settings, languages] = await Promise.all([getSettings(), getLanguages()]);
@@ -352,9 +389,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             resolvePriority(sitemapSettings?.priority),
         )
     );
-    const dynamicEntries = (await Promise.all(
-        localeCodes.map((locale) => collectLocalePaths(locale, normalizedSiteUrl))
-    )).flat();
+    const pathsByLocale = await Promise.all(
+        localeCodes.map(async (locale) => [locale, await getCachedLocalePathEntries(locale)] as const)
+    );
+
+    // Translations of one page are collected under a shared group key, so the
+    // alternates are built from the urls each language actually serves instead
+    // of from a locale prefix swap.
+    const pathsByGroup = new Map<string, Map<string, string>>();
+    pathsByLocale.forEach(([locale, entries]) => {
+        entries.forEach(({ path, groupKey }) => {
+            if (!pathsByGroup.has(groupKey)) pathsByGroup.set(groupKey, new Map());
+            pathsByGroup.get(groupKey)!.set(locale, path);
+        });
+    });
+
+    const dynamicEntries = pathsByLocale.flatMap(([, entries]) =>
+        entries.map(({ path, groupKey, lastModified }) => {
+            const siblings = pathsByGroup.get(groupKey);
+            const entry = buildEntry(
+                normalizedSiteUrl,
+                path,
+                undefined,
+                undefined,
+                lastModified ? new Date(lastModified) : undefined,
+            );
+
+            if (!siblings || siblings.size < 2) return entry;
+
+            return {
+                ...entry,
+                alternates: {
+                    languages: Object.fromEntries(
+                        Array.from(siblings).map(([siblingLocale, siblingPath]) => [
+                            siblingLocale,
+                            `${normalizedSiteUrl}/${encodeURI(siblingPath)}`,
+                        ])
+                    ),
+                },
+            };
+        })
+    );
 
     return [
         {

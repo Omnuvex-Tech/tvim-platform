@@ -19,6 +19,10 @@ type TranslationDictionary = {
         callUs: string;
         searchPlaceholder: string;
     };
+    breadcrumb: {
+        brands: string;
+        corporate: string;
+    };
     search: {
         title: string;
         emptyQuery: string;
@@ -93,6 +97,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             callUs: "Bizə zəng edin",
             searchPlaceholder: "Məhsul axtarışı",
         },
+        breadcrumb: {
+            brands: "Brendlər",
+            corporate: "Korporativ",
+        },
         search: {
             title: "Axtarış",
             emptyQuery: "Axtarış üçün söz daxil edin.",
@@ -165,6 +173,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             callUs: "Call us",
             searchPlaceholder: "Search products",
         },
+        breadcrumb: {
+            brands: "Brands",
+            corporate: "Corporate",
+        },
         search: {
             title: "Search",
             emptyQuery: "Type something to search.",
@@ -236,6 +248,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             address: "Адрес",
             callUs: "Позвоните нам",
             searchPlaceholder: "Поиск товаров",
+        },
+        breadcrumb: {
+            brands: "Бренды",
+            corporate: "Корпоратив",
         },
         search: {
             title: "Поиск",

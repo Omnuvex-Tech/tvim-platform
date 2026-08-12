@@ -19,6 +19,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
+import { isSupportedLocale } from "@/lib/site-locales";
 
 type MenuDetailData = {
     type: string;
@@ -313,6 +314,9 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.trim().toLowerCase();
+
+    if (!isSupportedLocale(normalizedLocale)) return {};
+
     const detail = await getMenuDetail(slug, normalizedLocale);
 
     if (!detail) return {};
@@ -372,7 +376,15 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const { locale, slug: rawSlug } = await params;
     const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
-    const normalizedLocale = locale.toLowerCase();
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    // Without this the catch-all answers any prefix (/xx/haqqimizda), which the
+    // API resolves to its default language and turns into an unbounded set of
+    // duplicate urls.
+    if (!isSupportedLocale(normalizedLocale)) {
+        notFound();
+    }
+
     const requestedPage = (() => {
         const raw = Number(readSearchParamValue(resolvedSearchParams.page) ?? 1);
         return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;

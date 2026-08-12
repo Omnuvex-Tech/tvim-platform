@@ -14,6 +14,7 @@ import { generateServiceMetadata, renderServiceSlugPage } from "@/app/services/[
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
+import { isSupportedLocale } from "@/lib/site-locales";
 
 type GridItem = {
     id?: number | string;
@@ -303,13 +304,16 @@ export async function generateMetadata({
     params: Promise<{ locale: string; slug: string; itemSlug: string }>;
 }): Promise<Metadata> {
     const { locale, slug, itemSlug } = await params;
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    if (!isSupportedLocale(normalizedLocale)) return {};
+
     if (slug.trim().toLowerCase() === "services") {
-        return await generateServiceMetadata({ slug: itemSlug, locale });
+        return await generateServiceMetadata({ slug: itemSlug, locale: normalizedLocale });
     }
     if (slug.trim().toLowerCase() === "brand-news") {
         return {};
     }
-    const normalizedLocale = locale.toLowerCase();
 
     if (isProductSlug(slug)) {
         const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale);
@@ -375,14 +379,21 @@ export default async function GridDetailPage({
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
     const { locale, slug, itemSlug } = await params;
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    // Mirrors the guard on the two-segment catch-all: an unknown prefix must
+    // 404 rather than serve the api's default language.
+    if (!isSupportedLocale(normalizedLocale)) {
+        notFound();
+    }
+
     if (slug.trim().toLowerCase() === "services") {
-        return await renderServiceSlugPage({ slug: itemSlug, locale });
+        return await renderServiceSlugPage({ slug: itemSlug, locale: normalizedLocale });
     }
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const sourceParamRaw = resolvedSearchParams?.source;
     const sourceParam = Array.isArray(sourceParamRaw) ? sourceParamRaw[0] : sourceParamRaw;
     const isDiscountSource = String(sourceParam ?? "").trim().toLowerCase() === "discount";
-    const normalizedLocale = locale.toLowerCase();
     if (slug.trim().toLowerCase() === "brand-news") {
         redirect(`/${normalizedLocale}/brands/news/${itemSlug}`);
     }
