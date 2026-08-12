@@ -9,7 +9,6 @@ import {
     resolveBlogRedirect,
     resolveTvimPageRedirect,
     toInternalPath,
-    toPublicPath,
     type RouteLocale,
 } from "@repo/shared/routes";
 
@@ -45,16 +44,13 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const renamedSearchParam = isSearchRoute(rest) && renameLegacySearchParam(url);
 
-    const publicPath = toPublicPath(rest, locale);
-    if (publicPath !== null) {
-        url.pathname = `/${locale}${publicPath}`;
-        return NextResponse.redirect(url, 308);
-    }
-
     if (renamedSearchParam) {
         return NextResponse.redirect(url, 308);
     }
 
+    // Any locale's wording for these pages is served in place — /az/vkhod and
+    // /az/giris both render the Azerbaijani sign-in without moving the visitor
+    // off the url they asked for.
     const internalPath = toInternalPath(rest);
     if (internalPath !== null) {
         url.pathname = `/${locale}${internalPath}`;

@@ -190,13 +190,9 @@ export const resolveBlogRedirect = (rest: string, locale: RouteLocale) => {
         changed = true;
     }
 
-    // Whatever root is left answers in the locale being browsed, so /az/news
-    // and /az/novisti both land on /az/xeberler.
-    if (isBlogRootSlug(segments[0]!) && segments[0] !== BLOG_ROOT_SLUGS[locale]) {
-        segments[0] = BLOG_ROOT_SLUGS[locale];
-        changed = true;
-    }
-
+    // A root slug from another locale is left alone: the CMS resolves it under
+    // the requested language and answers with that language's content, so
+    // /az/novisti serves the Azerbaijani blog without a redirect.
     if (!changed) return null;
 
     return `/${segments.map((segment) => encodeURIComponent(segment)).join("/")}`;
