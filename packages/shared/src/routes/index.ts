@@ -206,14 +206,6 @@ export const resolveBlogRedirect = (rest: string, locale: RouteLocale) => {
         changed = true;
     }
 
-    // A root slug from another locale used to be served in place, because the
-    // CMS resolves it under the requested language anyway. That gave one page
-    // three urls per language, so it is now moved onto this locale's root.
-    if (isBlogRootSlug(segments[0]!) && segments[0] !== BLOG_ROOT_SLUGS[locale]) {
-        segments[0] = BLOG_ROOT_SLUGS[locale];
-        changed = true;
-    }
-
     if (!changed) return null;
 
     return `/${segments.map((segment) => encodeURIComponent(segment)).join("/")}`;

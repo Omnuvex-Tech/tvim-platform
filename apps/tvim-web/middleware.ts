@@ -52,26 +52,28 @@ export function middleware(request: NextRequest) {
     }
     const renamedSearchParam = isSearchRoute(rest) && renameLegacySearchParam(url);
 
-    if (renamedSearchParam) {
-        return NextResponse.redirect(url, 308);
-    }
-
     // Each of these pages has one url per language. A request carrying another
     // locale's wording (/az/vkhod, /az/login) is moved onto this locale's own
     // (/az/giris) rather than served in place, so a page never answers at more
     // than one address per language. Once the url is right, the app directory
     // path behind it is reached by rewrite so the address stays put.
+    //
+    // The legacy ?q= rename is folded into the same response: resolved
+    // separately, /az/search?q=x would bounce through /az/search?search=x on
+    // its way to /az/axtaris?search=x.
     const localizedRoute = resolveLocalizedRoute(rest, locale);
-    if (localizedRoute !== null) {
-        if (localizedRoute.publicPath !== rest) {
-            url.pathname = `/${locale}${localizedRoute.publicPath}`;
-            return NextResponse.redirect(url, 308);
-        }
+    if (localizedRoute !== null && localizedRoute.publicPath !== rest) {
+        url.pathname = `/${locale}${localizedRoute.publicPath}`;
+        return NextResponse.redirect(url, 308);
+    }
 
-        if (localizedRoute.internalPath !== rest) {
-            url.pathname = `/${locale}${localizedRoute.internalPath}`;
-            return NextResponse.rewrite(url);
-        }
+    if (renamedSearchParam) {
+        return NextResponse.redirect(url, 308);
+    }
+
+    if (localizedRoute !== null && localizedRoute.internalPath !== rest) {
+        url.pathname = `/${locale}${localizedRoute.internalPath}`;
+        return NextResponse.rewrite(url);
     }
     const internalPath = toInternalPath(rest);
     if (internalPath !== null) {
