@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Slider } from "@repo/types/types";
+import { htmlToText } from "@repo/shared/utils";
 import styles from "./home-slider.module.css";
 
 type HomeSliderProps = {
@@ -231,6 +232,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                             const slideLink = isLinkAction ? normalizeHref(slide.button_link ?? "") : "";
                             const slideIsExternal = slideLink ? isExternalHref(slideLink) : false;
                             const isPrioritySlide = slideIndex === 0;
+                            const slideDescription = htmlToText(slide.description);
 
                             return (
                                 <article key={slide.id} className="relative h-full w-full shrink-0">
@@ -267,7 +269,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                                         />
                                     </picture>
 
-                                    {(slide.title || slide.description || slide.button_text) ? (
+                                    {(slide.title || slideDescription || slide.button_text) ? (
                                         <div
                                             className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full items-center p-5 sm:p-7 lg:p-12 ${
                                                 slide.hide_text_mobile ? "hidden md:flex" : "flex"
@@ -277,8 +279,8 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                                                 {slide.title ? (
                                                     <h2 className={`text-[34px] sm:text-[36px] font-bold leading-tight ${styles.title}`}>{slide.title}</h2>
                                                 ) : null}
-                                                {slide.description ? (
-                                                    <p className={`mt-3 whitespace-pre-line text-[22px] leading-relaxed text-white/90 ${styles.description}`}>{slide.description}</p>
+                                                {slideDescription ? (
+                                                    <p className={`mt-3 whitespace-pre-line text-[22px] leading-relaxed text-white/90 ${styles.description}`}>{slideDescription}</p>
                                                 ) : null}
                                                 {slide.button_text && isLinkAction ? (
                                                     slideIsExternal ? (

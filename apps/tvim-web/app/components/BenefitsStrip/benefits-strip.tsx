@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { BlueHexIcon, BuildingGridIcon, ReturnArrowIcon, TicketCutIcon } from "@repo/ui";
+import { htmlToText } from "@repo/shared/utils";
 
 type BenefitItem = {
     title: string;
@@ -35,11 +36,6 @@ const defaultBenefitItems: BenefitItem[] = [
         link: "/services/bonus-kartlari",
     },
 ];
-
-function stripHtml(input?: string) {
-    if (!input) return "";
-    return input.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-}
 
 function slugifyTitle(value: string) {
     return value
@@ -92,8 +88,7 @@ function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
 
     const mapped = rawItems.map((it: any) => {
         const title = (it?.menu?.title ?? it?.data?.title ?? it?.menu?.name ?? "").toString();
-        let description = (it?.menu?.description ?? it?.data?.description ?? "").toString();
-        description = stripHtml(description);
+        const description = htmlToText(it?.menu?.description ?? it?.data?.description ?? "");
 
         const t = title.toLowerCase();
         let icon = <TicketCutIcon />;

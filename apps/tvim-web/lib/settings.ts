@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import type { ProjectSettingsData } from "@repo/types/types";
+import { htmlToText } from "@repo/shared/utils";
 import { config } from "@/config";
+
+const metaText = (value: unknown) => htmlToText(value) || undefined;
 
 type AnyRecord = Record<string, unknown>;
 
@@ -402,8 +405,8 @@ export const buildHomeMetadata = (
     options: HomeMetadataOptions = {},
 ): Metadata => {
     const useProjectFallbacks = options.useProjectFallbacks ?? true;
-    const title = seo?.meta_title || seo?.title || (useProjectFallbacks ? config.project.projectName : undefined);
-    const description = seo?.meta_description || seo?.description || (useProjectFallbacks ? config.project.projectDescription : undefined);
+    const title = metaText(seo?.meta_title || seo?.title) ?? (useProjectFallbacks ? config.project.projectName : undefined);
+    const description = metaText(seo?.meta_description || seo?.description) ?? (useProjectFallbacks ? config.project.projectDescription : undefined);
     const keywords = normalizeKeywords(seo?.meta_keywords ?? seo?.keywords);
     const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
     const siteUrl = getUrlOrigin(options.siteUrl ?? canonicalFromSeo);
@@ -439,17 +442,17 @@ export const buildHomeMetadata = (
         },
         openGraph: seo?.open_graph
             ? {
-                title: seo.open_graph.title || title,
-                description: seo.open_graph.description || description,
+                title: metaText(seo.open_graph.title) ?? title,
+                description: metaText(seo.open_graph.description) ?? description,
                 url: seo.open_graph.url || canonical,
-                siteName: seo.open_graph.site_name,
+                siteName: metaText(seo.open_graph.site_name),
                 images: seo.open_graph.image
                     ? [
                         {
                             url: seo.open_graph.image,
                             width: seo.open_graph.image_width,
                             height: seo.open_graph.image_height,
-                            alt: seo.open_graph.image_alt,
+                            alt: metaText(seo.open_graph.image_alt),
                         },
                     ]
                     : undefined,
@@ -460,8 +463,8 @@ export const buildHomeMetadata = (
         twitter: {
             card: resolveTwitterCard(seo?.twitter?.card ?? seo?.twitter_card ?? seo?.open_graph?.twitter_card) ?? "summary_large_image",
             site: seo?.twitter?.site || seo?.twitter_site || seo?.open_graph?.twitter_site || undefined,
-            title: seo?.twitter?.title || title,
-            description: seo?.twitter?.description || description,
+            title: metaText(seo?.twitter?.title) ?? title,
+            description: metaText(seo?.twitter?.description) ?? description,
             images: seo?.twitter?.image ? [seo.twitter.image] : seo?.open_graph?.image ? [seo.open_graph.image] : undefined,
         },
         robots: {
