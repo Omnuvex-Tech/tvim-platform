@@ -16,6 +16,8 @@ import { listCompare, toggleCompare } from "@/lib/compare/client";
 
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 
+import { specialsHref } from "@/lib/routes";
+
 import { QuickOrderPopup } from "./quick-order-popup";
 
 
@@ -208,7 +210,7 @@ const ProductStrip: React.FC<Props> = ({
 
     only_discount_products = false,
 
-    viewAllHref = "/discounts",
+    viewAllHref,
 
     viewAllText,
 
@@ -241,6 +243,9 @@ const localePrefix = useMemo(() => {
 
     const copy = getStripCopy(localePrefix);
 const effectiveViewAllText = viewAllText ?? copy.viewAllText;
+// Same locale the label above is written in, so the link never sends a
+// visitor to another language's specials page.
+const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
 
 
@@ -2026,7 +2031,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
                             {showViewAll ? (
 
-                                <Link href={viewAllHref} className="text-base font-medium text-[#0f57d6] hover:underline mr-2">
+                                <Link href={effectiveViewAllHref} className="text-base font-medium text-[#0f57d6] hover:underline mr-2">
 
                                    {effectiveViewAllText}
 
