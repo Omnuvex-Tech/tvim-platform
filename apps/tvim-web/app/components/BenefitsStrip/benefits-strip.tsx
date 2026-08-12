@@ -37,6 +37,17 @@ const defaultBenefitItems: BenefitItem[] = [
     },
 ];
 
+// These four have no cms entry, so app/services/[slug]/page.tsx keeps its
+// own per-locale slug for each — kept in sync with that dictionary here so
+// this fallback tile links straight to the page this locale serves instead
+// of via a redirect through the az slug.
+const DEFAULT_SERVICE_SLUGS: Record<string, Record<string, string>> = {
+    "pulsuz-catdirilma": { az: "pulsuz-catdirilma", en: "free-delivery", ru: "besplatnaya-dostavka" },
+    geriqaytarma: { az: "geriqaytarma", en: "returns", ru: "vozvrat" },
+    "korporativ-satis": { az: "korporativ-satis", en: "corporate-sales", ru: "korporativnye-prodazhi" },
+    "bonus-kartlari": { az: "bonus-kartlari", en: "bonus-cards", ru: "bonusnye-karty" },
+};
+
 function slugifyTitle(value: string) {
     return value
         .toLocaleLowerCase("az")
@@ -69,7 +80,8 @@ function toServiceLink(rawLink: string | undefined, title: string, locale?: stri
             : parts[parts.length - 1];
 
         if (slug) {
-            return `/${normalizedLocale}/services/${slug}`;
+            const localizedSlug = DEFAULT_SERVICE_SLUGS[slug]?.[normalizedLocale] ?? slug;
+            return `/${normalizedLocale}/services/${localizedSlug}`;
         }
     }
 
@@ -86,6 +98,8 @@ function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
         }));
     }
 
+    const normalizedLocale = String(locale ?? "az").trim().toLowerCase() || "az";
+
     const mapped = rawItems.map((it: any) => {
         const title = (it?.menu?.title ?? it?.data?.title ?? it?.menu?.name ?? "").toString();
         const description = htmlToText(it?.menu?.description ?? it?.data?.description ?? "");
@@ -97,8 +111,20 @@ function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
         else if (t.includes("korporat") || t.includes("korporativ")) icon = <BuildingGridIcon />;
         else if (t.includes("çatdır") || t.includes("catdir") || t.includes("çatdiril")) icon = <BlueHexIcon />;
 
-        const rawLink = it?.menu?.link ?? it?.data?.link ?? it?.menu?.url ?? it?.data?.url ?? it?.menu?.href ?? it?.data?.href ?? it?.menu?.path ?? it?.data?.path ?? "";
-        const link = toServiceLink(rawLink ? String(rawLink) : undefined, title, locale);
+        // These tiles are real menu entries with their own canonical url
+        // (e.g. /az/korporativ) — not a page under /services/. Building the
+        // link from multi_links keeps it on that url instead of pointing at
+        // a services/-prefixed duplicate.
+        const multiLinks = it?.menu?.multi_links;
+        const localizedMenuLink = multiLinks && typeof multiLinks === "object" ? multiLinks[normalizedLocale] : undefined;
+        const menuLink = String(localizedMenuLink ?? it?.menu?.link ?? "").trim().replace(/^\/+|\/+$/g, "");
+        const link = menuLink
+            ? `/${normalizedLocale}/${menuLink}`
+            : toServiceLink(
+                String(it?.data?.link ?? it?.data?.url ?? it?.data?.href ?? it?.data?.path ?? "") || undefined,
+                title,
+                locale,
+            );
 
         return { title, description, icon, link } as BenefitItem;
     }).filter((item) => item.title.trim().length > 0);
@@ -106,9 +132,12 @@ function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
     if (mapped.length >= 4) return mapped;
 
     const existing = new Set(mapped.map((item) => item.title.trim().toLocaleLowerCase("az")));
-    const missingDefaults = defaultBenefitItems.filter(
-        (item) => !existing.has(item.title.trim().toLocaleLowerCase("az"))
-    );
+    const missingDefaults = defaultBenefitItems
+        .filter((item) => !existing.has(item.title.trim().toLocaleLowerCase("az")))
+        // These still carry their raw, locale-less href — route it through the
+        // same resolver as the fully-default case below, or the tile links to
+        // "/services/…" with no locale segment at all.
+        .map((item) => ({ ...item, link: toServiceLink(item.link, item.title, locale) }));
 
     return [...mapped, ...missingDefaults].slice(0, 4);
 }

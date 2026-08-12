@@ -16,6 +16,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
 import { isSupportedLocale } from "@/lib/site-locales";
 import { getProductSlugsByLocale } from "@/lib/product-slugs";
+import { getTranslations } from "@/lib/i18n";
 
 type GridItem = {
     id?: number | string;
@@ -277,7 +278,7 @@ async function getProductDetailBySlug(slug: string, locale: string) {
 }
 
 function getHomeLabel(locale: string) {
-    return locale === "en" ? "Home" : "Ana sehife";
+    return getTranslations(locale).common.home;
 }
 
 function toBreadcrumbSlug(value: string) {

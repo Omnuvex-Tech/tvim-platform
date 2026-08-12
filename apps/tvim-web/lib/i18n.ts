@@ -22,6 +22,7 @@ type TranslationDictionary = {
     breadcrumb: {
         brands: string;
         corporate: string;
+        services: string;
     };
     search: {
         title: string;
@@ -100,6 +101,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Brendlər",
             corporate: "Korporativ",
+            services: "Xidmətlər",
         },
         search: {
             title: "Axtarış",
@@ -176,6 +178,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Brands",
             corporate: "Corporate",
+            services: "Services",
         },
         search: {
             title: "Search",
@@ -252,6 +255,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Бренды",
             corporate: "Корпоратив",
+            services: "Услуги",
         },
         search: {
             title: "Поиск",

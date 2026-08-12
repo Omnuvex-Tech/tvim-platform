@@ -20,6 +20,7 @@ import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { isSupportedLocale } from "@/lib/site-locales";
+import { getTranslations } from "@/lib/i18n";
 
 type MenuDetailData = {
     type: string;
@@ -384,6 +385,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     if (!isSupportedLocale(normalizedLocale)) {
         notFound();
     }
+
+    const t = getTranslations(normalizedLocale);
 
     const requestedPage = (() => {
         const raw = Number(readSearchParamValue(resolvedSearchParams.page) ?? 1);
@@ -934,7 +937,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
                     items={[
-                        { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        { label: t.common.home, href: `/${normalizedLocale}` },
                         { label: menu.name, isCurrent: true },
                     ]}
                     className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
@@ -1159,7 +1162,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 <div className={`${roboto.className} w-full text-[14px] leading-[1.42857143]`}>
                 <Breadcrumb
                     items={[
-                        { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        { label: t.common.home, href: `/${normalizedLocale}` },
                         ...(blogRoot?.slug && blogRoot.name && blogRoot.slug !== slug
                             ? [{ label: blogRoot.name, href: `/${normalizedLocale}/${blogRoot.slug}` }]
                             : []),
@@ -1347,7 +1350,7 @@ const firstPhone =
             <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
                 <Breadcrumb
                     items={[
-                        { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                        { label: t.common.home, href: `/${normalizedLocale}` },
                         { label: menu.name, isCurrent: true },
                     ]}
                     className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
@@ -1460,7 +1463,7 @@ const firstPhone =
         <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
             <Breadcrumb
                 items={[
-                    { label: normalizedLocale === "en" ? "Home" : "Ana səhifə", href: `/${normalizedLocale}` },
+                    { label: t.common.home, href: `/${normalizedLocale}` },
                     { label: menu.name, isCurrent: true },
                 ]}
                 className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"

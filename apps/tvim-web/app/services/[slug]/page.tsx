@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import type {
 } from "@repo/types/types";
 import { Breadcrumb, type Company } from "@repo/ui";
@@ -12,7 +12,8 @@ import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
-import { normalizeLocale } from "@/lib/site-locales";
+import { normalizeLocale, type SiteLocale } from "@/lib/site-locales";
+import { getTranslations } from "@/lib/i18n";
 
 type MenuDetailData = {
     menu?: {
@@ -36,8 +37,13 @@ type MenuDetailData = {
 };
 
 type StaticServiceContent = {
-    title: string;
-    pageTitle?: string;
+    // These have no CMS entry, so unlike every other page in the app their
+    // per-locale slug and title are decided here rather than read from an
+    // api response. The body copy below (introText/details) is not
+    // translated per locale — it renders the same regardless of language,
+    // which is a real content gap, not something a routing fix can supply.
+    slugs: Record<SiteLocale, string>;
+    titles: Record<SiteLocale, string>;
     introTitle?: string;
     introText?: string;
     detailsTitle?: string;
@@ -45,10 +51,12 @@ type StaticServiceContent = {
     bannerImage?: string;
 };
 
+// Keyed by the az slug — the historical key these pages have always used —
+// but every entry now carries its own slug and title per locale.
 const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
     "bonus-kartlari": {
-        title: "Bonus kartları",
-        pageTitle: "Bonus cards",
+        slugs: { az: "bonus-kartlari", en: "bonus-cards", ru: "bonusnye-karty" },
+        titles: { az: "Bonus kartları", en: "Bonus cards", ru: "Бонусные карты" },
         introTitle: "Earn More from Your Shopping with Our Bonus Cards!",
         introText:
             "Bonus kartları ilə alış-veriş etdikcə əlavə üstünlüklər qazanın. Hər alışda bonus toplayın, növbəti sifarişlərdə istifadə edin və daha sərfəli alış imkanlarından yararlanın.",
@@ -61,8 +69,8 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
         bannerImage: "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1920&q=80",
     },
     "pulsuz-catdirilma": {
-        title: "Pulsuz çatdırılma",
-        pageTitle: "Free delivery",
+        slugs: { az: "pulsuz-catdirilma", en: "free-delivery", ru: "besplatnaya-dostavka" },
+        titles: { az: "Pulsuz çatdırılma", en: "Free delivery", ru: "Бесплатная доставка" },
         introTitle: "Pulsuz çatdırılma xidməti",
         introText:
             "200 AZN və yuxarı sifarişlər üçün pulsuz çatdırılma xidməti təqdim olunur. Sifarişiniz operativ şəkildə ünvanınıza çatdırılır.",
@@ -76,8 +84,8 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
         bannerImage: "https://images.unsplash.com/photo-1614018453562-77f6180d18da?auto=format&fit=crop&w=1920&q=80",
     },
     geriqaytarma: {
-        title: "Geriqaytarma",
-        pageTitle: "Returns",
+        slugs: { az: "geriqaytarma", en: "returns", ru: "vozvrat" },
+        titles: { az: "Geriqaytarma", en: "Returns", ru: "Возврат" },
         introTitle: "14 gün geri qaytarma imkanı",
         introText:
             "Məhsulu təhvil aldıqdan sonra 14 gün ərzində müəyyən şərtlərlə geri qaytarmaq mümkündür.",
@@ -91,8 +99,8 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
         bannerImage: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1920&q=80",
     },
     "korporativ-satis": {
-        title: "Korporativ satış",
-        pageTitle: "Corporate sales",
+        slugs: { az: "korporativ-satis", en: "corporate-sales", ru: "korporativnye-prodazhi" },
+        titles: { az: "Korporativ satış", en: "Corporate sales", ru: "Корпоративные продажи" },
         introTitle: "Korporativ müştərilər üçün xüsusi həllər",
         introText:
             "Şirkətlər üçün fərdi qiymət təklifləri, toplu alış üstünlükləri və uzunmüddətli əməkdaşlıq modelləri təqdim edilir.",
@@ -107,10 +115,30 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
     },
 };
 
-function resolveStaticServiceContent(slug: string): StaticServiceContent | undefined {
-    const exact = STATIC_SERVICE_CONTENT[slug];
-    if (exact) return exact;
+// The sitemap has no other way to learn these slugs, since — unlike every
+// other page it lists — they come from this dictionary rather than an api.
+export const SERVICE_SLUGS_BY_LOCALE: Record<SiteLocale, string>[] =
+    Object.values(STATIC_SERVICE_CONTENT).map((content) => content.slugs);
 
+// Maps every locale's slug back to the (az-keyed) content entry, so
+// /en/services/bonus-cards resolves exactly like /az/services/bonus-kartlari.
+const SERVICE_KEY_BY_SLUG = Object.entries(STATIC_SERVICE_CONTENT).reduce<Record<string, string>>(
+    (acc, [key, content]) => {
+        Object.values(content.slugs).forEach((slug) => {
+            acc[slug] = key;
+        });
+        return acc;
+    },
+    {},
+);
+
+function resolveStaticServiceKey(slug: string): string | undefined {
+    const exactKey = SERVICE_KEY_BY_SLUG[slug];
+    if (exactKey) return exactKey;
+
+    // Legacy / mistyped variants that are neither a stored key nor any
+    // locale's own slug — matched by Azerbaijani word stem only, since that
+    // is the language these ad hoc variants have historically been in.
     const normalized = slug
         .toLowerCase()
         .replace(/ə/g, "e")
@@ -121,23 +149,17 @@ function resolveStaticServiceContent(slug: string): StaticServiceContent | undef
         .replace(/ş/g, "s")
         .replace(/ç/g, "c");
 
-    if (normalized.includes("bonus") || normalized.includes("kart")) {
-        return STATIC_SERVICE_CONTENT["bonus-kartlari"];
-    }
-
-    if (normalized.includes("catdir")) {
-        return STATIC_SERVICE_CONTENT["pulsuz-catdirilma"];
-    }
-
-    if (normalized.includes("geri") || normalized.includes("qaytar") || normalized.includes("deyisdir")) {
-        return STATIC_SERVICE_CONTENT.geriqaytarma;
-    }
-
-    if (normalized.includes("korporativ") || normalized.includes("satis")) {
-        return STATIC_SERVICE_CONTENT["korporativ-satis"];
-    }
+    if (normalized.includes("bonus") || normalized.includes("kart")) return "bonus-kartlari";
+    if (normalized.includes("catdir")) return "pulsuz-catdirilma";
+    if (normalized.includes("geri") || normalized.includes("qaytar") || normalized.includes("deyisdir")) return "geriqaytarma";
+    if (normalized.includes("korporativ") || normalized.includes("satis")) return "korporativ-satis";
 
     return undefined;
+}
+
+function resolveStaticServiceContent(slug: string): StaticServiceContent | undefined {
+    const key = resolveStaticServiceKey(slug);
+    return key ? STATIC_SERVICE_CONTENT[key] : undefined;
 }
 
 async function getMenuDetail(slug: string, locale: string) {
@@ -181,7 +203,7 @@ export async function generateServiceMetadata({
     const menuDetail = await getMenuDetail(normalizedSlug, locale);
     const staticContent = resolveStaticServiceContent(normalizedSlug);
     const menu = menuDetail?.menu;
-    const title = staticContent?.pageTitle || staticContent?.title || menu?.title || menu?.name || "Service";
+    const title = staticContent?.titles[locale] || menu?.title || menu?.name || "Service";
     const description = staticContent?.introText || menu?.description || `${title} xidmeti ile bagli melumatlar TVIM daxilinde.`;
     const keywordsRaw = menu?.seo?.meta_keywords;
     const keywords = Array.isArray(keywordsRaw)
@@ -190,6 +212,17 @@ export async function generateServiceMetadata({
             ? keywordsRaw.split(",").map((item) => item.trim()).filter(Boolean)
             : [title, "service", "tvim"];
 
+    // Only the static entries have a per-locale slug to build alternates
+    // from; a slug that also resolves in the cms is a coincidence (only
+    // "bonus-kartlari" does), not something this page owns.
+    const alternatePathByLocale = staticContent
+        ? Object.entries(staticContent.slugs).reduce<Record<string, string>>((acc, [localeCode, localeSlug]) => {
+            acc[localeCode] = `${localeCode}/services/${localeSlug}`;
+            return acc;
+        }, {})
+        : undefined;
+    const alternateLocales = alternatePathByLocale ? Object.keys(alternatePathByLocale) : [locale];
+
     return buildSeoMetadata({
         title,
         description,
@@ -197,8 +230,8 @@ export async function generateServiceMetadata({
         locale,
         canonicalPath: `${locale}/services/${normalizedSlug}`,
         siteUrl: config.project.siteUrl,
-        locales: [locale],
-        defaultLocale: locale,
+        ...(alternatePathByLocale ? { alternatePathByLocale } : null),
+        locales: alternateLocales,
         image: staticContent?.bannerImage,
         imageAlt: title,
     });
@@ -213,13 +246,23 @@ export async function renderServiceSlugPage({
         .toLowerCase()
         .replace(/^\/+|\/+$/g, "");
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const t = getTranslations(locale);
+
+    const staticContent = resolveStaticServiceContent(normalizedSlug);
+
+    // These slugs have no cms entry, so unlike every other page nothing else
+    // can resolve this locale's own spelling for us — it comes from the
+    // dictionary above. A request under another locale's slug (or an old
+    // Azerbaijani-stem variant) is moved onto it.
+    const canonicalSlug = staticContent?.slugs[locale];
+    if (canonicalSlug && canonicalSlug !== normalizedSlug) {
+        permanentRedirect(`/${locale}/services/${encodeURIComponent(canonicalSlug)}`);
+    }
 
     const [menuDetail, chrome] = await Promise.all([
         getMenuDetail(normalizedSlug, locale),
         getSiteChromeData(locale),
     ]);
-
-    const staticContent = resolveStaticServiceContent(normalizedSlug);
 
     if ((!menuDetail?.menu && !staticContent) || chrome.languages.length === 0) {
         notFound();
@@ -228,7 +271,7 @@ export async function renderServiceSlugPage({
     const menu = menuDetail?.menu;
     const pageData = menuDetail?.data;
     const includedItems = Array.isArray(menuDetail?.included_items) ? menuDetail.included_items : [];
-    const pageTitle = staticContent?.pageTitle || staticContent?.title || menu?.title || menu?.name || "Service";
+    const pageTitle = staticContent?.titles[locale] || menu?.title || menu?.name || "Service";
     const keywordsRaw = menu?.seo?.meta_keywords;
     const keywords = Array.isArray(keywordsRaw)
         ? keywordsRaw.filter(Boolean).map(String)
@@ -237,14 +280,14 @@ export async function renderServiceSlugPage({
             : [];
 
     const fallbackTitle = normalizedSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    const currentTitle = staticContent?.title || menu?.name || fallbackTitle;
+    const currentTitle = staticContent?.titles[locale] || menu?.name || fallbackTitle;
 
     return (
         <SitePageShell chrome={chrome}>
             <Breadcrumb
                 items={[
-                    { label: locale === "en" ? "Home" : "Ana səhifə", href: `/${locale}` },
-                    { label: locale === "en" ? "Services" : "Xidmətlər" },
+                    { label: t.common.home, href: `/${locale}` },
+                    { label: t.breadcrumb.services },
                     { label: currentTitle || "Service", isCurrent: true },
                 ]}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
@@ -258,12 +301,12 @@ export async function renderServiceSlugPage({
                     <div className="space-y-7">
                         <div className="overflow-hidden rounded-[8px] bg-[#f0f2f5] skeleton-loader">
                             {staticContent.bannerImage ? (
-                                <img src={staticContent.bannerImage} alt={staticContent.title} className="h-[clamp(180px,40vw,300px)] w-full object-cover" loading="lazy" />
+                                <img src={staticContent.bannerImage} alt={pageTitle} className="h-[clamp(180px,40vw,300px)] w-full object-cover" loading="lazy" />
                             ) : (
                                 <div className="flex h-[clamp(180px,40vw,300px)] w-full items-center bg-gradient-to-r from-[#1432c9] via-[#1a41ef] to-[#2944c6] px-8">
                                     <div>
                                         <p className="text-[24px] leading-none font-bold text-white lg:text-[36px]">tvim.</p>
-                                        <p className="mt-3 text-[24px] leading-tight font-extrabold text-[#ffe044] uppercase lg:text-[48px]">{staticContent.title}</p>
+                                        <p className="mt-3 text-[24px] leading-tight font-extrabold text-[#ffe044] uppercase lg:text-[48px]">{pageTitle}</p>
                                     </div>
                                 </div>
                             )}

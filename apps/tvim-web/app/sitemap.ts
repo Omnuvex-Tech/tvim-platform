@@ -5,6 +5,7 @@ import { unstable_cache } from "next/cache";
 import { config } from "@/config";
 import { defaultLocale } from "@/lib/site-locales";
 import { resolveSettingsSitemap, resolveSiteUrlWithFallbacks } from "@/lib/settings";
+import { SERVICE_SLUGS_BY_LOCALE } from "@/app/services/[slug]/page";
 
 export const dynamic = "force-dynamic";
 
@@ -69,13 +70,6 @@ type ProductListResponse = {
         };
     };
 };
-
-const STATIC_SERVICE_SLUGS = [
-    "bonus-kartlari",
-    "pulsuz-catdirilma",
-    "geriqaytarma",
-    "korporativ-satis",
-] as const;
 
 const toNormalizedLocale = (value: string) => value.trim().toLowerCase();
 
@@ -318,8 +312,15 @@ const collectLocalePathEntries = async (locale: string) => {
     collectMenuPaths(menusPayload?.data ?? menusPayload, locale, paths);
     collectCategoryPaths(categoriesPayload?.data ?? categoriesPayload, locale, paths);
 
-    STATIC_SERVICE_SLUGS.forEach((slug) => {
-        paths.set(`${locale}/services/${slug}`, undefined);
+    // These have no cms entry, so — unlike everything else this function
+    // collects — their per-locale slug comes from the page's own dictionary
+    // rather than an api response.
+    SERVICE_SLUGS_BY_LOCALE.forEach((slugsByLocale, index) => {
+        const slug = slugsByLocale[locale as keyof typeof slugsByLocale];
+        if (!slug) return;
+        const path = `${locale}/services/${slug}`;
+        paths.set(path, undefined);
+        groupKeyByPath.set(path, `service:${index}`);
     });
 
     // The admin menu still points the brand list at the legacy /product/brands
