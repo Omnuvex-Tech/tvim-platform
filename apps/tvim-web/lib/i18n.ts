@@ -24,6 +24,9 @@ type TranslationDictionary = {
         corporate: string;
         services: string;
     };
+    service: {
+        comingSoon: string;
+    };
     search: {
         title: string;
         emptyQuery: string;
@@ -103,6 +106,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             corporate: "Korporativ",
             services: "Xidmətlər",
         },
+        service: {
+            comingSoon: "Xidmət haqqında məlumat tezliklə əlavə olunacaq.",
+        },
         search: {
             title: "Axtarış",
             emptyQuery: "Axtarış üçün söz daxil edin.",
@@ -180,6 +186,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             corporate: "Corporate",
             services: "Services",
         },
+        service: {
+            comingSoon: "Information about this service will be added soon.",
+        },
         search: {
             title: "Search",
             emptyQuery: "Type something to search.",
@@ -256,6 +265,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             brands: "Бренды",
             corporate: "Корпоратив",
             services: "Услуги",
+        },
+        service: {
+            comingSoon: "Информация об этой услуге будет добавлена в ближайшее время.",
         },
         search: {
             title: "Поиск",

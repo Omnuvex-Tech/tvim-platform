@@ -4,6 +4,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import type {
 } from "@repo/types/types";
 import { Breadcrumb, type Company } from "@repo/ui";
+import { htmlToText } from "@repo/shared/utils";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
@@ -27,6 +28,17 @@ type MenuDetailData = {
         };
     };
     data?: {
+        // The real, full-length content for these entries lives here — the
+        // short menu.description above is just the one-line teaser also
+        // shown on the homepage benefit tile.
+        title?: string | null;
+        description?: string | null;
+        main_photo?: string | null;
+        seo?: {
+            meta_title?: string | null;
+            meta_description?: string | null;
+            meta_keywords?: string | string[] | null;
+        };
         submit?: {
             method?: string;
             path?: string;
@@ -37,17 +49,21 @@ type MenuDetailData = {
 };
 
 type StaticServiceContent = {
-    // These have no CMS entry, so unlike every other page in the app their
-    // per-locale slug and title are decided here rather than read from an
-    // api response. The body copy below (introText/details) is not
-    // translated per locale — it renders the same regardless of language,
-    // which is a real content gap, not something a routing fix can supply.
+    // Nothing else can tell a request what this locale's own slug/title for
+    // these are — that's the one thing every entry here needs regardless of
+    // where its body content comes from.
     slugs: Record<SiteLocale, string>;
     titles: Record<SiteLocale, string>;
+    // Only "pulsuz-catdirilma" (no cms entry at all) populates these. The
+    // other three have a real cms menu with full body content, own SEO, and
+    // (for two of them) a real icon image — renderServiceSlugPage reads that
+    // from menuDetail.data instead of duplicating it here. Keeping fabricated
+    // copy for an entry the cms already answers is exactly the mess this
+    // dictionary used to be.
     introTitle?: string;
     introText?: string;
     detailsTitle?: string;
-    details: string[];
+    details?: string[];
     bannerImage?: string;
 };
 
@@ -57,16 +73,6 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
     "bonus-kartlari": {
         slugs: { az: "bonus-kartlari", en: "bonus-cards", ru: "bonusnye-karty" },
         titles: { az: "Bonus kartları", en: "Bonus cards", ru: "Бонусные карты" },
-        introTitle: "Earn More from Your Shopping with Our Bonus Cards!",
-        introText:
-            "Bonus kartları ilə alış-veriş etdikcə əlavə üstünlüklər qazanın. Hər alışda bonus toplayın, növbəti sifarişlərdə istifadə edin və daha sərfəli alış imkanlarından yararlanın.",
-        detailsTitle: "Bonus kartının üstünlükləri",
-        details: [
-            "Hər alışda bonus faizi toplanır və növbəti sifarişlərdə istifadə edilir.",
-            "Bonuslar bütün TVİM mağazalarında və uyğun məhsul qruplarında keçərlidir.",
-            "Xüsusi kampaniya günlərində bonus qazanma faizi daha yüksək olur.",
-        ],
-        bannerImage: "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1920&q=80",
     },
     "pulsuz-catdirilma": {
         slugs: { az: "pulsuz-catdirilma", en: "free-delivery", ru: "besplatnaya-dostavka" },
@@ -86,32 +92,10 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
     geriqaytarma: {
         slugs: { az: "geriqaytarma", en: "returns", ru: "vozvrat" },
         titles: { az: "Geriqaytarma", en: "Returns", ru: "Возврат" },
-        introTitle: "14 gün geri qaytarma imkanı",
-        introText:
-            "Məhsulu təhvil aldıqdan sonra 14 gün ərzində müəyyən şərtlərlə geri qaytarmaq mümkündür.",
-        detailsTitle: "Qaydalar",
-        details: [
-            "Məhsul istifadə olunmamış və ilkin vəziyyətdə olmalıdır.",
-            "Qablaşdırma və qəbz mütləq təqdim edilməlidir.",
-            "Qaytarma qərarı yoxlanışdan sonra təsdiqlənir.",
-            "Texniki məhsullarda geri qaytarma istehsalçı qaydalarına uyğun olaraq qiymətləndirilir.",
-        ],
-        bannerImage: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1920&q=80",
     },
     "korporativ-satis": {
         slugs: { az: "korporativ-satis", en: "corporate-sales", ru: "korporativnye-prodazhi" },
         titles: { az: "Korporativ satış", en: "Corporate sales", ru: "Корпоративные продажи" },
-        introTitle: "Korporativ müştərilər üçün xüsusi həllər",
-        introText:
-            "Şirkətlər üçün fərdi qiymət təklifləri, toplu alış üstünlükləri və uzunmüddətli əməkdaşlıq modelləri təqdim edilir.",
-        detailsTitle: "Nələr təqdim olunur",
-        details: [
-            "Toplu alış üçün fərdi qiymətləndirmə.",
-            "Müqavilə əsasında davamlı tədarük.",
-            "Sürətli logistika və satış sonrası dəstək.",
-            "Layihə yönümlü sifarişlər üçün fərdi menecer dəstəyi.",
-        ],
-        bannerImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1920&q=80",
     },
 };
 
@@ -190,6 +174,23 @@ export function resolveServiceSlugForLocale(candidate: string, locale: string): 
     return STATIC_SERVICE_CONTENT[key]?.slugs[normalizedLocale as SiteLocale] ?? candidate;
 }
 
+// This page publishes these three under a slug of its own (korporativ-satis,
+// geriqaytarma) that is *not* what the cms stores them under — their real
+// page lives at a different url (see BenefitsStrip / the previous commit).
+// The api resolves a link by any locale's spelling regardless of the
+// requested Content-Language, so the az spelling alone is enough to reach
+// the entry in every locale.
+const CMS_SLUG_BY_KEY: Partial<Record<string, string>> = {
+    "korporativ-satis": "korporativ",
+    geriqaytarma: "geri-qaytarma-ve-deyisdirilme",
+    "bonus-kartlari": "bonus-kartlari",
+};
+
+function resolveCmsQuerySlug(normalizedSlug: string): string {
+    const key = resolveStaticServiceKey(normalizedSlug);
+    return (key && CMS_SLUG_BY_KEY[key]) || normalizedSlug;
+}
+
 async function getMenuDetail(slug: string, locale: string) {
     const payload = await getPublicMenuDetail<any>(slug, locale);
     if (!payload || typeof payload !== "object") return null;
@@ -228,21 +229,31 @@ export async function generateServiceMetadata({
         .toLowerCase()
         .replace(/^\/+|\/+$/g, "");
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
-    const menuDetail = await getMenuDetail(normalizedSlug, locale);
+    const menuDetail = await getMenuDetail(resolveCmsQuerySlug(normalizedSlug), locale);
     const staticContent = resolveStaticServiceContent(normalizedSlug);
     const menu = menuDetail?.menu;
-    const title = staticContent?.titles[locale] || menu?.title || menu?.name || "Service";
-    const description = staticContent?.introText || menu?.description || `${title} xidmeti ile bagli melumatlar TVIM daxilinde.`;
-    const keywordsRaw = menu?.seo?.meta_keywords;
+    const cmsData = menuDetail?.data;
+    // The dictionary's own title wins first: it is what this /services/ url
+    // actually publishes, kept intentionally distinct from the cms page's
+    // own title even when both exist for the same underlying topic.
+    const title = staticContent?.titles[locale] || cmsData?.title || menu?.title || menu?.name || "Service";
+    const description =
+        cmsData?.seo?.meta_description
+        || htmlToText(cmsData?.description).slice(0, 170)
+        || staticContent?.introText
+        || menu?.description
+        || `${title} xidmeti ile bagli melumatlar TVIM daxilinde.`;
+    const keywordsRaw = cmsData?.seo?.meta_keywords ?? menu?.seo?.meta_keywords;
     const keywords = Array.isArray(keywordsRaw)
         ? keywordsRaw.filter(Boolean).map(String)
         : typeof keywordsRaw === "string"
             ? keywordsRaw.split(",").map((item) => item.trim()).filter(Boolean)
             : [title, "service", "tvim"];
 
-    // Only the static entries have a per-locale slug to build alternates
-    // from; a slug that also resolves in the cms is a coincidence (only
-    // "bonus-kartlari" does), not something this page owns.
+    // The dictionary is the only source of a per-locale /services/ slug —
+    // even for the three backed by a real cms page, that page lives at a
+    // different url. staticContent is undefined only for a slug this
+    // dictionary has never heard of.
     const alternatePathByLocale = staticContent
         ? Object.entries(staticContent.slugs).reduce<Record<string, string>>((acc, [localeCode, localeSlug]) => {
             acc[localeCode] = `${localeCode}/services/${localeSlug}`;
@@ -260,7 +271,7 @@ export async function generateServiceMetadata({
         siteUrl: config.project.siteUrl,
         ...(alternatePathByLocale ? { alternatePathByLocale } : null),
         locales: alternateLocales,
-        image: staticContent?.bannerImage,
+        image: cmsData?.main_photo || staticContent?.bannerImage,
         imageAlt: title,
     });
 }
@@ -288,7 +299,7 @@ export async function renderServiceSlugPage({
     }
 
     const [menuDetail, chrome] = await Promise.all([
-        getMenuDetail(normalizedSlug, locale),
+        getMenuDetail(resolveCmsQuerySlug(normalizedSlug), locale),
         getSiteChromeData(locale),
     ]);
 
@@ -297,10 +308,10 @@ export async function renderServiceSlugPage({
     }
 
     const menu = menuDetail?.menu;
-    const pageData = menuDetail?.data;
+    const cmsData = menuDetail?.data;
     const includedItems = Array.isArray(menuDetail?.included_items) ? menuDetail.included_items : [];
-    const pageTitle = staticContent?.titles[locale] || menu?.title || menu?.name || "Service";
-    const keywordsRaw = menu?.seo?.meta_keywords;
+    const pageTitle = staticContent?.titles[locale] || cmsData?.title || menu?.title || menu?.name || "Service";
+    const keywordsRaw = cmsData?.seo?.meta_keywords ?? menu?.seo?.meta_keywords;
     const keywords = Array.isArray(keywordsRaw)
         ? keywordsRaw.filter(Boolean).map(String)
         : typeof keywordsRaw === "string"
@@ -308,7 +319,12 @@ export async function renderServiceSlugPage({
             : [];
 
     const fallbackTitle = normalizedSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    const currentTitle = staticContent?.titles[locale] || menu?.name || fallbackTitle;
+    const currentTitle = staticContent?.titles[locale] || cmsData?.title || menu?.name || fallbackTitle;
+    const bannerImage = cmsData?.main_photo || staticContent?.bannerImage;
+    // Only "pulsuz-catdirilma" still populates this — everything else renders
+    // the real cms body below instead.
+    const hasStaticBody = Boolean(staticContent?.details && staticContent.details.length > 0);
+    const cmsBodyHtml = cmsData?.description || menu?.description || "";
 
     return (
         <SitePageShell chrome={chrome}>
@@ -325,51 +341,52 @@ export async function renderServiceSlugPage({
             />
 
             <section className="mx-auto w-full max-w-[1280px] !px-1 pt-2 pb-10 lg:!px-2 lg:pt-3 lg:pb-12">
-                {staticContent ? (
-                    <div className="space-y-7">
-                        <div className="overflow-hidden rounded-[8px] bg-[#f0f2f5] skeleton-loader">
-                            {staticContent.bannerImage ? (
-                                <img src={staticContent.bannerImage} alt={pageTitle} className="h-[clamp(180px,40vw,300px)] w-full object-cover" loading="lazy" />
-                            ) : (
-                                <div className="flex h-[clamp(180px,40vw,300px)] w-full items-center bg-gradient-to-r from-[#1432c9] via-[#1a41ef] to-[#2944c6] px-8">
-                                    <div>
-                                        <p className="text-[24px] leading-none font-bold text-white lg:text-[36px]">tvim.</p>
-                                        <p className="mt-3 text-[24px] leading-tight font-extrabold text-[#ffe044] uppercase lg:text-[48px]">{pageTitle}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {staticContent.introTitle ? (
-                            <h2 className="text-[24px] leading-[1.25] font-bold text-[#111827] lg:text-[36px]">{staticContent.introTitle}</h2>
-                        ) : null}
-
-                        {staticContent.introText ? (
-                            <p className="max-w-none text-[16px] leading-[1.65] text-[#1f2937] lg:text-[20px]">{staticContent.introText}</p>
-                        ) : null}
-
-                        <div className="border-t border-[#e5e7eb] pt-5">
-                            <h3 className="text-[22px] leading-[1.25] font-bold text-[#111827] lg:text-[32px]">{staticContent.detailsTitle}</h3>
-                            <ul className="mt-4 space-y-3">
-                                {staticContent.details.map((item, index) => (
-                                    <li key={index} className="relative pl-7 text-[16px] leading-[1.6] text-[#1f2937] lg:text-[18px]">
-                                        <span className="absolute top-[10px] left-0 h-2.5 w-2.5 rounded-full bg-[#1d4ed8]" />
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="prose max-w-none">
-                        {menu?.description ? (
-                            <div dangerouslySetInnerHTML={{ __html: menu.description }} />
+                <div className="space-y-7">
+                    <div className="overflow-hidden rounded-[8px] bg-[#f0f2f5] skeleton-loader">
+                        {bannerImage ? (
+                            <img src={bannerImage} alt={pageTitle} className="h-[clamp(180px,40vw,300px)] w-full object-cover" loading="lazy" />
                         ) : (
-                            <p>Xidmət haqqında məlumat tezliklə əlavə olunacaq.</p>
+                            <div className="flex h-[clamp(180px,40vw,300px)] w-full items-center bg-gradient-to-r from-[#1432c9] via-[#1a41ef] to-[#2944c6] px-8">
+                                <div>
+                                    <p className="text-[24px] leading-none font-bold text-white lg:text-[36px]">tvim.</p>
+                                    <p className="mt-3 text-[24px] leading-tight font-extrabold text-[#ffe044] uppercase lg:text-[48px]">{pageTitle}</p>
+                                </div>
+                            </div>
                         )}
                     </div>
-                )}
 
+                    {hasStaticBody ? (
+                        <>
+                            {staticContent?.introTitle ? (
+                                <h2 className="text-[24px] leading-[1.25] font-bold text-[#111827] lg:text-[36px]">{staticContent.introTitle}</h2>
+                            ) : null}
+
+                            {staticContent?.introText ? (
+                                <p className="max-w-none text-[16px] leading-[1.65] text-[#1f2937] lg:text-[20px]">{staticContent.introText}</p>
+                            ) : null}
+
+                            <div className="border-t border-[#e5e7eb] pt-5">
+                                <h3 className="text-[22px] leading-[1.25] font-bold text-[#111827] lg:text-[32px]">{staticContent?.detailsTitle}</h3>
+                                <ul className="mt-4 space-y-3">
+                                    {staticContent?.details?.map((item, index) => (
+                                        <li key={index} className="relative pl-7 text-[16px] leading-[1.6] text-[#1f2937] lg:text-[18px]">
+                                            <span className="absolute top-[10px] left-0 h-2.5 w-2.5 rounded-full bg-[#1d4ed8]" />
+                                            {item}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="prose max-w-none">
+                            {cmsBodyHtml ? (
+                                <div dangerouslySetInnerHTML={{ __html: cmsBodyHtml }} />
+                            ) : (
+                                <p>{t.service.comingSoon}</p>
+                            )}
+                        </div>
+                    )}
+                </div>
             </section>
 
             {includedItems.length > 0 ? (
