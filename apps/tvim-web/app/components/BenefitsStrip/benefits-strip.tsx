@@ -82,9 +82,9 @@ const DEFAULT_BENEFIT_ITEMS: DefaultBenefitLocalized[] = [
 ];
 
 function getDefaultBenefitForLocale(def: DefaultBenefitLocalized, locale: string): BenefitItem & { matchKeywords: string[] } {
-    const resolvedTitle = def.title[locale] ?? def.title.az;
-    const resolvedDescription = def.description[locale] ?? def.description.az;
-    const resolvedSlug = def.slugs[locale] ?? def.slugs.az;
+    const resolvedTitle = String(def.title[locale] ?? def.title.az ?? def.title.en ?? Object.values(def.title)[0] ?? "");
+    const resolvedDescription = String(def.description[locale] ?? def.description.az ?? def.description.en ?? Object.values(def.description)[0] ?? "");
+    const resolvedSlug = String(def.slugs[locale] ?? def.slugs.az ?? def.slugs.en ?? Object.values(def.slugs)[0] ?? "");
     const allKeywords: string[] = Object.values(def.matchKeywords).flat();
     return {
         title: resolvedTitle,
