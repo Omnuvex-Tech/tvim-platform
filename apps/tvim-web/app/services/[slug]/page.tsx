@@ -120,6 +120,19 @@ const STATIC_SERVICE_CONTENT: Record<string, StaticServiceContent> = {
 export const SERVICE_SLUGS_BY_LOCALE: Record<SiteLocale, string>[] =
     Object.values(STATIC_SERVICE_CONTENT).map((content) => content.slugs);
 
+// Three of these four concepts also exist as real cms menu entries (see
+// BenefitsStrip), under their own wording — which for "geri qaytarma" is
+// completely different from this dictionary's own slugs and shares no
+// Azerbaijani stem with them, so the fuzzy fallback below cannot catch it.
+// These aliases are the actual per-locale `menu.link` values fetched live
+// from those cms entries.
+const CMS_ALIAS_SLUGS: Record<string, string> = {
+    korporativ: "korporativ-satis",
+    "geri-qaytarma-ve-deyisdirilme": "geriqaytarma",
+    "redemption-and-replacement": "geriqaytarma",
+    "iskuplenie-i-zamena": "geriqaytarma",
+};
+
 // Maps every locale's slug back to the (az-keyed) content entry, so
 // /en/services/bonus-cards resolves exactly like /az/services/bonus-kartlari.
 const SERVICE_KEY_BY_SLUG = Object.entries(STATIC_SERVICE_CONTENT).reduce<Record<string, string>>(
@@ -129,7 +142,7 @@ const SERVICE_KEY_BY_SLUG = Object.entries(STATIC_SERVICE_CONTENT).reduce<Record
         });
         return acc;
     },
-    {},
+    { ...CMS_ALIAS_SLUGS },
 );
 
 function resolveStaticServiceKey(slug: string): string | undefined {
@@ -160,6 +173,21 @@ function resolveStaticServiceKey(slug: string): string | undefined {
 function resolveStaticServiceContent(slug: string): StaticServiceContent | undefined {
     const key = resolveStaticServiceKey(slug);
     return key ? STATIC_SERVICE_CONTENT[key] : undefined;
+}
+
+/**
+ * Translates any known spelling of one of these four services (this
+ * dictionary's own slug in any locale, or an Azerbaijani-stem variant) into
+ * the slug this locale serves. Used by callers that build a /services/ link
+ * up front — BenefitsStrip — so the link lands on the right page without a
+ * redirect hop through this page's own canonicalizing redirect.
+ */
+export function resolveServiceSlugForLocale(candidate: string, locale: string): string {
+    const key = resolveStaticServiceKey(candidate);
+    if (!key) return candidate;
+
+    const normalizedLocale = locale.trim().toLowerCase();
+    return STATIC_SERVICE_CONTENT[key]?.slugs[normalizedLocale as SiteLocale] ?? candidate;
 }
 
 async function getMenuDetail(slug: string, locale: string) {
