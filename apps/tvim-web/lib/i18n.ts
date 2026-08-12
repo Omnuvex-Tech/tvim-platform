@@ -22,10 +22,6 @@ type TranslationDictionary = {
     breadcrumb: {
         brands: string;
         corporate: string;
-        services: string;
-    };
-    service: {
-        comingSoon: string;
     };
     search: {
         title: string;
@@ -104,10 +100,6 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Brendlər",
             corporate: "Korporativ",
-            services: "Xidmətlər",
-        },
-        service: {
-            comingSoon: "Xidmət haqqında məlumat tezliklə əlavə olunacaq.",
         },
         search: {
             title: "Axtarış",
@@ -184,10 +176,6 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Brands",
             corporate: "Corporate",
-            services: "Services",
-        },
-        service: {
-            comingSoon: "Information about this service will be added soon.",
         },
         search: {
             title: "Search",
@@ -264,10 +252,6 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Бренды",
             corporate: "Корпоратив",
-            services: "Услуги",
-        },
-        service: {
-            comingSoon: "Информация об этой услуге будет добавлена в ближайшее время.",
         },
         search: {
             title: "Поиск",

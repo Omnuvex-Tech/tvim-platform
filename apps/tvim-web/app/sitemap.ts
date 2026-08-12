@@ -5,7 +5,6 @@ import { unstable_cache } from "next/cache";
 import { config } from "@/config";
 import { defaultLocale } from "@/lib/site-locales";
 import { resolveSettingsSitemap, resolveSiteUrlWithFallbacks } from "@/lib/settings";
-import { SERVICE_SLUGS_BY_LOCALE } from "@/app/services/[slug]/page";
 
 export const dynamic = "force-dynamic";
 
@@ -312,16 +311,9 @@ const collectLocalePathEntries = async (locale: string) => {
     collectMenuPaths(menusPayload?.data ?? menusPayload, locale, paths);
     collectCategoryPaths(categoriesPayload?.data ?? categoriesPayload, locale, paths);
 
-    // These have no cms entry, so — unlike everything else this function
-    // collects — their per-locale slug comes from the page's own dictionary
-    // rather than an api response.
-    SERVICE_SLUGS_BY_LOCALE.forEach((slugsByLocale, index) => {
-        const slug = slugsByLocale[locale as keyof typeof slugsByLocale];
-        if (!slug) return;
-        const path = `${locale}/services/${slug}`;
-        paths.set(path, undefined);
-        groupKeyByPath.set(path, `service:${index}`);
-    });
+    // /services/{slug} used to be a separate page with its own dictionary of
+    // slugs; it is gone, and the four concepts it published now redirect onto
+    // real menu pages, which collectMenuPaths above already lists.
 
     // The admin menu still points the brand list at the legacy /product/brands
     // path, which now redirects; the sitemap lists the served URL instead.
