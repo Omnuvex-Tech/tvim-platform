@@ -410,6 +410,26 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const { menu, data: pageData } = menuDetail;
     const localizedLinks = menu.multi_links ?? {};
 
+    // The cms resolves another language's slug and answers in the requested
+    // language, so this url can be reached under a slug this locale does not
+    // serve. Move it onto the localized one — 20 of 29 menu nodes differ per
+    // language, so this is the common case rather than the exception.
+    const localizedSlug = String(localizedLinks[normalizedLocale] ?? "").trim().replace(/^\/+|\/+$/g, "");
+    if (localizedSlug && localizedSlug !== slug) {
+        const query = new URLSearchParams();
+        for (const [key, value] of Object.entries(resolvedSearchParams)) {
+            if (value == null) continue;
+            for (const entry of Array.isArray(value) ? value : [value]) {
+                const trimmed = String(entry ?? "").trim();
+                if (trimmed) query.append(key, trimmed);
+            }
+        }
+        const suffix = query.toString();
+        permanentRedirect(
+            `/${normalizedLocale}/${encodeURIComponent(localizedSlug)}${suffix ? `?${suffix}` : ""}`,
+        );
+    }
+
     // Normalize keywords for UI and metadata usage
     function normalizeKeywords(raw: any): string[] {
         if (!raw) return [];
