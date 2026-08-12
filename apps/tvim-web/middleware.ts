@@ -9,6 +9,7 @@ import {
     resolveBlogRedirect,
     resolveLocalizedRoute,
     resolveTvimPageRedirect,
+    toInternalPath,
     type RouteLocale,
 } from "@repo/shared/routes";
 
@@ -71,6 +72,11 @@ export function middleware(request: NextRequest) {
             url.pathname = `/${locale}${localizedRoute.internalPath}`;
             return NextResponse.rewrite(url);
         }
+    }
+    const internalPath = toInternalPath(rest);
+    if (internalPath !== null) {
+        url.pathname = `/${locale}${internalPath}`;
+        return NextResponse.rewrite(url);
     }
 
     const blogPath = resolveBlogRedirect(rest, locale);
