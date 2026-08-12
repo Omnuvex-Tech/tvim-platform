@@ -3,7 +3,6 @@ import {
     generateBrandNewsMetadata,
     renderBrandNewsSlugPage,
 } from "@/app/brands/news/[slug]/page";
-import { getStaticBrandNewsSlugParams } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandNewsLocaleRouteParams = {
@@ -11,12 +10,10 @@ type BrandNewsLocaleRouteParams = {
     slug: string;
 };
 
+// Rendered on demand and revalidated; the menu list payload carries no items,
+// so a generateStaticParams here only ever produced an empty list.
 export const revalidate = 300;
 export const dynamicParams = true;
-
-export async function generateStaticParams() {
-    return await getStaticBrandNewsSlugParams();
-}
 
 export default async function LocalizedBrandNewsSlugPage({
     params,

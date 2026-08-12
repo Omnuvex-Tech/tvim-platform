@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
 
-type LocaleCode = (typeof SUPPORTED_LOCALES)[number];
+type LocaleCode = SiteLocale;
 
 const copy = {
     az: {

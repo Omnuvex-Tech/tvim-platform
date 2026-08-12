@@ -12,11 +12,11 @@ import { getMainPageRequestFormProps } from "@/lib/main-page";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 
 export const metadata = buildNoIndexMetadata();
 
-type LocaleCode = "az" | "ru" | "en";
-const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];
+type LocaleCode = SiteLocale;
 
 const normalizeLocale = (value: string): LocaleCode => {
     const lower = value.trim().toLowerCase();

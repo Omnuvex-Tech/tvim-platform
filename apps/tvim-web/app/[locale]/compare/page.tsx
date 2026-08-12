@@ -12,13 +12,13 @@ import { COMPARE_GUEST_TOKEN_COOKIE, decodeCompareTokenFromCookie } from "@/lib/
 import { FAVORITES_GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/favorites/session";
 import { getMainPageRequestFormProps } from "@/lib/main-page";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 import { CompareProductsGrid } from "./compare-products-grid";
 
 export const metadata = buildNoIndexMetadata();
 
-type LocaleCode = "az" | "ru" | "en";
+type LocaleCode = SiteLocale;
 
-const SUPPORTED_LOCALES: LocaleCode[] = ["az", "ru", "en"];
 const DISPLAY_LOCALE: LocaleCode = "az";
 
 const COMPARE_PAGE_COPY: Record<LocaleCode, {

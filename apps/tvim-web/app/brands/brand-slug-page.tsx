@@ -70,6 +70,14 @@ type LiveSearchResponseData = {
     products?: unknown;
 };
 
+const decodeSlugParam = (value: string) => {
+    try {
+        return decodeURIComponent(String(value ?? ""));
+    } catch {
+        return String(value ?? "");
+    }
+};
+
 const normalizeSlugText = (value: string) => {
     const decoded = decodeURIComponent(String(value ?? "")).trim();
     return decoded.replace(/[-_]+/g, " ").trim();
@@ -165,7 +173,7 @@ export async function generateBrandSlugMetadata({
         keywords: [pageName, "brand", "brands", "tvim"],
         locale,
         canonicalPath,
-        siteUrl: config.project.url,
+        siteUrl: config.project.siteUrl,
         ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
         robots: seoState.hasCustomPage || seoState.hasRefinement
             ? {
@@ -269,6 +277,12 @@ export async function renderBrandSlugPage({
         }
 
         notFound();
+    }
+
+    // Lookups are case-insensitive, so /az/brands/BOSCH resolves too. Send it
+    // to the slug as published rather than serving the brand at both spellings.
+    if (localBrand.slug !== decodeSlugParam(slug)) {
+        permanentRedirect(`/${locale}/brands/${encodeURIComponent(localBrand.slug)}`);
     }
 
     const brandFilterId = Number(matchedBrand?.filter_id);

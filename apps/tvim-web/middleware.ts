@@ -42,6 +42,13 @@ export function middleware(request: NextRequest) {
     const rest = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
 
     const url = request.nextUrl.clone();
+
+    // isRouteLocale accepts any casing, so /AZ/brands would otherwise answer
+    // alongside /az/brands. The prefix is always lowercase.
+    if (maybeLocale !== locale) {
+        url.pathname = `/${locale}${rest}`;
+        return NextResponse.redirect(url, 308);
+    }
     const renamedSearchParam = isSearchRoute(rest) && renameLegacySearchParam(url);
 
     if (renamedSearchParam) {

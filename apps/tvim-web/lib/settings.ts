@@ -406,7 +406,11 @@ export const buildHomeMetadata = (
     const description = seo?.meta_description || seo?.description || (useProjectFallbacks ? config.project.projectDescription : undefined);
     const keywords = normalizeKeywords(seo?.meta_keywords ?? seo?.keywords);
     const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
-    const siteUrl = getUrlOrigin(options.siteUrl ?? canonicalFromSeo);
+    // When the cms states a canonical it also settles which host the page is
+    // published under, and the alternates have to agree with it — otherwise
+    // x-default is built here while az/en/ru come from the api and the same
+    // head advertises two different origins.
+    const siteUrl = getUrlOrigin(canonicalFromSeo ?? options.siteUrl);
     const canonical = canonicalFromSeo ?? resolveUrl(siteUrl, options.canonicalPath ?? locale);
     const locales = options.locales?.length ? options.locales : ["az", "en", "ru"];
     const defaultLocale = options.defaultLocale ?? config.project.defLang;

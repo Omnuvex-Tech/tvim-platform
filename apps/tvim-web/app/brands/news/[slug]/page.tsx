@@ -219,7 +219,7 @@ export async function generateBrandNewsMetadata({
         keywords: [pageTitle, "brand news", "tvim"],
         locale,
         canonicalPath: `${locale}/brands/news/${normalizedSlug}`,
-        siteUrl: config.project.url,
+        siteUrl: config.project.siteUrl,
         ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
         image: bannerImage || undefined,
         imageAlt: pageTitle,

@@ -356,7 +356,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         {
             canonicalPath: currentPath,
             alternatePathByLocale,
-            siteUrl: config.project.url,
+            siteUrl: config.project.siteUrl,
             useProjectFallbacks: false,
         },
     );

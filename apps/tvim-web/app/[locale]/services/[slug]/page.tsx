@@ -3,7 +3,6 @@ import {
     generateServiceMetadata,
     renderServiceSlugPage,
 } from "@/app/services/[slug]/page";
-import { getStaticServiceSlugParams } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type ServiceLocaleRouteParams = {
@@ -11,12 +10,10 @@ type ServiceLocaleRouteParams = {
     slug: string;
 };
 
+// Rendered on demand and revalidated; there is no menu link under /services,
+// so a generateStaticParams here only ever produced an empty list.
 export const revalidate = 300;
 export const dynamicParams = true;
-
-export async function generateStaticParams() {
-    return await getStaticServiceSlugParams();
-}
 
 export default async function LocalizedServiceSlugPage({
     params,

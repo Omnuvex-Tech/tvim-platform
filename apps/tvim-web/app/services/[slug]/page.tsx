@@ -196,7 +196,7 @@ export async function generateServiceMetadata({
         keywords,
         locale,
         canonicalPath: `${locale}/services/${normalizedSlug}`,
-        siteUrl: config.project.url,
+        siteUrl: config.project.siteUrl,
         locales: [locale],
         defaultLocale: locale,
         image: staticContent?.bannerImage,
