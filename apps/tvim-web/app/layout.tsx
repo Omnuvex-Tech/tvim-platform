@@ -5,6 +5,7 @@ import { NotifyProvider, NotifyContainer } from "@repo/ui";
 import { QueryProvider } from "@/app/providers";
 import { DevelopmentPerformance } from "@/app/components/DevelopmentPerformance/development-performance";
 import { MobileBottomTabs } from "@/app/components/MobileBottomTabs/mobile-bottom-tabs";
+import { NavigationProgress } from "@/app/components/NavigationProgress/navigation-progress";
 import { config } from "@/config";
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
                 />
             </head>
             <body className={inter.variable} suppressHydrationWarning>
+                <NavigationProgress />
                 <QueryProvider>
                     <NotifyProvider>
                         <main className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">{children}</main>

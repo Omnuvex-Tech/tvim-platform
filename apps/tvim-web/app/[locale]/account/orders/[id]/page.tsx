@@ -12,6 +12,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeLocale } from "@/lib/site-locales";
 import { AccountNavigation } from "../../account-navigation";
 import { localizedHref } from "@/lib/routes";
+import { getTranslations } from "@/lib/i18n";
 
 type OrderStatus = {
     code?: string | null;
@@ -182,11 +183,14 @@ const formatAmount = (value: unknown) => {
     return numeric.toFixed(2).replace(/\.00$/, "");
 };
 
-const formatDateTime = (raw?: string | null) => {
+/** Dates follow the visitor's language, not a fixed az-AZ format. */
+const DATE_LOCALES: Record<string, string> = { az: "az-AZ", ru: "ru-RU", en: "en-GB" };
+
+const formatDateTime = (raw: string | null | undefined, locale: string) => {
     if (!raw) return "";
     const date = new Date(raw);
     if (Number.isNaN(date.getTime())) return raw;
-    return date.toLocaleString("az-AZ", {
+    return date.toLocaleString(DATE_LOCALES[locale] ?? DATE_LOCALES.az, {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -202,6 +206,7 @@ export default async function OrderDetailPage({
 }) {
     const { locale: routeLocale, id } = await params;
     const locale = normalizeLocale(routeLocale);
+    const t = getTranslations(locale).account.orderDetail;
     const homePageMeta = config.pages.home[locale];
     const orderHistoryPageMeta = config.pages.orderHistory[locale];
     const orderDetailPageMeta = config.pages.orderDetail[locale];
@@ -274,10 +279,10 @@ export default async function OrderDetailPage({
                 <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
                     <div className="rounded-[20px] bg-[#fff5f5] p-6 text-[#7f1d1d]">
                         <p className="text-[18px] font-semibold">
-                            {orderLoadError?.status === 500 ? "Server Error" : orderLoadError?.message || "Sifariş detalı yüklənmədi."}
+                            {orderLoadError?.status === 500 ? "Server Error" : orderLoadError?.message || t.loadFailed}
                         </p>
                         <p className="mt-2 text-[14px]">
-                            Status kodu: {orderLoadError?.status ?? 500}
+                            {t.statusCode}: {orderLoadError?.status ?? 500}
                         </p>
                     </div>
                 </section>
@@ -318,11 +323,11 @@ export default async function OrderDetailPage({
                         <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                             <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-[13px] font-medium text-[#6b7280]">Sifariş nömrəsi</p>
+                                    <p className="text-[13px] font-medium text-[#6b7280]">{t.orderNumber}</p>
                                     <h2 className="mt-1 text-[28px] leading-none font-semibold text-[#111826]">
                                         {order.number || order.uuid || `#${order.id}`}
                                     </h2>
-                                    {order.placed_at ? <p className="mt-2 text-[14px] text-[#667085]">{formatDateTime(order.placed_at)}</p> : null}
+                                    {order.placed_at ? <p className="mt-2 text-[14px] text-[#667085]">{formatDateTime(order.placed_at, locale)}</p> : null}
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
@@ -342,31 +347,31 @@ export default async function OrderDetailPage({
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                                <h3 className="text-[18px] font-semibold text-[#111826]">Müştəri</h3>
+                                <h3 className="text-[18px] font-semibold text-[#111826]">{t.customer}</h3>
                                 <div className="mt-4 space-y-2 text-[15px] text-[#344054]">
-                                    <p><span className="font-medium text-[#111826]">Ad:</span> {order.customer?.name || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">E-poçt:</span> {order.customer?.email || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Telefon:</span> {order.customer?.phone || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.name}:</span> {order.customer?.name || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.emailLabel}:</span> {order.customer?.email || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.phoneLabel}:</span> {order.customer?.phone || "-"}</p>
                                 </div>
                             </div>
 
                             <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                                <h3 className="text-[18px] font-semibold text-[#111826]">Çatdırılma</h3>
+                                <h3 className="text-[18px] font-semibold text-[#111826]">{t.delivery}</h3>
                                 <div className="mt-4 space-y-2 text-[15px] text-[#344054]">
-                                    <p><span className="font-medium text-[#111826]">Etiket:</span> {order.address?.label || order.address?.type || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Ad:</span> {order.address?.recipient_name || [order.address?.name, order.address?.surname].filter(Boolean).join(" ") || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Telefon:</span> {order.address?.phone || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Ünvan:</span> {[order.address?.region, order.address?.city, order.address?.address_line1].filter(Boolean).join(", ") || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Əlavə ünvan:</span> {order.address?.address_line2 || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">İndeks:</span> {order.address?.postal_code || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Ölkə:</span> {order.address?.country?.name || "-"}</p>
-                                    <p><span className="font-medium text-[#111826]">Qeyd:</span> {order.address?.note || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.tag}:</span> {order.address?.label || order.address?.type || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.name}:</span> {order.address?.recipient_name || [order.address?.name, order.address?.surname].filter(Boolean).join(" ") || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.phoneLabel}:</span> {order.address?.phone || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.addressLabel}:</span> {[order.address?.region, order.address?.city, order.address?.address_line1].filter(Boolean).join(", ") || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.addressExtra}:</span> {order.address?.address_line2 || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.postalCode}:</span> {order.address?.postal_code || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.country}:</span> {order.address?.country?.name || "-"}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.note}:</span> {order.address?.note || "-"}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                            <h3 className="text-[18px] font-semibold text-[#111826]">Məhsullar</h3>
+                            <h3 className="text-[18px] font-semibold text-[#111826]">{t.products}</h3>
                             <div className="mt-4 space-y-3">
                                 {items.map((item, index) => {
                                     const qty = Number(item.qty ?? 0);
@@ -375,15 +380,15 @@ export default async function OrderDetailPage({
                                     return (
                                         <div key={item.id ?? `${item.product_variation_id ?? "item"}-${index}`} className="flex gap-4 rounded-[16px] bg-[#f7f8fb] p-4">
                                             <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[12px] bg-white">
-                                                {item.image ? <img src={item.image} alt={item.product_name || "Məhsul"} className="h-full w-full object-contain" /> : null}
+                                                {item.image ? <img src={item.image} alt={item.product_name || t.products} className="h-full w-full object-contain" /> : null}
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="truncate text-[16px] font-semibold text-[#111826]">{item.product_name || "-"}</p>
                                                 <p className="mt-1 text-[14px] text-[#667085]">{item.variation_name || item.sku || ""}</p>
                                                 <div className="mt-3 flex flex-wrap gap-3 text-[14px] text-[#344054]">
-                                                    <span>Say: {qty}</span>
-                                                    <span>Vahid: {formatAmount(unit)} AZN</span>
-                                                    <span>Cəmi: {formatAmount(total)} AZN</span>
+                                                    <span>{t.quantity}: {qty}</span>
+                                                    <span>{t.unitPrice}: {formatAmount(unit)} AZN</span>
+                                                    <span>{t.lineTotal}: {formatAmount(total)} AZN</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -393,52 +398,52 @@ export default async function OrderDetailPage({
                         </div>
 
                         <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                            <h3 className="text-[18px] font-semibold text-[#111826]">Ödəniş</h3>
+                            <h3 className="text-[18px] font-semibold text-[#111826]">{t.payment}</h3>
                             <div className="mt-4 grid gap-2 text-[15px] text-[#344054]">
-                                <p><span className="font-medium text-[#111826]">Metod:</span> {order.payment_method?.name || "-"}</p>
+                                <p><span className="font-medium text-[#111826]">{t.method}:</span> {order.payment_method?.name || "-"}</p>
                                 {order.payment_method?.icon_path ? (
                                     <div className="flex items-center gap-3">
-                                        <img src={order.payment_method.icon_path} alt={order.payment_method.name || "Ödəniş metodu"} className="h-8 w-auto object-contain" />
+                                        <img src={order.payment_method.icon_path} alt={order.payment_method.name || t.payment} className="h-8 w-auto object-contain" />
                                         <span className="text-[14px] text-[#667085]">{order.payment_method.description || ""}</span>
                                     </div>
                                 ) : null}
                                 {selectedInstallment ? (
                                     <p>
-                                        <span className="font-medium text-[#111826]">Hissə:</span> {selectedInstallment.month ?? "-"} ay
+                                        <span className="font-medium text-[#111826]">{t.installment}:</span> {selectedInstallment.month ?? "-"} {t.monthsSuffix}
                                     </p>
                                 ) : null}
                                 {selectedInstallment ? (
                                     <>
-                                        <p><span className="font-medium text-[#111826]">İlkin ödəniş:</span> {formatAmount(selectedInstallment.initial_payment)} {order.currency || "AZN"}</p>
-                                        <p><span className="font-medium text-[#111826]">Aylıq məbləğ:</span> {formatAmount(selectedInstallment.monthly_amount)} {order.currency || "AZN"}</p>
-                                        <p><span className="font-medium text-[#111826]">Faiz:</span> {formatAmount(selectedInstallment.percent)}%</p>
-                                        <p><span className="font-medium text-[#111826]">Qalan məbləğ:</span> {formatAmount(selectedInstallment.remaining_total_with_interest)} {order.currency || "AZN"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.initialPayment}:</span> {formatAmount(selectedInstallment.initial_payment)} {order.currency || "AZN"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.monthlyAmount}:</span> {formatAmount(selectedInstallment.monthly_amount)} {order.currency || "AZN"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.percent}:</span> {formatAmount(selectedInstallment.percent)}%</p>
+                                        <p><span className="font-medium text-[#111826]">{t.remainingAmount}:</span> {formatAmount(selectedInstallment.remaining_total_with_interest)} {order.currency || "AZN"}</p>
                                     </>
                                 ) : null}
                                 {firstPayment ? (
                                     <>
-                                        <p><span className="font-medium text-[#111826]">İlk ödəniş:</span> {formatAmount(firstPayment.amount)} {firstPayment.currency || "AZN"}</p>
-                                        <p><span className="font-medium text-[#111826]">Ödəniş statusu:</span> {firstPayment.status?.text || "-"}</p>
-                                        <p><span className="font-medium text-[#111826]">Gateway:</span> {firstPayment.provider_reference || firstPayment.provider_payment_id || "-"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.firstPayment}:</span> {formatAmount(firstPayment.amount)} {firstPayment.currency || "AZN"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.paymentStatus}:</span> {firstPayment.status?.text || "-"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.gateway}:</span> {firstPayment.provider_reference || firstPayment.provider_payment_id || "-"}</p>
                                     </>
                                 ) : null}
-                                {order.comment ? <p><span className="font-medium text-[#111826]">Şərh:</span> {order.comment}</p> : null}
+                                {order.comment ? <p><span className="font-medium text-[#111826]">{t.comment}:</span> {order.comment}</p> : null}
                             </div>
                         </div>
                     </div>
 
                     <aside className="space-y-4">
                         <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                            <h3 className="text-[18px] font-semibold text-[#111826]">Yekun</h3>
+                            <h3 className="text-[18px] font-semibold text-[#111826]">{t.summary}</h3>
                             <div className="mt-4 space-y-3 text-[15px] text-[#344054]">
-                                <div className="flex items-center justify-between gap-4"><span>Aralıq cəm</span><span>{formatAmount(order.totals?.subtotal)} AZN</span></div>
-                                {hourDiscount > 0 ? <div className="flex items-center justify-between gap-4"><span>Saat endirimi</span><span>-{formatAmount(hourDiscount)} AZN</span></div> : null}
-                                {promoDiscount > 0 ? <div className="flex items-center justify-between gap-4"><span>Promo endirimi</span><span>-{formatAmount(promoDiscount)} AZN</span></div> : null}
-                                <div className="flex items-center justify-between gap-4"><span>Çatdırılma</span><span>{formatAmount(order.totals?.delivery_price)} AZN</span></div>
-                                {order.totals?.initial_payment ? <div className="flex items-center justify-between gap-4"><span>İlkin ödəniş</span><span>{formatAmount(order.totals.initial_payment)} AZN</span></div> : null}
-                                {order.totals?.remaining_installment_total ? <div className="flex items-center justify-between gap-4"><span>Qalan hissə</span><span>{formatAmount(order.totals.remaining_installment_total)} AZN</span></div> : null}
+                                <div className="flex items-center justify-between gap-4"><span>{t.subtotal}</span><span>{formatAmount(order.totals?.subtotal)} AZN</span></div>
+                                {hourDiscount > 0 ? <div className="flex items-center justify-between gap-4"><span>{t.hourDiscount}</span><span>-{formatAmount(hourDiscount)} AZN</span></div> : null}
+                                {promoDiscount > 0 ? <div className="flex items-center justify-between gap-4"><span>{t.promoDiscount}</span><span>-{formatAmount(promoDiscount)} AZN</span></div> : null}
+                                <div className="flex items-center justify-between gap-4"><span>{t.delivery}</span><span>{formatAmount(order.totals?.delivery_price)} AZN</span></div>
+                                {order.totals?.initial_payment ? <div className="flex items-center justify-between gap-4"><span>{t.initialPayment}</span><span>{formatAmount(order.totals.initial_payment)} AZN</span></div> : null}
+                                {order.totals?.remaining_installment_total ? <div className="flex items-center justify-between gap-4"><span>{t.remainingPart}</span><span>{formatAmount(order.totals.remaining_installment_total)} AZN</span></div> : null}
                                 <div className="border-t border-[#e7ebf2] pt-3 flex items-center justify-between gap-4 text-[16px] font-semibold text-[#111826]">
-                                    <span>Ödəniləcək</span>
+                                    <span>{t.payable}</span>
                                     <span>{formatAmount(order.totals?.payable_total ?? order.totals?.total)} AZN</span>
                                 </div>
                             </div>
@@ -446,17 +451,17 @@ export default async function OrderDetailPage({
 
                         {order.promo?.code ? (
                             <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                                <h3 className="text-[18px] font-semibold text-[#111826]">Promo</h3>
+                                <h3 className="text-[18px] font-semibold text-[#111826]">{t.promo}</h3>
                                 <div className="mt-4 space-y-2 text-[15px] text-[#344054]">
-                                    <p><span className="font-medium text-[#111826]">Kod:</span> {order.promo.code}</p>
-                                    <p><span className="font-medium text-[#111826]">Endirim:</span> {formatAmount(order.promo.discount)} AZN</p>
+                                    <p><span className="font-medium text-[#111826]">{t.code}:</span> {order.promo.code}</p>
+                                    <p><span className="font-medium text-[#111826]">{t.discount}:</span> {formatAmount(order.promo.discount)} AZN</p>
                                 </div>
                             </div>
                         ) : null}
 
                         {payments.length > 0 ? (
                             <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                                <h3 className="text-[18px] font-semibold text-[#111826]">Ödənişlər</h3>
+                                <h3 className="text-[18px] font-semibold text-[#111826]">{t.payments}</h3>
                                 <div className="mt-4 space-y-3">
                                     {payments.map((payment) => (
                                         <div key={payment.id ?? payment.provider_payment_id ?? payment.provider_reference} className="rounded-[14px] bg-[#f7f8fb] p-4">
@@ -467,14 +472,14 @@ export default async function OrderDetailPage({
                                                 </div>
                                                 <div className="text-right text-[14px] text-[#344054]">
                                                     <p>{formatAmount(payment.amount)} {payment.currency || order.currency || "AZN"}</p>
-                                                    {payment.paid_at ? <p className="mt-1 text-[12px] text-[#98a2b3]">{formatDateTime(payment.paid_at)}</p> : null}
+                                                    {payment.paid_at ? <p className="mt-1 text-[12px] text-[#98a2b3]">{formatDateTime(payment.paid_at, locale)}</p> : null}
                                                 </div>
                                             </div>
                                             {payment.payment_installment ? (
                                                 <div className="mt-3 grid gap-1 text-[13px] text-[#667085]">
-                                                    <p>Hissə: {payment.payment_installment.month ?? "-"} ay</p>
-                                                    <p>İlkin ödəniş: {formatAmount(payment.payment_installment.initial_payment)} AZN</p>
-                                                    <p>Aylıq: {formatAmount(payment.payment_installment.monthly_amount)} AZN</p>
+                                                    <p>{t.installment}: {payment.payment_installment.month ?? "-"} {t.monthsSuffix}</p>
+                                                    <p>{t.initialPayment}: {formatAmount(payment.payment_installment.initial_payment)} AZN</p>
+                                                    <p>{t.monthly}: {formatAmount(payment.payment_installment.monthly_amount)} AZN</p>
                                                 </div>
                                             ) : null}
                                             {payment.events?.length ? (
@@ -483,7 +488,7 @@ export default async function OrderDetailPage({
                                                         <div key={event.id ?? `${event.event_type}-${event.occurred_at ?? event.created_at ?? ""}`} className="rounded-[12px] bg-white p-3 text-[13px] text-[#344054]">
                                                             <p className="font-medium text-[#111826]">{event.event_type || "-"}</p>
                                                             <p className="mt-1 text-[#667085]">{event.provider || "-"}</p>
-                                                            {event.occurred_at ? <p className="mt-1 text-[#98a2b3]">{formatDateTime(event.occurred_at)}</p> : null}
+                                                            {event.occurred_at ? <p className="mt-1 text-[#98a2b3]">{formatDateTime(event.occurred_at, locale)}</p> : null}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -496,15 +501,15 @@ export default async function OrderDetailPage({
 
                         {history.length > 0 ? (
                             <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
-                                <h3 className="text-[18px] font-semibold text-[#111826]">Status tarixçəsi</h3>
+                                <h3 className="text-[18px] font-semibold text-[#111826]">{t.statusHistory}</h3>
                                 <div className="mt-4 space-y-3">
                                     {history.map((entry, index) => (
                                         <div key={entry.id ?? index} className="rounded-[14px] bg-[#f7f8fb] p-4">
                                             <p className="text-[14px] font-semibold text-[#111826]">{entry.to_status?.text || "-"}</p>
-                                            {entry.from_status?.text ? <p className="mt-1 text-[13px] text-[#667085]">Dəyişdi: {entry.from_status.text} → {entry.to_status?.text || "-"}</p> : null}
-                                            {entry.changed_by?.name ? <p className="mt-1 text-[13px] text-[#667085]">Kim tərəfindən: {entry.changed_by.name}</p> : null}
+                                            {entry.from_status?.text ? <p className="mt-1 text-[13px] text-[#667085]">{t.changedFrom}: {entry.from_status.text} → {entry.to_status?.text || "-"}</p> : null}
+                                            {entry.changed_by?.name ? <p className="mt-1 text-[13px] text-[#667085]">{t.changedBy}: {entry.changed_by.name}</p> : null}
                                             {entry.note ? <p className="mt-1 text-[13px] text-[#667085]">{entry.note}</p> : null}
-                                            {entry.created_at ? <p className="mt-2 text-[12px] text-[#98a2b3]">{formatDateTime(entry.created_at)}</p> : null}
+                                            {entry.created_at ? <p className="mt-2 text-[12px] text-[#98a2b3]">{formatDateTime(entry.created_at, locale)}</p> : null}
                                         </div>
                                     ))}
                                 </div>

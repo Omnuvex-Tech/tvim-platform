@@ -802,6 +802,17 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         const hasFilters = Array.isArray(productList?.filters) && productList.filters.length > 0;
         const drawerId = `filters-drawer-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
 
+        // One filter list serves both breakpoints: an off-canvas drawer below lg,
+        // the static sidebar from lg up. Rendering it twice doubled the HTML of
+        // every category, and on the big ones the filters are most of the page.
+        //
+        // The open state comes from the checkbox below, which is not a sibling of
+        // the panel, so `peer-checked` cannot reach it. The `filters-toggle` /
+        // `filters-panel` pair in globals.css bridges that gap.
+        const filtersPanelClassName = hasFilters
+            ? "filters-panel space-y-5"
+            : "hidden space-y-5 self-start lg:block";
+
         const showMoreFiltersText =
             normalizedLocale === "en" ? "Show more" : normalizedLocale === "ru" ? "Показать больше" : "Daha çox göstər";
         const showLessFiltersText =
@@ -948,11 +959,23 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
                 <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 pb-10 lg:px-2 lg:pb-12">
                     <PendingNavProvider>
-                        <input id={drawerId} type="checkbox" className="peer hidden" />
+                        <input id={drawerId} type="checkbox" className="filters-toggle peer hidden" />
                         <DrawerScrollLock checkboxId={drawerId} />
                         <PendingOverlay className="fixed inset-0 z-[120] flex items-center justify-center bg-black/20" />
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-                            <aside className="hidden space-y-5 self-start lg:block">
+                            <aside className={filtersPanelClassName}>
+                                {hasFilters ? (
+                                    <div className="flex items-center justify-between lg:hidden">
+                                        <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
+                                        <label
+                                            htmlFor={drawerId}
+                                            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
+                                            aria-label="close-filters"
+                                        >
+                                            <i className="fa-solid fa-xmark" aria-hidden="true" />
+                                        </label>
+                                    </div>
+                                ) : null}
                                 {filtersBody}
                             </aside>
 
@@ -1075,30 +1098,11 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         </div>
 
                         {hasFilters ? (
-                            <>
-                                <label
-                                    htmlFor={drawerId}
-                                    className="fixed inset-0 z-40 cursor-pointer bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
-                                    aria-label="close-filters-overlay"
-                                />
-                                <div className="fixed inset-y-0 left-0 z-50 w-full -translate-x-full bg-white transition-transform duration-300 ease-out transform-gpu will-change-transform peer-checked:translate-x-0 lg:hidden">
-                                    <div className="flex h-full flex-col overflow-y-auto p-5">
-                                        <div className="mb-4 flex items-center justify-between">
-                                            <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
-                                            <label
-                                                htmlFor={drawerId}
-                                                className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
-                                                aria-label="close-filters"
-                                            >
-                                                <i className="fa-solid fa-xmark" aria-hidden="true" />
-                                            </label>
-                                        </div>
-                                        <div className="space-y-5">
-                                            {filtersBody}
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
+                            <label
+                                htmlFor={drawerId}
+                                className="fixed inset-0 z-40 cursor-pointer bg-black/30 opacity-0 pointer-events-none transition-opacity duration-300 ease-out peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"
+                                aria-label="close-filters-overlay"
+                            />
                         ) : null}
                     </PendingNavProvider>
                 </section>

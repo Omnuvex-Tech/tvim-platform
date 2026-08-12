@@ -239,6 +239,102 @@
 	animation: skeleton-loading 1.5s ease-in-out infinite;
 }
 
+/* Top navigation progress bar. Client-side route changes never trigger the
+   browser's own tab spinner, so this stands in for it. */
+.nav-progress {
+	position: fixed;
+	inset-inline: 0;
+	top: 0;
+	z-index: 2000;
+	height: 3px;
+	pointer-events: none;
+}
+
+.nav-progress__bar {
+	width: 100%;
+	height: 100%;
+	transform-origin: 0 50%;
+	background: linear-gradient(90deg, #0f57d6 0%, #1d4fff 55%, #4d8bff 100%);
+	box-shadow: 0 0 8px rgba(29, 79, 255, 0.45);
+	animation: nav-progress-advance 10s cubic-bezier(0.1, 0.75, 0.2, 1) forwards;
+}
+
+.nav-progress__bar--done {
+	animation: nav-progress-finish 260ms ease-out forwards;
+}
+
+/* Creeps towards 90% and stops there; the commit is what completes it. */
+@keyframes nav-progress-advance {
+	0% {
+		transform: scaleX(0.08);
+	}
+	15% {
+		transform: scaleX(0.4);
+	}
+	40% {
+		transform: scaleX(0.65);
+	}
+	100% {
+		transform: scaleX(0.9);
+	}
+}
+
+@keyframes nav-progress-finish {
+	0% {
+		transform: scaleX(0.9);
+		opacity: 1;
+	}
+	45% {
+		transform: scaleX(1);
+		opacity: 1;
+	}
+	100% {
+		transform: scaleX(1);
+		opacity: 0;
+	}
+}
+
+/* Category filter panel. It is rendered once and serves both roles: an off-canvas
+   drawer below lg, a static sidebar from lg up. Previously the same list was
+   rendered twice, which was most of the HTML on the larger categories.
+
+   Written here rather than as Tailwind variants because the checkbox that opens
+   the drawer is not a sibling of the panel, and peer-* only reaches siblings. */
+.filters-panel {
+	position: fixed;
+	inset-block: 0;
+	left: 0;
+	z-index: 50;
+	width: 100%;
+	padding: 20px;
+	overflow-y: auto;
+	background-color: #fff;
+	transform: translateX(-100%);
+	transition: transform 300ms ease-out;
+	will-change: transform;
+}
+
+.filters-toggle:checked ~ * .filters-panel {
+	transform: none;
+}
+
+/* Tailwind's lg breakpoint. */
+@media (min-width: 64rem) {
+	.filters-panel,
+	.filters-toggle:checked ~ * .filters-panel {
+		position: static;
+		z-index: auto;
+		width: auto;
+		padding: 0;
+		overflow-y: visible;
+		background-color: transparent;
+		align-self: start;
+		transform: none;
+		transition: none;
+		will-change: auto;
+	}
+}
+
 /* Opt-in for CMS pages whose content uses <hr> as a light separator. The HTML is
    injected raw, so Tailwind's preflight leaves <hr> at 1px of currentColor with
    no margin, which renders as a heavy black rule; this restores the hairline the

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
-import React, { createContext, useContext, useEffect, useMemo, useTransition, type ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useId, useState, type ReactNode } from "react";
 import { Spinner } from "@repo/ui";
 
 type Props = {
@@ -44,78 +44,104 @@ const DrawerScrollLock = ({ checkboxId }: Props) => {
 
 export { DrawerScrollLock };
 
-type PendingNavContextValue = {
-    isPending: boolean;
-    navigate: (href: string) => void;
-    prefetch: (href: string) => void;
-};
+type ReportPending = (key: string, pending: boolean) => void;
 
-const PendingNavContext = createContext<PendingNavContextValue | null>(null);
+/**
+ * Split in two so the reporting callback keeps a stable identity: a single
+ * context would change on every pending flip and send the reporting effect below
+ * into a loop.
+ */
+const PendingNavReportContext = createContext<ReportPending | null>(null);
+const PendingNavStateContext = createContext(false);
 
 const PendingNavProvider = ({ children }: { children: ReactNode }) => {
-    const router = useRouter();
-    const [isPending, startTransition] = useTransition();
+    const [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(() => new Set());
 
-    const value = useMemo<PendingNavContextValue>(() => {
-        return {
-            isPending,
-            navigate: (href: string) => {
-                startTransition(() => {
-                    router.push(href);
-                });
-            },
-            prefetch: (href: string) => {
-                router.prefetch(href);
-            },
-        };
-    }, [isPending, router, startTransition]);
+    const reportPending = useCallback<ReportPending>((key, pending) => {
+        setPendingKeys((current) => {
+            if (pending === current.has(key)) return current;
 
-    return <PendingNavContext.Provider value={value}>{children}</PendingNavContext.Provider>;
+            const next = new Set(current);
+            if (pending) {
+                next.add(key);
+            } else {
+                next.delete(key);
+            }
+
+            return next;
+        });
+    }, []);
+
+    const isPending = pendingKeys.size > 0;
+
+    return (
+        <PendingNavReportContext.Provider value={reportPending}>
+            <PendingNavStateContext.Provider value={isPending}>{children}</PendingNavStateContext.Provider>
+        </PendingNavReportContext.Provider>
+    );
+};
+
+/**
+ * Rendered inside the <Link>, which is where useLinkStatus reads its state from.
+ * Draws nothing; it only forwards the link's pending flag to the provider.
+ */
+const PendingLinkStatus = ({ report }: { report: ReportPending }) => {
+    const { pending } = useLinkStatus();
+    const key = useId();
+
+    useEffect(() => {
+        report(key, pending);
+        return () => report(key, false);
+    }, [key, pending, report]);
+
+    return null;
 };
 
 type PendingLinkProps = Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "children"> & {
     href: string;
     children: ReactNode;
+    prefetch?: boolean | "auto" | null;
 };
 
-const PendingLink = ({ href, className, children, ...rest }: PendingLinkProps) => {
-    const ctx = useContext(PendingNavContext);
+/**
+ * A real <Link> that reports its in-flight state to the nearest
+ * PendingNavProvider, so the click keeps the router's own navigation instead of
+ * being intercepted.
+ *
+ * Viewport prefetching is off by default on purpose: these links sit in filter
+ * drawers that render thousands of them on a large category, and letting Next
+ * prefetch each one as it scrolls into view would hammer the API. Hovering still
+ * warms the route, which is where the intent actually shows up.
+ */
+const PendingLink = ({ href, className, children, prefetch = false, onMouseEnter, ...rest }: PendingLinkProps) => {
+    const report = useContext(PendingNavReportContext);
+    const router = useRouter();
     const ariaDisabled = (rest as { "aria-disabled"?: unknown })["aria-disabled"];
     const isDisabled = ariaDisabled === true || ariaDisabled === "true";
     const mergedClassName = `${className ?? ""}${isDisabled ? "" : " cursor-pointer"}`.trim();
 
-    if (!ctx) {
-        return (
-            <Link href={href} className={mergedClassName} {...rest}>
-                {children}
-            </Link>
-        );
-    }
-
     return (
-        <a
+        <Link
             href={href}
             className={mergedClassName}
+            prefetch={prefetch}
+            onMouseEnter={(event) => {
+                if (!isDisabled && prefetch === false) {
+                    router.prefetch(href);
+                }
+                onMouseEnter?.(event);
+            }}
             {...rest}
-            onMouseEnter={() => {
-                ctx.prefetch(href);
-            }}
-            onClick={(e) => {
-                if (e.defaultPrevented) return;
-                if (e.button !== 0) return;
-                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                e.preventDefault();
-                ctx.navigate(href);
-            }}
         >
             {children}
-        </a>
+            {report && !isDisabled ? <PendingLinkStatus report={report} /> : null}
+        </Link>
     );
 };
 
 const PendingOverlay = ({ className }: { className?: string }) => {
-    const ctx = useContext(PendingNavContext);
-    if (!ctx?.isPending) return null;
+    const isPending = useContext(PendingNavStateContext);
+    if (!isPending) return null;
     return (
         <div className={className ?? "absolute inset-0 z-20 flex items-center justify-center bg-white/55"}>
             <Spinner size={24} />

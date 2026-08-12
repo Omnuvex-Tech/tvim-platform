@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { Spinner, useNotify } from "@repo/ui";
+import { getTranslations } from "@/lib/i18n";
 
 type ChangePasswordFormProps = {
     locale: string;
@@ -45,19 +46,15 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
         return ["az", "ru", "en"].includes(normalized) ? normalized : "az";
     }, [locale]);
 
+    const account = useMemo(() => getTranslations(effectiveLocale).account, [effectiveLocale]);
     const messages = useMemo(
         () => ({
-            password: "Yeni şifrə",
-            confirmation: "Yeni şifrənin təkrarı",
-            requiredPassword: "Yeni şifrə tələb olunur.",
-            requiredConfirmation: "Şifrənin təkrarı tələb olunur.",
-            mismatch: "Şifrələr uyğun gəlmir.",
-            missingProfile: "Profil məlumatları tapılmadı.",
-            failed: "Şifrə yenilənmədi.",
-            success: "Şifrə yeniləndi.",
-            save: "Yadda saxla",
+            ...account.passwordForm,
+            save: account.form.save,
+            togglePassword: account.form.togglePassword,
+            toggleConfirmation: account.form.toggleConfirmation,
         }),
-        [effectiveLocale]
+        [account]
     );
 
     const [formData, setFormData] = useState<Payload>({
@@ -175,7 +172,7 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
                                 type="button"
                                 onClick={() => setShowPassword((prev) => !prev)}
                                 className="absolute right-4 cursor-pointer text-[#8ea1bf]"
-                                aria-label="Şifrəni göstər/gizlət"
+                                aria-label={messages.togglePassword}
                             >
                                 {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                             </button>
@@ -200,7 +197,7 @@ export function ChangePasswordForm({ locale }: ChangePasswordFormProps) {
                                 type="button"
                                 onClick={() => setShowPasswordConfirmation((prev) => !prev)}
                                 className="absolute right-4 cursor-pointer text-[#8ea1bf]"
-                                aria-label="Şifrə təkrarını göstər/gizlət"
+                                aria-label={messages.toggleConfirmation}
                             >
                                 {showPasswordConfirmation ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                             </button>

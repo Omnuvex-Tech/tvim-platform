@@ -44,7 +44,10 @@ const performRemoteLogout = async (token: string) => {
     }
 };
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ locale: string }> }) {
+// POST, not GET: this destroys the session, and a GET route handler is executed
+// by anything that merely requests the url — the router prefetching a <Link> to
+// it, a browser preloading, a crawler. Only a form submit reaches it now.
+export async function POST(request: NextRequest, { params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
     const normalizedLocale = (["az", "ru", "en"].includes(locale.toLowerCase()) ? locale.toLowerCase() : "az") as
         | "az"
@@ -60,7 +63,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const redirectUrl = new URL(`/${normalizedLocale}`, request.url);
     redirectUrl.searchParams.set("logout_message", logoutMessage);
-    const response = NextResponse.redirect(redirectUrl);
+    // 303 so the browser follows with GET instead of re-posting.
+    const response = NextResponse.redirect(redirectUrl, 303);
 
     response.cookies.set({
         name: AUTH_SESSION_TOKEN_COOKIE,
