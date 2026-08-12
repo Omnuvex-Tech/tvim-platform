@@ -48,9 +48,6 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(url, 308);
     }
 
-    // Any locale's wording for these pages is served in place — /az/vkhod and
-    // /az/giris both render the Azerbaijani sign-in without moving the visitor
-    // off the url they asked for.
     const internalPath = toInternalPath(rest);
     if (internalPath !== null) {
         url.pathname = `/${locale}${internalPath}`;
