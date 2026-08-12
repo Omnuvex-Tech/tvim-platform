@@ -257,7 +257,7 @@ export async function generateBrandsMetadata({
         keywords: [t.pageTitle, "brands", "tvim"],
         locale,
         canonicalPath: `${locale}/brands`,
-        siteUrl: config.project.url,
+        siteUrl: config.project.siteUrl,
         locales: [locale],
         defaultLocale: locale,
         robots: requestedPage > 1

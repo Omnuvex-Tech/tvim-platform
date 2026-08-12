@@ -8,6 +8,7 @@ import { getTranslations } from "@/lib/i18n";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { buildNoIndexMetadata } from "@/lib/seo";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
@@ -89,6 +90,11 @@ function toLocalizedHref(rawLink: unknown, localeCode: string) {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
+
+// Result pages are an unbounded query space, and the middleware serves every
+// locale's wording for this route, so each query would otherwise be indexable
+// several times over.
+export const metadata = buildNoIndexMetadata();
 
 export default async function SearchPage({
     params,

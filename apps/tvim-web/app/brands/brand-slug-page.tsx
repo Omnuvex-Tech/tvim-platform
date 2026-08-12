@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
@@ -10,6 +11,8 @@ import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
+import { getTranslations } from "@/lib/i18n";
+import { findBrandBySlug, findBrandInOtherLocales, getBrandSlugsByLocale } from "@/lib/brand-slugs";
 
 type ProductListApiResponse = {
     menu?: {
@@ -65,6 +68,14 @@ type LiveSearchResponseData = {
     };
     categories?: unknown;
     products?: unknown;
+};
+
+const decodeSlugParam = (value: string) => {
+    try {
+        return decodeURIComponent(String(value ?? ""));
+    } catch {
+        return String(value ?? "");
+    }
 };
 
 const normalizeSlugText = (value: string) => {
@@ -128,7 +139,7 @@ export async function generateBrandSlugMetadata({
     const brandLookupResponse = await api.get<LiveSearchResponseData>("/product/live-search", {
         params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
         locale,
-        cache: "force-cache",
+        next: { revalidate: 300 },
     });
 
     const brandItems = Array.isArray(brandLookupResponse.data?.brands?.items)
@@ -139,9 +150,22 @@ export async function generateBrandSlugMetadata({
         ?? brandItems.find((item) => slugify(String(item?.name ?? "")) === desiredSlug)
         ?? brandItems[0];
 
-    const pageName = String(matchedBrand?.name ?? normalizeSlugText(slug) ?? slug).trim() || "Brand";
+    const localBrand = await findBrandBySlug(slug, locale);
+    const pageName = String(localBrand?.name || matchedBrand?.name || normalizeSlugText(slug) || slug).trim() || "Brand";
     const seoState = hasListingQuery(resolvedSearchParams);
     const canonicalPath = buildBrandBasePath(locale, slug);
+
+    // Each language serves this brand under its own slug, so the alternates
+    // have to be looked up rather than derived by swapping the locale prefix.
+    const brandSlugsByLocale = localBrand ? await getBrandSlugsByLocale(localBrand.valueId) : {};
+    const alternatePathByLocale = Object.entries(brandSlugsByLocale).reduce<Record<string, string>>(
+        (acc, [localeCode, localeSlug]) => {
+            acc[localeCode] = buildBrandBasePath(localeCode, localeSlug);
+            return acc;
+        },
+        {},
+    );
+    const alternateLocales = Object.keys(alternatePathByLocale);
 
     return buildSeoMetadata({
         title: `${pageName} | TVIM`,
@@ -149,9 +173,8 @@ export async function generateBrandSlugMetadata({
         keywords: [pageName, "brand", "brands", "tvim"],
         locale,
         canonicalPath,
-        siteUrl: config.project.url,
-        locales: [locale],
-        defaultLocale: locale,
+        siteUrl: config.project.siteUrl,
+        ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
         robots: seoState.hasCustomPage || seoState.hasRefinement
             ? {
                 index: false,
@@ -218,6 +241,7 @@ export async function renderBrandSlugPage({
 
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const t = getTranslations(locale);
 
     const [
         brandLookupResponse,
@@ -226,7 +250,7 @@ export async function renderBrandSlugPage({
         api.get<LiveSearchResponseData>("/product/live-search", {
             params: { q: String(slug ?? "").trim() || normalizeSlugText(slug) },
             locale,
-            cache: "force-cache",
+            next: { revalidate: 300 },
         }),
         getSiteChromeData(locale),
     ]);
@@ -238,9 +262,43 @@ export async function renderBrandSlugPage({
         ?? brandItems.find((item) => slugify(String(item?.name ?? "")) === desiredSlug)
         ?? brandItems[0];
 
+    // `/product/brands` is the same list the brand index links from, so it
+    // decides what this locale serves. The live-search lookup above only
+    // supplies the filter ids, and it matches loosely enough that a wrong slug
+    // would otherwise render someone else's brand.
+    const localBrand = await findBrandBySlug(slug, locale);
+    if (!localBrand) {
+        // Usually another locale's slug for the same brand — a language switch
+        // that kept the old slug, or an old link. Send it to the url this
+        // locale actually serves rather than rendering an empty listing.
+        const translated = await findBrandInOtherLocales(slug, locale);
+        if (translated) {
+            permanentRedirect(`/${locale}/brands/${encodeURIComponent(translated.slug)}`);
+        }
+
+        notFound();
+    }
+
+    // Lookups are case-insensitive, so /az/brands/BOSCH resolves too. Send it
+    // to the slug as published rather than serving the brand at both spellings.
+    if (localBrand.slug !== decodeSlugParam(slug)) {
+        permanentRedirect(`/${locale}/brands/${encodeURIComponent(localBrand.slug)}`);
+    }
+
     const brandFilterId = Number(matchedBrand?.filter_id);
     const brandValueId = Number(matchedBrand?.id);
     const hasBrandFilter = Number.isFinite(brandFilterId) && brandFilterId > 0 && Number.isFinite(brandValueId) && brandValueId > 0;
+
+    // Feeds the language switcher, which otherwise just swaps the locale
+    // segment and keeps a slug the target language cannot resolve.
+    const brandSlugsByLocale = await getBrandSlugsByLocale(localBrand.valueId);
+    const localizedLinks = Object.entries(brandSlugsByLocale).reduce<Record<string, string>>(
+        (acc, [localeCode, localeSlug]) => {
+            acc[localeCode] = `brands/${localeSlug}`;
+            return acc;
+        },
+        {},
+    );
 
     const perPageRaw = Number(currentUiParams.get("per_page") ?? "20");
     const perPage = Number.isFinite(perPageRaw) ? Math.min(60, Math.max(1, perPageRaw)) : 20;
@@ -254,15 +312,16 @@ export async function renderBrandSlugPage({
             ...(hasBrandFilter ? { [`filters[${brandFilterId}][]`]: String(brandValueId) } : { q: String(slug ?? "").trim() }),
         },
         locale,
-        cache: "force-cache",
+        next: { revalidate: 300 },
     });
 
     const detailData = productListResponse.success && productListResponse.data ? productListResponse.data : null;
     const fallbackPageName = normalizeSlugText(slug) || slug;
-    const pageName = String(matchedBrand?.name ?? detailData?.menu?.name ?? fallbackPageName).trim() || fallbackPageName;
+    const pageName = String(localBrand.name || matchedBrand?.name || detailData?.menu?.name || fallbackPageName).trim()
+        || fallbackPageName;
     const breadcrumbItems = [
-        { label: locale === "en" ? "Home" : "Ana s\u0259hif\u0259", href: `/${locale}` },
-        { label: locale === "ru" ? "Бренды" : locale === "en" ? "Brands" : "Brendlər", href: `/${locale}/brands` },
+        { label: t.common.home, href: `/${locale}` },
+        { label: t.breadcrumb.brands, href: `/${locale}/brands` },
         { label: pageName, isCurrent: true as const },
     ];
 
@@ -281,7 +340,7 @@ export async function renderBrandSlugPage({
     const sortedItems = sortProductItems(listItems, activeSort, locale);
 
     return (
-        <SitePageShell chrome={chrome}>
+        <SitePageShell chrome={chrome} localizedLinks={localizedLinks}>
             <Breadcrumb
                 items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"

@@ -19,6 +19,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
+import { isSupportedLocale } from "@/lib/site-locales";
 
 type MenuDetailData = {
     type: string;
@@ -313,6 +314,9 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const normalizedLocale = locale.trim().toLowerCase();
+
+    if (!isSupportedLocale(normalizedLocale)) return {};
+
     const detail = await getMenuDetail(slug, normalizedLocale);
 
     if (!detail) return {};
@@ -352,7 +356,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         {
             canonicalPath: currentPath,
             alternatePathByLocale,
-            siteUrl: config.project.url,
+            siteUrl: config.project.siteUrl,
             useProjectFallbacks: false,
         },
     );
@@ -372,7 +376,15 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const { locale, slug: rawSlug } = await params;
     const slug = decodeSlugParam(rawSlug);
     const resolvedSearchParams = searchParams ? await searchParams : {};
-    const normalizedLocale = locale.toLowerCase();
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    // Without this the catch-all answers any prefix (/xx/haqqimizda), which the
+    // API resolves to its default language and turns into an unbounded set of
+    // duplicate urls.
+    if (!isSupportedLocale(normalizedLocale)) {
+        notFound();
+    }
+
     const requestedPage = (() => {
         const raw = Number(readSearchParamValue(resolvedSearchParams.page) ?? 1);
         return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
@@ -397,6 +409,26 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
     const { menu, data: pageData } = menuDetail;
     const localizedLinks = menu.multi_links ?? {};
+
+    // The cms resolves another language's slug and answers in the requested
+    // language, so this url can be reached under a slug this locale does not
+    // serve. Move it onto the localized one — 20 of 29 menu nodes differ per
+    // language, so this is the common case rather than the exception.
+    const localizedSlug = String(localizedLinks[normalizedLocale] ?? "").trim().replace(/^\/+|\/+$/g, "");
+    if (localizedSlug && localizedSlug !== slug) {
+        const query = new URLSearchParams();
+        for (const [key, value] of Object.entries(resolvedSearchParams)) {
+            if (value == null) continue;
+            for (const entry of Array.isArray(value) ? value : [value]) {
+                const trimmed = String(entry ?? "").trim();
+                if (trimmed) query.append(key, trimmed);
+            }
+        }
+        const suffix = query.toString();
+        permanentRedirect(
+            `/${normalizedLocale}/${encodeURIComponent(localizedSlug)}${suffix ? `?${suffix}` : ""}`,
+        );
+    }
 
     // Normalize keywords for UI and metadata usage
     function normalizeKeywords(raw: any): string[] {

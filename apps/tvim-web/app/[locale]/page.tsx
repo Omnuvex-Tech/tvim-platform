@@ -10,15 +10,14 @@ import { config } from "@/config";
 import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
+import { getStaticLocaleCodes } from "@/lib/static-paths";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-    const languages = await getPublicLanguages();
-    return languages.map((language) => ({
-        locale: language.code.toLowerCase(),
-    }));
+    const localeCodes = await getStaticLocaleCodes();
+    return localeCodes.map((locale) => ({ locale }));
 }
 
 export async function generateMetadata({

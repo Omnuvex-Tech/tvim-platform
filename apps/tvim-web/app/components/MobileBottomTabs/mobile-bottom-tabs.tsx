@@ -6,8 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Heart, House, LayoutGrid, ShoppingCart, UserRound } from "lucide-react";
 import { useCart } from "@/lib/cart/client";
 import { localizedHref } from "@/lib/routes";
+import { SUPPORTED_LOCALES } from "@/lib/site-locales";
 
-const SUPPORTED_LOCALES = new Set(["az", "en", "ru"]);
+const SUPPORTED_LOCALE_SET = new Set<string>(SUPPORTED_LOCALES);
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const OPEN_CATALOG_EVENT = "tvim:open-catalog";
 
@@ -39,7 +40,7 @@ const cx = (...classes: Array<string | false | null | undefined>) => classes.fil
 
 const getLocaleFromPathname = (pathname: string | null) => {
     const firstSegment = pathname?.split("/").filter(Boolean)[0]?.toLowerCase();
-    return SUPPORTED_LOCALES.has(firstSegment ?? "") ? (firstSegment as keyof typeof LABELS) : "az";
+    return SUPPORTED_LOCALE_SET.has(firstSegment ?? "") ? (firstSegment as keyof typeof LABELS) : "az";
 };
 
 const extractFavoritesCount = (payload: any) => {

@@ -8,6 +8,7 @@ import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeLocale } from "@/lib/site-locales";
+import { getTranslations } from "@/lib/i18n";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 
@@ -200,15 +201,26 @@ export async function generateBrandNewsMetadata({
         String(mainItem?.files?.find((f) => f?.is_main)?.url ?? mainItem?.files?.[0]?.url ?? "").trim() ||
         extractFirstImageFromHtml(pageDescriptionHtml);
 
+    // Brand news items carry per-locale slugs, so the alternates come from the
+    // item itself rather than from swapping the locale prefix.
+    const alternatePathByLocale = Object.entries(mainItem?.multi_slugs ?? {}).reduce<Record<string, string>>(
+        (acc, [localeCode, localeSlug]) => {
+            const cleanSlug = String(localeSlug ?? "").trim().replace(/^\/+|\/+$/g, "");
+            if (cleanSlug) acc[localeCode] = `${localeCode}/brands/news/${cleanSlug}`;
+            return acc;
+        },
+        {},
+    );
+    const alternateLocales = Object.keys(alternatePathByLocale);
+
     return buildSeoMetadata({
         title: `${pageTitle} | TVIM`,
         description: pageDescription || `${pageTitle} haqqinda yenilikleri TVIM daxilinde oxuyun.`,
         keywords: [pageTitle, "brand news", "tvim"],
         locale,
         canonicalPath: `${locale}/brands/news/${normalizedSlug}`,
-        siteUrl: config.project.url,
-        locales: [locale],
-        defaultLocale: locale,
+        siteUrl: config.project.siteUrl,
+        ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
         image: bannerImage || undefined,
         imageAlt: pageTitle,
     });
@@ -220,6 +232,7 @@ export async function renderBrandNewsSlugPage({
 }: BrandNewsPageProps) {
     const normalizedSlug = normalizeSlug(slug);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
+    const t = getTranslations(locale);
 
     const [menuDetail, chrome] = await Promise.all([
         getMenuDetail(normalizedSlug, locale),
@@ -240,6 +253,18 @@ export async function renderBrandNewsSlugPage({
         String(mainItem?.banner ?? mainItem?.main_photo ?? menuDetail.data?.banner ?? menuDetail.data?.main_photo ?? "").trim() ||
         String(mainItem?.files?.find((f) => f?.is_main)?.url ?? mainItem?.files?.[0]?.url ?? "").trim() ||
         extractFirstImageFromHtml(pageDescriptionHtml);
+
+    // Brand news items carry their own per-locale slugs, so the language
+    // switcher can be pointed straight at them instead of reusing this
+    // locale's slug under a different language prefix.
+    const localizedLinks = Object.entries(mainItem?.multi_slugs ?? {}).reduce<Record<string, string>>(
+        (acc, [localeCode, localeSlug]) => {
+            const cleanSlug = String(localeSlug ?? "").trim().replace(/^\/+|\/+$/g, "");
+            if (cleanSlug) acc[localeCode] = `brands/news/${cleanSlug}`;
+            return acc;
+        },
+        {},
+    );
 
     const relatedProducts = Array.isArray(mainItem?.related_products)
         ? mainItem.related_products
@@ -270,7 +295,7 @@ export async function renderBrandNewsSlugPage({
         .filter(Boolean);
 
     return (
-        <SitePageShell chrome={chrome}>
+        <SitePageShell chrome={chrome} localizedLinks={localizedLinks}>
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
                 <div className="relative w-full overflow-hidden rounded-[16px] bg-[#e0e3e8] skeleton-loader">
                     {bannerImage ? (
@@ -284,8 +309,9 @@ export async function renderBrandNewsSlugPage({
 
             <Breadcrumb
                 items={[
-                    { label: locale === "en" ? "Home" : "Ana sehife", href: `/${locale}` },
-                    { label: "Korporativ", href: `/${locale}/corporate` },
+                    { label: t.common.home, href: `/${locale}` },
+                    // The corporate menu keeps the same slug in every locale.
+                    { label: t.breadcrumb.corporate, href: `/${locale}/korporativ` },
                     { label: pageTitle, isCurrent: true as const },
                 ]}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2 [&_ul.breadcrumb]:!mb-0 [&_ul.breadcrumb]:!pb-0"

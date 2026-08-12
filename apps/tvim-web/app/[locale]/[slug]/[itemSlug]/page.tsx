@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
@@ -14,6 +14,8 @@ import { generateServiceMetadata, renderServiceSlugPage } from "@/app/services/[
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
+import { isSupportedLocale } from "@/lib/site-locales";
+import { getProductSlugsByLocale } from "@/lib/product-slugs";
 
 type GridItem = {
     id?: number | string;
@@ -39,6 +41,7 @@ type MenuDetailData = {
         name: string;
         title: string | null;
         type: string;
+        multi_links?: Record<string, string>;
         seo?: any;
     };
     data: {
@@ -206,12 +209,32 @@ async function getMenuDetail(slug: string, locale: string) {
     return await getPublicMenuDetail<MenuDetailData>(slug, locale);
 }
 
-function resolveItemBySlug(items: GridItem[], itemSlug: string, locale: string) {
-    const normalizedTarget = decodeURIComponent(itemSlug).trim().toLowerCase();
+const decodeSlugParam = (slug: string) => {
+    try {
+        return decodeURIComponent(slug);
+    } catch {
+        return slug;
+    }
+};
 
-    return items.find((item) => {
+function resolveItemBySlug(items: GridItem[], itemSlug: string, locale: string) {
+    const normalizedTarget = decodeSlugParam(itemSlug).trim().toLowerCase();
+
+    const matchesLocale = items.find((item) => {
         const localized = item.multi_slugs?.[locale] || item.slug || "";
         return String(localized).trim().toLowerCase() === normalizedTarget;
+    });
+
+    if (matchesLocale) return matchesLocale;
+
+    // The item exists but was asked for under another language's slug. Finding
+    // it here lets the caller redirect to this locale's url rather than 404 on
+    // what is really the same page.
+    return items.find((item) => {
+        const candidates = [...Object.values(item.multi_slugs ?? {}), item.slug];
+        return candidates.some(
+            (candidate) => String(candidate ?? "").trim().toLowerCase() === normalizedTarget,
+        );
     });
 }
 
@@ -303,13 +326,16 @@ export async function generateMetadata({
     params: Promise<{ locale: string; slug: string; itemSlug: string }>;
 }): Promise<Metadata> {
     const { locale, slug, itemSlug } = await params;
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    if (!isSupportedLocale(normalizedLocale)) return {};
+
     if (slug.trim().toLowerCase() === "services") {
-        return await generateServiceMetadata({ slug: itemSlug, locale });
+        return await generateServiceMetadata({ slug: itemSlug, locale: normalizedLocale });
     }
     if (slug.trim().toLowerCase() === "brand-news") {
         return {};
     }
-    const normalizedLocale = locale.toLowerCase();
 
     if (isProductSlug(slug)) {
         const productResult = await getProductDetailBySlug(itemSlug, normalizedLocale);
@@ -330,15 +356,26 @@ export async function generateMetadata({
             undefined;
         const canonicalSlug = String(active?.slug ?? product?.slug ?? itemSlug).trim() || itemSlug;
 
+        // Each language serves this product under its own slug, so alternates
+        // have to be looked up rather than derived from the locale prefix.
+        const slugsByLocale = await getProductSlugsByLocale(itemSlug);
+        const alternatePathByLocale = Object.entries(slugsByLocale).reduce<Record<string, string>>(
+            (acc, [localeCode, localeSlug]) => {
+                acc[localeCode] = `${localeCode}/products/${localeSlug}`;
+                return acc;
+            },
+            {},
+        );
+        const alternateLocales = Object.keys(alternatePathByLocale);
+
         return buildSeoMetadata({
             title,
             description,
             keywords: active?.meta_keywords ?? product?.meta_keywords ?? undefined,
             locale: normalizedLocale,
             canonicalPath: `${normalizedLocale}/products/${canonicalSlug}`,
-            siteUrl: config.project.url,
-            locales: [normalizedLocale],
-            defaultLocale: normalizedLocale,
+            siteUrl: config.project.siteUrl,
+            ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
             image: resolveAssetUrl(active?.main_image_path),
             imageAlt: title,
         });
@@ -359,7 +396,7 @@ export async function generateMetadata({
         keywords: item.seo?.meta_keywords,
         locale: normalizedLocale,
         canonicalPath: `${normalizedLocale}/${slug}/${itemSlug}`,
-        siteUrl: config.project.url,
+        siteUrl: config.project.siteUrl,
         locales: [normalizedLocale],
         defaultLocale: normalizedLocale,
         image: resolveAssetUrl(item.banner || item.main_photo),
@@ -375,14 +412,21 @@ export default async function GridDetailPage({
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
     const { locale, slug, itemSlug } = await params;
+    const normalizedLocale = locale.trim().toLowerCase();
+
+    // Mirrors the guard on the two-segment catch-all: an unknown prefix must
+    // 404 rather than serve the api's default language.
+    if (!isSupportedLocale(normalizedLocale)) {
+        notFound();
+    }
+
     if (slug.trim().toLowerCase() === "services") {
-        return await renderServiceSlugPage({ slug: itemSlug, locale });
+        return await renderServiceSlugPage({ slug: itemSlug, locale: normalizedLocale });
     }
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const sourceParamRaw = resolvedSearchParams?.source;
     const sourceParam = Array.isArray(sourceParamRaw) ? sourceParamRaw[0] : sourceParamRaw;
     const isDiscountSource = String(sourceParam ?? "").trim().toLowerCase() === "discount";
-    const normalizedLocale = locale.toLowerCase();
     if (slug.trim().toLowerCase() === "brand-news") {
         redirect(`/${normalizedLocale}/brands/news/${itemSlug}`);
     }
@@ -426,6 +470,25 @@ export default async function GridDetailPage({
         const detail = productResult.data;
         const active = detail.active_variation;
         if (!active) notFound();
+
+        // The api resolves any language's slug, so a url can carry another
+        // locale's slug under this prefix. Move it onto the one this locale
+        // serves so a page has a single address per language.
+        const canonicalSlug = String(active.slug ?? detail.product?.slug ?? "").trim();
+        if (canonicalSlug && canonicalSlug !== decodeSlugParam(itemSlug)) {
+            permanentRedirect(`/${normalizedLocale}/products/${encodeURIComponent(canonicalSlug)}`);
+        }
+
+        // Feeds the language switcher, which otherwise keeps this locale's slug
+        // under the next language's prefix.
+        const productSlugsByLocale = await getProductSlugsByLocale(itemSlug);
+        const productLocalizedLinks = Object.entries(productSlugsByLocale).reduce<Record<string, string>>(
+            (acc, [localeCode, localeSlug]) => {
+                acc[localeCode] = `products/${localeSlug}`;
+                return acc;
+            },
+            {},
+        );
 
         const product = detail.product;
         const rawGallery = Array.isArray(active.gallery) ? active.gallery : [];
@@ -615,7 +678,7 @@ export default async function GridDetailPage({
         ];
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast>
+            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={productLocalizedLinks}>
                 <Breadcrumb
                     items={breadcrumbItems as any}
                     className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
@@ -814,10 +877,42 @@ export default async function GridDetailPage({
     const item = resolveItemBySlug(items, itemSlug, normalizedLocale);
     if (!item) notFound();
 
+    // Both segments are localized independently — the parent menu through
+    // multi_links and the item through multi_slugs — so either can arrive in
+    // another language. Put the whole path onto this locale's wording.
+    const localizedMenuSlug = String(menuDetail.menu.multi_links?.[normalizedLocale] ?? "")
+        .trim()
+        .replace(/^\/+|\/+$/g, "");
+    const localizedItemSlug = String(item.multi_slugs?.[normalizedLocale] ?? item.slug ?? "")
+        .trim()
+        .replace(/^\/+|\/+$/g, "");
+    const targetMenuSlug = localizedMenuSlug || slug;
+    const targetItemSlug = localizedItemSlug || decodeSlugParam(itemSlug);
+
+    if (targetMenuSlug !== slug || targetItemSlug !== decodeSlugParam(itemSlug)) {
+        permanentRedirect(
+            `/${normalizedLocale}/${encodeURIComponent(targetMenuSlug)}/${encodeURIComponent(targetItemSlug)}`,
+        );
+    }
+
+    // Feeds the language switcher with the fully localized path for both
+    // segments rather than a locale-prefix swap.
+    const itemLocalizedLinks = Object.entries(item.multi_slugs ?? {}).reduce<Record<string, string>>(
+        (acc, [localeCode, localeSlug]) => {
+            const cleanItemSlug = String(localeSlug ?? "").trim().replace(/^\/+|\/+$/g, "");
+            const cleanMenuSlug = String(menuDetail.menu.multi_links?.[localeCode] ?? "")
+                .trim()
+                .replace(/^\/+|\/+$/g, "");
+            if (cleanItemSlug && cleanMenuSlug) acc[localeCode] = `${cleanMenuSlug}/${cleanItemSlug}`;
+            return acc;
+        },
+        {},
+    );
+
     const image = item.banner || item.main_photo || null;
 
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast>
+        <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={itemLocalizedLinks}>
             <Breadcrumb
                 items={[
                     { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },

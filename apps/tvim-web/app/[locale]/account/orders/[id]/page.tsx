@@ -9,6 +9,7 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, decodeGuestTokenFromCookie } from "@/lib/guest/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { normalizeLocale } from "@/lib/site-locales";
 import { AccountNavigation } from "../../account-navigation";
 import { localizedHref } from "@/lib/routes";
 
@@ -167,15 +168,6 @@ type OrderDetailResponse = {
     }> | null;
     created_at?: string | null;
     updated_at?: string | null;
-};
-
-const SUPPORTED_LOCALES = ["az", "ru", "en"] as const;
-
-const normalizeLocale = (value: string) => {
-    const normalized = value.trim().toLowerCase();
-    return SUPPORTED_LOCALES.includes(normalized as (typeof SUPPORTED_LOCALES)[number])
-        ? (normalized as (typeof SUPPORTED_LOCALES)[number])
-        : "az";
 };
 
 const normalizeApiUrl = (baseUrl: string, endpoint: string) => {

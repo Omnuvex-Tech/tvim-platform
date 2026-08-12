@@ -7,8 +7,8 @@ import {
     isRouteLocale,
     isSearchRoute,
     resolveBlogRedirect,
+    resolveLocalizedRoute,
     resolveTvimPageRedirect,
-    toInternalPath,
     type RouteLocale,
 } from "@repo/shared/routes";
 
@@ -42,19 +42,35 @@ export function middleware(request: NextRequest) {
     const rest = restSegments.length > 0 ? `/${restSegments.join("/")}` : "";
 
     const url = request.nextUrl.clone();
+
+    // isRouteLocale accepts any casing, so /AZ/brands would otherwise answer
+    // alongside /az/brands. The prefix is always lowercase.
+    if (maybeLocale !== locale) {
+        url.pathname = `/${locale}${rest}`;
+        return NextResponse.redirect(url, 308);
+    }
     const renamedSearchParam = isSearchRoute(rest) && renameLegacySearchParam(url);
 
     if (renamedSearchParam) {
         return NextResponse.redirect(url, 308);
     }
 
-    // Any locale's wording for these pages is served in place — /az/vkhod and
-    // /az/giris both render the Azerbaijani sign-in without moving the visitor
-    // off the url they asked for.
-    const internalPath = toInternalPath(rest);
-    if (internalPath !== null) {
-        url.pathname = `/${locale}${internalPath}`;
-        return NextResponse.rewrite(url);
+    // Each of these pages has one url per language. A request carrying another
+    // locale's wording (/az/vkhod, /az/login) is moved onto this locale's own
+    // (/az/giris) rather than served in place, so a page never answers at more
+    // than one address per language. Once the url is right, the app directory
+    // path behind it is reached by rewrite so the address stays put.
+    const localizedRoute = resolveLocalizedRoute(rest, locale);
+    if (localizedRoute !== null) {
+        if (localizedRoute.publicPath !== rest) {
+            url.pathname = `/${locale}${localizedRoute.publicPath}`;
+            return NextResponse.redirect(url, 308);
+        }
+
+        if (localizedRoute.internalPath !== rest) {
+            url.pathname = `/${locale}${localizedRoute.internalPath}`;
+            return NextResponse.rewrite(url);
+        }
     }
 
     const blogPath = resolveBlogRedirect(rest, locale);

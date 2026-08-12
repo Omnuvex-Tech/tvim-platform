@@ -109,6 +109,22 @@ export const toInternalPath = (rest: string) => {
     return internalPath === rest ? null : internalPath;
 };
 
+/**
+ * Both paths for a localized route: the url this locale publishes and the one
+ * the app directory actually implements. `toPublicPath` and `toInternalPath`
+ * collapse "no match" and "already correct" into the same null, which is not
+ * enough to tell a redirect apart from a rewrite.
+ */
+export const resolveLocalizedRoute = (rest: string, locale: RouteLocale) => {
+    const matched = matchRule(rest);
+    if (!matched) return null;
+
+    return {
+        publicPath: `/${matched.rule.segments[locale]}${matched.suffix}`,
+        internalPath: `${matched.rule.internal}${matched.suffix}`,
+    };
+};
+
 export const localizedPathname = (internalPath: string, locale: string) => {
     const routeLocale = asRouteLocale(locale);
     return `/${routeLocale}${toPublicPath(internalPath, routeLocale) ?? internalPath}`;
@@ -190,9 +206,14 @@ export const resolveBlogRedirect = (rest: string, locale: RouteLocale) => {
         changed = true;
     }
 
-    // A root slug from another locale is left alone: the CMS resolves it under
-    // the requested language and answers with that language's content, so
-    // /az/novisti serves the Azerbaijani blog without a redirect.
+    // A root slug from another locale used to be served in place, because the
+    // CMS resolves it under the requested language anyway. That gave one page
+    // three urls per language, so it is now moved onto this locale's root.
+    if (isBlogRootSlug(segments[0]!) && segments[0] !== BLOG_ROOT_SLUGS[locale]) {
+        segments[0] = BLOG_ROOT_SLUGS[locale];
+        changed = true;
+    }
+
     if (!changed) return null;
 
     return `/${segments.map((segment) => encodeURIComponent(segment)).join("/")}`;
