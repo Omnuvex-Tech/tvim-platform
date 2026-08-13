@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { getTranslations } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { RequestForm } from "../components/RequestForm/request-form";
 import { CircleX, Minus, Plus } from "lucide-react";
@@ -127,6 +128,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
         const normalized = locale.trim().toLowerCase();
         return ["az", "ru", "en"].includes(normalized) ? normalized : "az";
     }, [locale]);
+    const t = useMemo(() => getTranslations(effectiveLocale).checkout, [effectiveLocale]);
 
     const defaultDeliveryPriceId = useMemo(() => {
         const addresses = checkout?.addresses;
@@ -148,7 +150,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
     if (!initialCheckout) {
         return (
             <div className="rounded-[6px] border border-dashed border-[#d3dbe7] bg-white px-4 py-12 text-center">
-                <p className="text-lg font-semibold text-[#171d28]">Checkout məlumatları yüklənmədi.</p>
+                <p className="text-lg font-semibold text-[#171d28]">{t.loadFailed}</p>
             </div>
         );
     }
@@ -219,7 +221,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
     if (!items || items.length === 0) {
         return (
             <div className="rounded-[6px] border border-dashed border-[#d3dbe7] bg-white px-4 py-12 text-center">
-                <p className="text-lg font-semibold text-[#171d28]">Səbətinizdə məhsul yoxdur.</p>
+                <p className="text-lg font-semibold text-[#171d28]">{t.emptyCart}</p>
             </div>
         );
     }
@@ -236,7 +238,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                         const originalUnit = toNumber(it.original_unit_price);
                         const hasDiscount = unit > 0 && originalUnit > 0 && unit < originalUnit;
                         const title = String(it.variation_name ?? it.product_name ?? "").trim();
-                        const fallbackTitle = variationId ? `Məhsul #${variationId}` : "Məhsul";
+                        const fallbackTitle = variationId ? t.productWithId.replace("{id}", String(variationId)) : t.productFallback;
                         const imageUrl = typeof it.image === "string" ? it.image.trim().replace(/^`+|`+$/g, "").trim() : "";
                         return (
                             <div
@@ -251,7 +253,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                                         ) : null}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[13px] font-medium text-[#8a98ac]">Məhsul kodu: {toNumber(it.product_id) || variationId || "-"}</p>
+                                        <p className="text-[13px] font-medium text-[#8a98ac]">{t.productCode}: {toNumber(it.product_id) || variationId || "-"}</p>
                                         <p className="truncate text-[20px] leading-[1.2] font-semibold text-[#111826]">
                                             {title || fallbackTitle}
                                         </p>
@@ -265,7 +267,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                                         disabled={isUpdating || !variationId || qty <= 0}
                                         onClick={() => updateQty(variationId, qty - 1)}
                                         className="inline-flex h-8 w-8 cursor-pointer items-center justify-center text-[#6f819c] transition-colors hover:text-[#325dd6]"
-                                        aria-label="Azalt"
+                                        aria-label={t.decrease}
                                     >
                                         <Minus className="size-4" strokeWidth={2.4} aria-hidden="true" />
                                     </button>
@@ -277,7 +279,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                                         disabled={isUpdating || !variationId}
                                         onClick={() => updateQty(variationId, qty + 1)}
                                         className="inline-flex h-8 w-8 cursor-pointer items-center justify-center text-[#6f819c] transition-colors hover:text-[#325dd6]"
-                                        aria-label="Artır"
+                                        aria-label={t.increase}
                                     >
                                         <Plus className="size-4" strokeWidth={2.4} aria-hidden="true" />
                                     </button>
@@ -286,7 +288,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
 
                                 <div className="mt-4 flex items-end justify-between gap-6 self-center lg:mt-0 lg:grid lg:grid-cols-2 lg:gap-5">
                                     <div className="flex flex-col justify-center">
-                                        <p className="mb-1 text-[11px] font-medium text-[#8e97a6]">Qiyməti</p>
+                                        <p className="mb-1 text-[11px] font-medium text-[#8e97a6]">{t.unitPrice}</p>
                                         <p className="text-[20px] leading-none font-semibold text-[#111826]">{formatPrice(unit)}</p>
                                         {hasDiscount ? (
                                             <p className="mt-1 text-[12px] leading-none font-medium text-[#8e97a6] line-through">
@@ -295,7 +297,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                                         ) : null}
                                     </div>
                                     <div className="flex flex-col justify-center text-right lg:text-left">
-                                        <p className="mb-1 text-[11px] font-medium text-[#8e97a6]">Cəmi</p>
+                                        <p className="mb-1 text-[11px] font-medium text-[#8e97a6]">{t.lineTotal}</p>
                                         <p className="text-[20px] leading-none font-semibold text-[#111826]">{formatPrice(unit * qty)}</p>
                                     </div>
                                 </div>
@@ -305,7 +307,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                                     disabled={isUpdating || !variationId}
                                     onClick={() => updateQty(variationId, 0)}
                                     className="absolute top-3 right-3 inline-flex h-8 w-8 cursor-pointer items-center justify-center text-[#9cadc4] transition-colors hover:text-[#5f6f86] lg:static lg:self-center lg:justify-self-end"
-                                    aria-label="Səbətdən sil"
+                                    aria-label={t.removeItem}
                                 >
                                     <CircleX className="size-5" />
                                 </button>

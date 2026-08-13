@@ -816,10 +816,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             ? "filters-panel space-y-5"
             : "hidden space-y-5 self-start lg:block";
 
-        const showMoreFiltersText =
-            normalizedLocale === "en" ? "Show more" : normalizedLocale === "ru" ? "Показать больше" : "Daha çox göstər";
-        const showLessFiltersText =
-            normalizedLocale === "en" ? "Show less" : normalizedLocale === "ru" ? "Показать меньше" : "Daha az göstər";
+        const filterCopy = getTranslations(normalizedLocale).filters;
+        const showMoreFiltersText = filterCopy.showMore;
+        const showLessFiltersText = filterCopy.showLess;
 
         const filtersBody = (
             <>
@@ -870,7 +869,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 className="rounded-[16px] border border-[#eee] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
                             >
                                 <div className="mb-3 border-b border-[#eee] pb-3 text-[13px] font-bold uppercase text-[#111318]">
-                                    {String(filter?.name ?? "").trim() || "Filter"}
+                                    {String(filter?.name ?? "").trim() || filterCopy.filterFallback}
                                 </div>
                                 <div className="space-y-1">
                                     {visible.map(renderRow)}
@@ -878,7 +877,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 {rest.length > 0 ? (
                                     <details className="mt-2">
                                         <summary className="cursor-pointer select-none px-3 py-2 text-[14px] font-medium text-[#0f57d6] hover:underline">
-                                            Əlavə {rest.length} ədəd göstər
+                                            {filterCopy.showMoreCount.replace("{count}", String(rest.length))}
                                         </summary>
                                         <div className="mt-1 space-y-1">
                                             {rest.map(renderRow)}
@@ -916,7 +915,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
                 {productListPayload && productListPayload.success === false ? (
                     <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-                        {productListPayload.message || "Məhsullar yüklənmədi."}
+                        {productListPayload.message || filterCopy.loadFailed}
                     </div>
                 ) : null}
             </>
@@ -969,7 +968,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                             <aside className={filtersPanelClassName}>
                                 {hasFilters ? (
                                     <div className="flex items-center justify-between lg:hidden">
-                                        <div className="text-[16px] font-bold text-[#111318]">Filtrlər</div>
+                                        <div className="text-[16px] font-bold text-[#111318]">{filterCopy.title}</div>
                                         <label
                                             htmlFor={drawerId}
                                             className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#eee] bg-white text-[#111318]"
@@ -988,7 +987,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                         htmlFor={drawerId}
                                         className="mb-4 flex w-full cursor-pointer items-center justify-between rounded-full bg-[#ffd500] px-5 py-3 text-[15px] font-semibold text-[#111318] lg:hidden"
                                     >
-                                        <span>Filtr</span>
+                                        <span>{filterCopy.button}</span>
                                         <i className="fa-solid fa-sliders text-[16px]" aria-hidden="true" />
                                     </label>
                                 ) : null}
@@ -1011,7 +1010,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                                         href={href}
                                                         className="text-[14px] font-semibold text-[#111318] hover:underline"
                                                     >
-                                                        {sub?.name ?? sub?.title ?? "Alt kateqoriya"}
+                                                        {sub?.name ?? sub?.title ?? filterCopy.subcategoryFallback}
                                                     </PendingLink>
                                                 );
                                             })}
@@ -1031,7 +1030,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                         <ProductGrid items={sortedListItems} locale={normalizedLocale} />
                                     ) : (
                                         <div className="rounded-[16px] border border-[#eee] bg-white p-5 text-[15px] text-[#4b5565] shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-                                            Məhsul tapılmadı.
+                                            {filterCopy.noProducts}
                                         </div>
                                     )}
 
@@ -1341,6 +1340,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     }
 
     if (menu.view_type === "contact") {
+        const contactCopy = getTranslations(normalizedLocale).common;
 const whatsappPhone = projectSettings?.general.phones.find((phone) => phone.is_whatsapp);
 const azPhone = projectSettings?.general.phones.find((phone) =>
     phone.number.replace(/\s/g, "").startsWith("+994")
@@ -1374,7 +1374,7 @@ const firstPhone =
                             </span>
                             <div className="flex flex-col">
                                 <span className="text-[12px] font-medium text-[#8496ab]">
-                                    {normalizedLocale === "en" ? "Call us" : "Bizə zəng edin"}
+                                    {contactCopy.callUs}
                                 </span>
                                 <a className="text-[18px] lg:text-[22px] font-semibold text-black hover:underline" href={`tel:${firstPhone.replace(/[^\d+]/g, "")}`}>
                                     {firstPhone}
@@ -1388,7 +1388,7 @@ const firstPhone =
                             </span>
                             <div className="flex flex-col">
                                 <span className="text-[12px] font-medium text-[#8496ab]">
-                                    Email
+                                    {contactCopy.email}
                                 </span>
                                 <a className="text-[18px] lg:text-[22px] font-semibold text-black hover:underline" href={`mailto:${email}`}>
                                     {email}
@@ -1402,7 +1402,7 @@ const firstPhone =
                             </span>
                             <div className="flex flex-col">
                                 <span className="text-[12px] font-medium text-[#8496ab]">
-                                    {normalizedLocale === "en" ? "Address" : "Ünvan"}
+                                    {contactCopy.address}
                                 </span>
                                 <span className="text-[18px] lg:text-[22px] font-semibold text-black leading-tight">
                                     {address}

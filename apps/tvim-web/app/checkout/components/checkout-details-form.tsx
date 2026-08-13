@@ -7,6 +7,7 @@ import type { CheckoutData } from "../checkout-client";
 import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-client";
 import { hydrateCart } from "@/lib/cart/client";
 import { localizedHref } from "@/lib/routes";
+import { getTranslations } from "@/lib/i18n";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 const toNumber = (value: unknown) => {
@@ -125,12 +126,14 @@ function DeliverySelect({
     options,
     disabled,
     loading,
+    tSelect,
 }: {
     value: string;
     onChange: (nextValue: string) => void;
     options: DeliverySelectOption[];
     disabled?: boolean;
     loading?: boolean;
+    tSelect: { loading: string; select: string; noOptions: string };
 }) {
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -170,7 +173,7 @@ function DeliverySelect({
                 disabled={isDisabled}
                 className="flex h-[64px] w-full cursor-pointer items-center justify-between rounded-[18px] border border-[#d8dde6] bg-white px-4 text-[15px] text-[#161922] outline-none transition focus:border-[#2050f5] focus:ring-2 focus:ring-inset focus:ring-[#2050f5]/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
-                <span className="min-w-0 truncate text-left">{loading ? "Yüklənir..." : selectedLabel || "Seçin"}</span>
+                <span className="min-w-0 truncate text-left">{loading ? tSelect.loading : selectedLabel || tSelect.select}</span>
                 <svg className="h-5 w-5 text-[#565F6F]" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                     <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -179,7 +182,7 @@ function DeliverySelect({
             {open ? (
                 <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[280px] overflow-auto rounded-[18px] border border-[#d8dde6] bg-white p-2 shadow-[0_18px_40px_-22px_rgba(15,23,42,0.55)]">
                     {options.length === 0 ? (
-                        <div className="px-3 py-2 text-[14px] text-[#565F6F]">Seçim yoxdur</div>
+                        <div className="px-3 py-2 text-[14px] text-[#565F6F]">{tSelect.noOptions}</div>
                     ) : (
                         options.map((opt) => {
                             const optValue = String(opt.id);
@@ -218,6 +221,7 @@ type Props = {
 };
 
 const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onDeliveryPriceIdChange, authUser }: Props) => {
+    const t = getTranslations(locale).checkout;
     const notify = useNotify();
     const router = useRouter();
 
@@ -478,13 +482,13 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
 
         const paymentMethodKey = selectedPaymentKey.trim();
         if (!paymentMethodKey) {
-            notify.error("Ödəniş üsulunu seçin.");
+            notify.error(t.selectPayment);
             return;
         }
 
         if (installments.length > 0) {
             if (!selectedInstallmentId) {
-                notify.error("Hissə sayını seçin.");
+                notify.error(t.selectInstallment);
                 return;
             }
         }
@@ -493,16 +497,16 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
 
         if (shouldUseExisting) {
             if (!selectedAddressId) {
-                notify.error("Ünvan seçin.");
+                notify.error(t.selectAddress);
                 return;
             }
         } else {
             if (!selectedDeliveryLeafId) {
-                notify.error("Çatdırılma ünvanını son səviyyəyə qədər seçin.");
+                notify.error(t.addressIncomplete);
                 return;
             }
             if (!firstName.trim() || !lastName.trim()) {
-                notify.error("Ad və soyad doldurun.");
+                notify.error(t.fillName);
                 return;
             }
             if (!phone.trim()) {
@@ -510,7 +514,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 return;
             }
             if (!addressLine1.trim()) {
-                notify.error("Ünvan doldurun.");
+                notify.error(t.fillAddress);
                 return;
             }
         }
@@ -578,7 +582,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
 
             if (paymentStatus === "redirect_required" || requiresRedirect) {
                 if (!redirectUrl) {
-                    notify.error("Ödəniş linki alınmadı.");
+                    notify.error(t.paymentLinkFailed);
                     return;
                 }
                 window.location.assign(redirectUrl);
@@ -634,13 +638,13 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
         <div className="mt-4 border-t border-[#edf1f6] px-0 pb-2 pt-8 sm:px-0 lg:px-0">
             <div className="space-y-9">
                 <section>
-                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">1. Əlaqə məlumatları</h3>
+                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">{t.step1}</h3>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <label className="flex h-[64px] items-center rounded-[20px] border border-[#d8dde6] bg-white">
                             <User className="ml-5 mr-3 size-5 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="text"
-                                placeholder="Ad *"
+                                placeholder={t.namePlaceholder}
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 disabled={Boolean(isLoading) || isSubmitting}
@@ -651,7 +655,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                             <User className="ml-5 mr-3 size-5 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="text"
-                                placeholder="Soyad *"
+                                placeholder={t.surnamePlaceholder}
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 disabled={Boolean(isLoading) || isSubmitting}
@@ -663,7 +667,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                             <input
                                 ref={phoneInputRef}
                                 type="tel"
-                                placeholder="Telefon *"
+                                placeholder={t.phonePlaceholder}
                                 value={phone}
                                 onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)}
                                 onKeyDown={handlePhoneBackspace}
@@ -675,7 +679,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                             <Mail className="ml-5 mr-3 size-5 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="email"
-                                placeholder="Email *"
+                                placeholder={t.emailPlaceholder}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={Boolean(isLoading) || isSubmitting}
@@ -686,7 +690,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 </section>
 
                 <section>
-                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">2. Ünvan</h3>
+                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">{t.step2}</h3>
                     <div className="space-y-4">
                         {hasSavedAddresses ? (
                             <div className="space-y-3">
@@ -699,7 +703,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                         className="h-[15px] w-[15px] accent-[#2756ff]"
                                         disabled={Boolean(isLoading)}
                                     />
-                                    <span className="text-[15px] font-medium text-[#161922]">Mən mövcud ünvanımı istifadə etmək istəyirəm</span>
+                                    <span className="text-[15px] font-medium text-[#161922]">{t.useExistingAddress}</span>
                                 </label>
 
                                 {addressMode === "existing" ? (
@@ -746,7 +750,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                         className="h-[15px] w-[15px] accent-[#2756ff]"
                                         disabled={Boolean(isLoading)}
                                     />
-                                    <span className="text-[15px] font-medium text-[#161922]">Mən yeni ünvan istifadə etmək istəyirəm</span>
+                                    <span className="text-[15px] font-medium text-[#161922]">{t.useNewAddress}</span>
                                 </label>
                             </div>
                         ) : null}
@@ -768,19 +772,20 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                             options={options}
                                             disabled={isDisabled}
                                             loading={false}
+                                            tSelect={t}
                                         />
                                     );
                                 })}
 
                                 <p className="text-[15px] font-semibold text-[#ef2b2b]">
-                                    Ünvana çatdırılma: {formatPrice(deliveryPrice)}
+                                    {t.deliveryTo}: {formatPrice(deliveryPrice)}
                                 </p>
 
                                 <label className="flex h-[64px] items-center rounded-[20px] border border-[#d8dde6] bg-white">
                                     <MapPin className="ml-5 mr-3 size-5 text-[#2050f5]" strokeWidth={2.1} />
                                     <input
                                         type="text"
-                                        placeholder="Ünvan *"
+                                        placeholder={t.addressPlaceholder}
                                         value={addressLine1}
                                         onChange={(e) => setAddressLine1(e.target.value)}
                                         className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
@@ -790,14 +795,14 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                             </>
                         ) : (
                             <p className="text-[15px] font-semibold text-[#ef2b2b]">
-                                Ünvana çatdırılma: {formatPrice(deliveryPrice)}
+                                {t.deliveryTo}: {formatPrice(deliveryPrice)}
                             </p>
                         )}
                     </div>
                 </section>
 
                 <section>
-                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">3. Ödəniş üsulları</h3>
+                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">{t.step3}</h3>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         {paymentMethods.length > 0 ? (
                             paymentMethods.map((method, idx) => {
@@ -837,17 +842,17 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                             <>
                                 <label className="flex h-[88px] cursor-pointer items-center gap-3 rounded-[16px] border border-[#d2dded] bg-[#eaf0f7] px-4">
                                     <input type="radio" name="payment-method" defaultChecked className="h-[15px] w-[15px] accent-[#2756ff]" />
-                                    <span className="text-[14px] font-medium text-[#2e5cff]">Qapıda post terminalla</span>
+                                    <span className="text-[14px] font-medium text-[#2e5cff]">{t.payAtDoorTerminal}</span>
                                     <Landmark className="ml-auto size-[18px] text-[#8d99ab]" />
                                 </label>
                                 <label className="flex h-[88px] cursor-pointer items-center gap-3 rounded-[16px] border border-[#e3e9f2] bg-[#f2f5fa] px-4">
                                     <input type="radio" name="payment-method" className="h-[15px] w-[15px] accent-[#2756ff]" />
-                                    <span className="text-[14px] font-medium text-[#7f8fa8]">Qapıda nəğd pulla</span>
+                                    <span className="text-[14px] font-medium text-[#7f8fa8]">{t.payAtDoorCash}</span>
                                     <Wallet className="ml-auto size-[18px] text-[#9aa7ba]" />
                                 </label>
                                 <label className="flex h-[88px] cursor-pointer items-center gap-3 rounded-[16px] border border-[#e3e9f2] bg-[#f2f5fa] px-4">
                                     <input type="radio" name="payment-method" className="h-[15px] w-[15px] accent-[#2756ff]" />
-                                    <span className="text-[14px] font-medium text-[#7f8fa8]">Saytda kart ilə ödəniş</span>
+                                    <span className="text-[14px] font-medium text-[#7f8fa8]">{t.payOnlineCard}</span>
                                     <CreditCard className="ml-auto size-[18px] text-[#9aa7ba]" />
                                 </label>
                             </>
@@ -877,7 +882,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                             disabled={Boolean(isLoading) || isSubmitting || !Number.isFinite(id)}
                                         />
                                         <span className={isSelected ? "text-[14px] font-medium text-[#2e5cff]" : "text-[14px] font-medium text-[#7f8fa8]"}>
-                                            {Number.isFinite(month) ? `${month} ay` : "Hissə"}
+                                            {Number.isFinite(month) ? `${month} ${t.monthsSuffix}` : t.installment}
                                         </span>
                                     </label>
                                 );
@@ -887,13 +892,13 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 </section>
 
                 <section>
-                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">4. Şərh</h3>
+                    <h3 className="mb-5 text-[32px] leading-none font-semibold text-[#111826]">{t.step4}</h3>
                     <label className="flex min-h-[160px] items-start gap-3 rounded-[20px] border border-[#d8dde6] bg-white px-5 py-4 text-[#6e7f99]">
                         <svg className="mt-[2px] h-5 w-5 shrink-0 text-[#2050f5]" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                             <path d="M6.5 13.5L5.75 16.5L8.75 15.75L15.25 9.25C15.6642 8.83579 15.6642 8.16421 15.25 7.75L12.25 4.75C11.8358 4.33579 11.1642 4.33579 10.75 4.75L4.25 11.25L3.5 14.5L6.5 13.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         <textarea
-                            placeholder="Şərh"
+                            placeholder={t.commentPlaceholder}
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             className="h-full min-h-[130px] w-full resize-none bg-transparent pr-5 text-[15px] leading-[1.35] font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
