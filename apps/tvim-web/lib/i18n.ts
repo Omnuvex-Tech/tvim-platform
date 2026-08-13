@@ -256,6 +256,12 @@ type TranslationDictionary = {
         payAtDoorTerminal: string;
         payAtDoorCash: string;
         payOnlineCard: string;
+        /**
+         * Keyed by the api's payment method key. The api answers with the same
+         * english name in all three languages, so the label is written here
+         * instead; a key that is not listed keeps whatever the api sent.
+         */
+        paymentMethodNames: Record<string, string>;
         monthsSuffix: string;
         installment: string;
         selectPayment: string;
@@ -645,6 +651,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             payAtDoorTerminal: "Qapıda post terminalla",
             payAtDoorCash: "Qapıda nəğd pulla",
             payOnlineCard: "Saytda kart ilə ödəniş",
+            paymentMethodNames: {
+                cash_on_delivery: "Qapıda post terminalla",
+                kapitalbank: "Kapital Bank",
+            },
             monthsSuffix: "ay",
             installment: "Hissə",
             selectPayment: "Ödəniş üsulunu seçin.",
@@ -1016,6 +1026,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             payAtDoorTerminal: "Card terminal at the door",
             payAtDoorCash: "Cash at the door",
             payOnlineCard: "Card payment on the site",
+            paymentMethodNames: {
+                cash_on_delivery: "Card terminal at the door",
+                kapitalbank: "Kapital Bank",
+            },
             monthsSuffix: "months",
             installment: "Instalment",
             selectPayment: "Select a payment method.",
@@ -1387,6 +1401,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             payAtDoorTerminal: "Картой через терминал у двери",
             payAtDoorCash: "Наличными у двери",
             payOnlineCard: "Оплата картой на сайте",
+            paymentMethodNames: {
+                cash_on_delivery: "Картой через терминал у двери",
+                kapitalbank: "Kapital Bank",
+            },
             monthsSuffix: "мес.",
             installment: "Рассрочка",
             selectPayment: "Выберите способ оплаты.",
