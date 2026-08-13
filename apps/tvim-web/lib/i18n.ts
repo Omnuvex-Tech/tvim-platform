@@ -1168,7 +1168,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             form: {
                 name: "Имя",
                 surname: "Фамилия",
-                email: "Email",
+                email: "Электронная почта",
                 phone: "Телефон",
                 save: "Сохранить",
                 cancel: "Отмена",
