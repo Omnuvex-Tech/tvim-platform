@@ -2,7 +2,10 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import { cn, useNotify } from "@repo/ui";
+import { usePathname } from "next/navigation";
 import { submitPurchaseRequest } from "@/lib/purchase-request/client";
+import { getTranslations } from "@/lib/i18n";
+import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 
 type QuickOrderPopupProps = {
     isOpen: boolean;
@@ -113,6 +116,11 @@ const getCursorPositionFromLocalDigits = (formatted: string, localDigitsCount: n
 
 const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId, onClose }: QuickOrderPopupProps) => {
     const notify = useNotify();
+    const pathname = usePathname();
+    const t = React.useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).quickOrder;
+    }, [pathname]);
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [quantity, setQuantity] = useState("1");
@@ -281,22 +289,22 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
         const variationId = Number(productVariationId);
 
         if (cleanedName.length < 2) {
-            notify.error("Ad və soyad ən azı 2 simvol olmalıdır.");
+            notify.error(t.nameTooShort);
             return;
         }
 
         if (!normalizedPhone) {
-            notify.error("Zəhmət olmasa düzgün telefon nömrəsi daxil edin.");
+            notify.error(t.invalidPhone);
             return;
         }
 
         if (!Number.isFinite(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > 999) {
-            notify.error("Miqdar 1 ilə 999 arasında olmalıdır.");
+            notify.error(t.invalidQuantity);
             return;
         }
 
         if (!Number.isFinite(variationId) || variationId <= 0) {
-            notify.error("Bu məhsul üçün sifariş göndərilə bilmədi.");
+            notify.error(t.missingProduct);
             return;
         }
 
@@ -310,10 +318,10 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                 quantity: parsedQuantity,
             });
 
-            notify.success(response.message || "Sorğu uğurla göndərildi.");
+            notify.success(response.message || t.success);
             onClose();
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Sorğu göndərilərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : t.failed;
             notify.error(message);
         } finally {
             setIsSubmitting(false);
@@ -346,13 +354,13 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
             >
                 <div className="relative flex items-center bg-[#f7f7f7] py-[15px] pr-[52px] pl-5">
                     <h3 id={`${fieldIdPrefix}-title`} className="text-[18px] leading-[1.3] font-semibold text-[#111217]">
-                        Məhsulu sifariş etmək istəyirsiniz?
+                        {t.title}
                     </h3>
                     <button
                         type="button"
                         onClick={onClose}
                         className="absolute top-0 right-0 z-10 flex h-full w-[42px] cursor-pointer items-center justify-center bg-black/5 text-[22px] leading-none text-[#161922] opacity-60 transition-opacity hover:opacity-100"
-                        aria-label="Bağla"
+                        aria-label={t.close}
                     >
                         ×
                     </button>
@@ -361,21 +369,21 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                 <div className="space-y-4 px-5 pt-2.5 pb-5">
                     <div className="space-y-1.5">
                         <label htmlFor={`${fieldIdPrefix}-fullname`} className={labelClassName}>
-                            Ad və soyadınız *
+                            {t.fullName}
                         </label>
                         <input
                             id={`${fieldIdPrefix}-fullname`}
                             type="text"
                             value={fullName}
                             onChange={(event) => setFullName(event.target.value)}
-                            placeholder="Ad və soyadınız *"
+                            placeholder={t.fullName}
                             className={inputClassName}
                         />
                     </div>
 
                     <div className="space-y-1.5">
                         <label htmlFor={`${fieldIdPrefix}-phone`} className={labelClassName}>
-                            Nömrəniz *
+                            {t.phone}
                         </label>
                         <div
                             onMouseDown={(event) => {
@@ -401,7 +409,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
 
                     <div className="space-y-1.5">
                         <label htmlFor={`${fieldIdPrefix}-product`} className={labelClassName}>
-                            Məhsul
+                            {t.product}
                         </label>
                         <input
                             id={`${fieldIdPrefix}-product`}
@@ -417,7 +425,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
 
                     <div className="space-y-1.5">
                         <label htmlFor={`${fieldIdPrefix}-quantity`} className={labelClassName}>
-                            Miqdar
+                            {t.quantity}
                         </label>
                         <input
                             id={`${fieldIdPrefix}-quantity`}
@@ -437,7 +445,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                         disabled={isSubmitting}
                         className="mt-6 inline-flex h-[55px] w-full cursor-pointer items-center justify-center rounded-[20px] bg-[#ffda00] px-[50px] text-[16px] font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 max-sm:text-[15px]"
                     >
-                        {isSubmitting ? "Göndərilir..." : "Sorğunu göndər"}
+                        {isSubmitting ? t.submitting : t.submit}
                     </button>
                 </div>
             </div>

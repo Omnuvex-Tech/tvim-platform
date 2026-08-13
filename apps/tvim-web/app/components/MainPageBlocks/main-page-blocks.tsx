@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { CompanyCarousel, type Company } from "@repo/ui";
-import { toHref } from "@repo/shared/utils";
+import { htmlToText, toHref } from "@repo/shared/utils";
+import { getTranslations } from "@/lib/i18n";
 import type { Slider } from "@repo/types/types";
 import mitreapelLogo from "@/public/images/mitreapel-logo.jpg";
 import { HomeSlider } from "@/app/components/HomeSlider/home-slider";
@@ -27,9 +28,11 @@ export type MainPageBlock = {
             type?: string;
             name?: string;
             title?: string;
+            description?: string;
         };
         data?: {
             mode?: string;
+            description?: string;
             fields?: MainPageFormFieldRaw[];
             submit?: MainPageFormSubmitRaw;
         };
@@ -312,6 +315,25 @@ function isFormBlock(block: MainPageBlock) {
     return menuType === "form" || dataMode === "form";
 }
 
+
+const ADMIN_PLACEHOLDER_TITLES = new Set([
+    "product blocks",
+    "menu type",
+    "slider",
+    "brand",
+    "brands",
+    "main page categories",
+    "show on main page categories",
+    "services",
+    "show on main page services",
+]);
+
+function resolveBlockTitle(rawTitle: unknown, variant: "selected" | "special" | "latest", locale?: string) {
+    const title = String(rawTitle ?? "").trim();
+    if (title && !ADMIN_PLACEHOLDER_TITLES.has(title.toLowerCase())) return title;
+    return getTranslations(locale ?? "az").home[variant];
+}
+
 export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
     const sortedBlocks = normalizeBlocks(blocks);
 
@@ -362,7 +384,7 @@ export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
                         <Fragment key={key}>
                             <ProductStrip
                                 variant={variant}
-                                title={block?.title}
+                                title={resolveBlockTitle(block?.title, variant, locale)}
                                 items={Array.isArray(block?.data?.items) ? block.data.items : []}
                                 only_discount_products={Boolean(block?.data?.block?.only_discount_products)}
                                 mobileSingleCard
@@ -381,8 +403,8 @@ export function MainPageBlocks({ blocks = [], locale }: MainPageBlocksProps) {
                 }
 
                 if (isFormBlock(block)) {
-                    const heading = String(block?.data?.menu?.name ?? "").trim() || undefined;
-                    const subheading = String(block?.data?.menu?.title ?? "").trim() || undefined;
+                    const heading = String(block?.data?.menu?.title ?? block?.data?.menu?.name ?? "").trim() || undefined;
+                    const subheading = htmlToText(block?.data?.menu?.description ?? block?.data?.data?.description ?? "") || undefined;
 
                     return (
                         <Fragment key={key}>

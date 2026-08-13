@@ -331,7 +331,7 @@ export async function renderBrandNewsSlugPage({
 
                 {relatedProducts.length > 0 ? (
                     <div className="mt-10">
-                        <ProductStrip variant="latest" title="Əlaqəli məhsullar" items={relatedStripItems} />
+                        <ProductStrip variant="latest" title={t.product.linkedProducts} items={relatedStripItems} />
                     </div>
                 ) : null}
             </section>

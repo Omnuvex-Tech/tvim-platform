@@ -9,6 +9,7 @@ import { useNotify, Spinner } from "@repo/ui";
 import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
 import { localizedHref } from "@/lib/routes";
+import { getTranslations } from "@/lib/i18n";
 
 type RegisterFormProps = {
     locale: string;
@@ -333,6 +334,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
 
         return "az";
     }, [locale, storedLocale]);
+    const t = useMemo(() => getTranslations(effectiveLocale).register, [effectiveLocale]);
 
     const [formData, setFormData] = useState<RegisterPayload>({
         name: "",
@@ -491,11 +493,11 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         },
                         "expired-callback": () => {
                             setCaptchaToken("");
-                            setCaptchaError("reCAPTCHA vaxtı bitdi. Yenidən təsdiqləyin.");
+                            setCaptchaError(t.captchaExpired);
                         },
                         "error-callback": () => {
                             setCaptchaToken("");
-                            setCaptchaError("reCAPTCHA yüklənmədi. Bir daha yoxlayın.");
+                            setCaptchaError(t.captchaNotLoaded);
                         },
                     });
                 });
@@ -511,11 +513,11 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                 },
                 "expired-callback": () => {
                     setCaptchaToken("");
-                    setCaptchaError("reCAPTCHA vaxtı bitdi. Yenidən təsdiqləyin.");
+                    setCaptchaError(t.captchaExpired);
                 },
                 "error-callback": () => {
                     setCaptchaToken("");
-                    setCaptchaError("reCAPTCHA yüklənmədi. Bir daha yoxlayın.");
+                    setCaptchaError(t.captchaNotLoaded);
                 },
             });
 
@@ -538,7 +540,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
 
             if (tries >= maxTries) {
                 window.clearInterval(timer);
-                setCaptchaError("reCAPTCHA yüklənmədi. Səhifəni yeniləyin.");
+                setCaptchaError(t.captchaReload);
             }
         }, 200);
 
@@ -551,19 +553,19 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
         const nextErrors: RegisterErrors = {};
 
         if (!formData.name.trim()) {
-            nextErrors.name = "Zəhmət olmasa boş buraxmayın";
+            nextErrors.name = t.required;
         }
 
         if (!formData.email.trim()) {
-            nextErrors.email = "Zəhmət olmasa boş buraxmayın";
+            nextErrors.email = t.required;
         }
 
         if (!formData.password.trim()) {
-            nextErrors.password = "Zəhmət olmasa boş buraxmayın";
+            nextErrors.password = t.required;
         }
 
         if (!formData.password_confirmation.trim()) {
-            nextErrors.password_confirmation = "Zəhmət olmasa boş buraxmayın";
+            nextErrors.password_confirmation = t.required;
         }
 
         if (
@@ -571,7 +573,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             formData.password_confirmation.trim() &&
             formData.password !== formData.password_confirmation
         ) {
-            nextErrors.password_confirmation = "Şifrə təkrarı uyğun deyil";
+            nextErrors.password_confirmation = t.passwordMismatch;
         }
 
         return nextErrors;
@@ -586,25 +588,25 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
         const nextErrors = validate();
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
-            notify.error("Zəhmət olmasa məcburi xanaları doldurun.");
+            notify.error(t.fillRequired);
             return;
         }
 
         if (!acceptedTerms) {
-            setTermsError("Davam etmək üçün istifadə şərtlərini qəbul edin.");
-            notify.error("Davam etmək üçün istifadə şərtlərini qəbul edin.");
+            setTermsError(t.acceptTerms);
+            notify.error(t.acceptTerms);
             return;
         }
 
         if (!recaptchaSiteKey) {
-            setCaptchaError("reCAPTCHA konfiqurasiyası tapılmadı.");
-            notify.error("reCAPTCHA konfiqurasiyası tapılmadı.");
+            setCaptchaError(t.captchaMissingConfig);
+            notify.error(t.captchaMissingConfig);
             return;
         }
 
         if (!captchaToken) {
-            setCaptchaError("Zəhmət olmasa reCAPTCHA təsdiqləyin.");
-            notify.error("Zəhmət olmasa reCAPTCHA təsdiqləyin.");
+            setCaptchaError(t.captchaRequired);
+            notify.error(t.captchaRequired);
             return;
         }
 
@@ -626,15 +628,15 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             }
 
             if (!verifyResponse.ok || !verifyPayload.success) {
-                const message = verifyPayload.message || "reCAPTCHA təsdiqlənmədi. Yenidən cəhd edin.";
+                const message = verifyPayload.message || t.captchaFailed;
                 setCaptchaError(message);
                 notify.error(message);
                 resetRecaptchaWidget();
                 return;
             }
         } catch {
-            setCaptchaError("reCAPTCHA yoxlanışı zamanı xəta baş verdi.");
-            notify.error("reCAPTCHA yoxlanışı zamanı xəta baş verdi.");
+            setCaptchaError(t.captchaError);
+            notify.error(t.captchaError);
             resetRecaptchaWidget();
             return;
         }
@@ -664,7 +666,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     setErrors(fieldErrors);
                 }
 
-                const fallbackMessage = "Qeydiyyat zamanı xəta baş verdi.";
+                const fallbackMessage = t.registerFailed;
                 const serverMessage = sanitizeSummaryMessage(
                     (payload as RegisterResponse)?.data?.message ||
                     (payload as RegisterResponse)?.message ||
@@ -681,7 +683,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             const okMessage =
                 (payload as RegisterResponse)?.data?.message ||
                 (payload as RegisterResponse)?.message ||
-                "Hesabınız uğurla yaradıldı! Email təsdiqi üçün kod göndərildi.";
+                t.registerSuccess;
 
             setSuccessMessage(okMessage);
             notify.success(okMessage);
@@ -720,18 +722,18 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     if (!subscribeSucceeded) {
                         const subscribeErrorMessage =
                             extractSubscribeErrorMessage(subscribePayload) ||
-                            "Abunəlik zamanı xəta baş verdi.";
+                            t.subscribeFailed;
                         notify.error(subscribeErrorMessage);
                     }
                 } catch {
-                    notify.error("Abunəlik üçün serverə qoşulmaq mümkün olmadı.");
+                    notify.error(t.subscribeConnectionFailed);
                 }
             }
 
             const nextEmail = encodeURIComponent(formData.email.trim());
             router.push(`${localizedHref("signup", effectiveLocale, "/verify")}${nextEmail ? `?email=${nextEmail}` : ""}`);
         } catch {
-            notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
+            notify.error(t.connectionError);
             resetRecaptchaWidget();
         } finally {
             setIsSubmitting(false);
@@ -744,7 +746,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                 src="https://www.google.com/recaptcha/api.js?render=explicit"
                 strategy="afterInteractive"
                 onLoad={() => setIsRecaptchaScriptReady(true)}
-                onError={() => setCaptchaError("reCAPTCHA skripti yüklənmədi.")}
+                onError={() => setCaptchaError(t.captchaScriptFailed)}
             />
 
             <form className="mt-6 space-y-4" autoComplete="off" onSubmit={onSubmit}>
@@ -753,7 +755,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <input
                         type="text"
                         placeholder=""
-                        aria-label="Ad"
+                        aria-label={t.name}
                         autoComplete="given-name"
                         value={formData.name}
                         onChange={(e) => updateField("name", e.target.value)}
@@ -762,7 +764,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.name ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                     >
-                        Ad
+                        {t.name}
                     </span>
                 </label>
                 {errors.name ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.name}</p> : null}
@@ -772,7 +774,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <input
                         type="text"
                         placeholder=""
-                        aria-label="Soyad"
+                        aria-label={t.surname}
                         autoComplete="family-name"
                         value={formData.surname}
                         onChange={(e) => updateField("surname", e.target.value)}
@@ -781,7 +783,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.surname ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                     >
-                        Soyad
+                        {t.surname}
                     </span>
                 </label>
                 {errors.surname ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.surname}</p> : null}
@@ -792,7 +794,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         ref={phoneInputRef}
                         type="tel"
                         placeholder=""
-                        aria-label="Telefon"
+                        aria-label={t.phone}
                         autoComplete="tel"
                         value={formData.phone}
                         onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)}
@@ -802,7 +804,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.phone ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                     >
-                        Telefon
+                        {t.phone}
                     </span>
                 </label>
                 {errors.phone ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.phone}</p> : null}
@@ -812,7 +814,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <input
                         type="email"
                         placeholder=""
-                        aria-label="E-poçtunuz"
+                        aria-label={t.email}
                         autoComplete="email"
                         value={formData.email}
                         onChange={(e) => updateField("email", e.target.value)}
@@ -821,7 +823,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.email ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                     >
-                        E-poçtunuz
+                        {t.email}
                     </span>
                 </label>
                 {errors.email ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.email}</p> : null}
@@ -831,7 +833,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <input
                         type={showPassword ? "text" : "password"}
                         placeholder=""
-                        aria-label="Şifrə yaradın"
+                        aria-label={t.password}
                         autoComplete="new-password"
                         value={formData.password}
                         onChange={(e) => updateField("password", e.target.value)}
@@ -840,13 +842,13 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                     >
-                        Şifrə yaradın
+                        {t.password}
                     </span>
                     <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
                         className="absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer text-[#8ea1bf]"
-                        aria-label="Şifrəni göstər/gizlət"
+                        aria-label={t.togglePassword}
                     >
                         {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                     </button>
@@ -858,7 +860,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <input
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder=""
-                        aria-label="Şifrəni təkrarlayın"
+                        aria-label={t.passwordConfirm}
                         autoComplete="new-password"
                         value={formData.password_confirmation}
                         onChange={(e) => updateField("password_confirmation", e.target.value)}
@@ -867,13 +869,13 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                     <span
                         className={`pointer-events-none absolute top-1/2 left-[50px] -translate-y-1/2 text-[15px] leading-none text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password_confirmation ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                     >
-                        Şifrəni təkrarlayın
+                        {t.passwordConfirm}
                     </span>
                     <button
                         type="button"
                         onClick={() => setShowConfirmPassword((prev) => !prev)}
                         className="absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer text-[#8ea1bf]"
-                        aria-label="Şifrə təkrarını göstər/gizlət"
+                        aria-label={t.toggleConfirmPassword}
                     >
                         {showConfirmPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                     </button>
@@ -884,7 +886,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
 
                 <div className="mt-6 space-y-6">
                     <fieldset className="flex items-start gap-4 whitespace-nowrap px-1">
-                        <span className="-mt-[0.5px] pt-0 text-[18px] leading-none font-medium text-[#000000]">Abunə ol</span>
+                        <span className="-mt-[0.5px] pt-0 text-[18px] leading-none font-medium text-[#000000]">{t.subscribe}</span>
 
                         <div className="flex items-center gap-6">
                             <label className="inline-flex cursor-pointer items-center gap-3 text-[16px] leading-none text-[#000000]">
@@ -896,7 +898,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                                     onChange={() => setSubscribeToNews("yes")}
                                     className="size-[20px] cursor-pointer border-[#c7ccd5] accent-[#2050f5]"
                                 />
-                                Bəli
+                                {t.yes}
                             </label>
 
                             <label className="inline-flex cursor-pointer items-center gap-3 text-[16px] leading-none text-[#000000]">
@@ -908,7 +910,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                                     onChange={() => setSubscribeToNews("no")}
                                     className="size-[20px] cursor-pointer border-[#c7ccd5] accent-[#2050f5]"
                                 />
-                                Xeyr
+                                {t.no}
                             </label>
                         </div>
                     </fieldset>
@@ -926,7 +928,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                             className="size-[20px] cursor-pointer rounded-[2px] border-[#c7ccd5] accent-[#2050f5]"
                         />
                         <span>
-                            Mən{" "}
+                            {t.termsPrefix}{" "}
                             <button
                                 type="button"
                                 onClick={(event) => {
@@ -935,11 +937,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                                     setIsTermsOpen(true);
                                 }}
                                 className="cursor-pointer border-0 bg-transparent p-0 font-bold text-[#000000] transition-colors hover:text-[#4a4a4a]"
-                            >
-                                İstifadə şərtləri
-                            </button>
-                            -ni oxudum və razıyam
-                        </span>
+                            >{t.termsLink}</button>{t.termsSuffix}</span>
                     </label>
 
                     {termsError ? <p className="-mt-2 text-sm text-red-600">{termsError}</p> : null}
@@ -955,12 +953,12 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         disabled={isSubmitting}
                         className="inline-flex h-[66px] w-[210px] cursor-pointer items-center justify-center rounded-[22px] bg-[#ffd500] px-8 text-[15px] leading-none font-bold text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {isSubmitting ? <Spinner size={20} /> : "Davam et"}
+                        {isSubmitting ? <Spinner size={20} /> : t.submit}
                     </button>
                 </div>
 
                 <p className="pt-3 text-center text-[13px] font-[495] text-[#1f2430]">
-                    Əgər artıq hesabınızı yaratmısınızsa, <Link href={localizedHref("signin", effectiveLocale)} className="underline">giriş səhifəsinə</Link> keçin.
+                    {t.haveAccountPrefix}{" "}<Link href={localizedHref("signin", effectiveLocale)} className="underline">{t.haveAccountLink}</Link>{t.haveAccountSuffix ? ` ${t.haveAccountSuffix}` : ""}
                 </p>
             </form>
 
@@ -985,7 +983,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                                 type="button"
                                 onClick={() => setIsTermsOpen(false)}
                                 className="inline-flex h-[54px] w-[40px] cursor-pointer items-center justify-center bg-[#f4f4f4] text-[#666] transition-colors hover:bg-[#ececec] hover:text-black"
-                                aria-label="İstifadə şərtlərini bağla"
+                                aria-label={t.closeTerms}
                             >
                                 <X className="size-[14px]" strokeWidth={3.5} />
                             </button>

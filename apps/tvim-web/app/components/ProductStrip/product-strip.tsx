@@ -11,6 +11,7 @@ import { usePathname, } from "next/navigation";
 import { useNotify } from "@repo/ui";
 
 import { addProductToCart } from "@/lib/cart/client";
+import { getTranslations } from "@/lib/i18n";
 
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 
@@ -242,6 +243,8 @@ const localePrefix = useMemo(() => {
 }, [pathname]);
 
     const copy = getStripCopy(localePrefix);
+    const cartCopy = getTranslations(localePrefix).cart;
+    const productCopy = getTranslations(localePrefix).product;
 const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 // Same locale the label above is written in, so the link never sends a
 // visitor to another language's specials page.
@@ -895,7 +898,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
         if (!variationId) {
 
-            notify.error("Bu məhsul favorilərə əlavə edilə bilmədi.");
+            notify.error(cartCopy.favoriteFailed);
 
             return;
 
@@ -957,11 +960,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
 
 
-            if (response.message) {
-
-                notify.success(response.message);
-
-            }
+            notify.success(response.data.action === "created" ? productCopy.favoriteAdded : productCopy.favoriteRemoved);
 
         } catch (error) {
 
@@ -1017,7 +1016,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
         if (!variationId) {
 
-            notify.error("Bu məhsul müqayisəyə əlavə edilə bilmədi.");
+            notify.error(cartCopy.compareFailed);
 
             return;
 
@@ -1079,11 +1078,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
 
 
-            if (response.message) {
-
-                notify.success(response.message);
-
-            }
+            notify.success(response.data.action === "created" ? productCopy.compareAdded : productCopy.compareRemoved);
 
         } catch (error) {
 
@@ -1252,9 +1247,9 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
             const message = product.title
 
-                ? `${product.title} səbətinizə müvəffəqiyyətlə əlavə edildi!`
+                ? cartCopy.addedToCart.replace("{product}", product.title)
 
-                : "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!";
+                : cartCopy.addedToCartFallback;
 
 
 
@@ -1262,7 +1257,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
         } catch (error) {
 
-            const message = error instanceof Error ? error.message : "Səbətə əlavə edərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;
 
             notify.error(message);
 

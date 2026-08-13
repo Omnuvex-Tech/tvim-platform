@@ -3,7 +3,10 @@
 import Script from "next/script";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Spinner, useNotify } from "@repo/ui";
+import { usePathname } from "next/navigation";
 import { createProductComment, type ProductComment } from "@/lib/product-comments/client";
+import { getTranslations } from "@/lib/i18n";
+import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 import { TermsDialog } from "@/app/components/TermsDialog/terms-dialog";
 
 type SpecRow = {
@@ -101,6 +104,13 @@ const ProductDetailTabs = ({
     metaKeywords = [],
 }: ProductDetailTabsProps) => {
     const notify = useNotify();
+    const pathname = usePathname();
+    const copy = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale);
+    }, [pathname]);
+    const t = useMemo(() => copy.product, [copy]);
+    const reg = useMemo(() => copy.register, [copy]);
     const [activeTab, setActiveTab] = useState<TabKey>("about");
     const [showCommentForm, setShowCommentForm] = useState(false);
     const [commentName, setCommentName] = useState("");
@@ -220,11 +230,11 @@ const ProductDetailTabs = ({
                         },
                         "expired-callback": () => {
                             setCaptchaToken("");
-                            setCaptchaError("reCAPTCHA vaxtı bitdi. Yenidən təsdiqləyin.");
+                            setCaptchaError(reg.captchaExpired);
                         },
                         "error-callback": () => {
                             setCaptchaToken("");
-                            setCaptchaError("reCAPTCHA yüklənmədi. Bir daha yoxlayın.");
+                            setCaptchaError(reg.captchaNotLoaded);
                         },
                     });
                 });
@@ -240,11 +250,11 @@ const ProductDetailTabs = ({
                 },
                 "expired-callback": () => {
                     setCaptchaToken("");
-                    setCaptchaError("reCAPTCHA vaxtı bitdi. Yenidən təsdiqləyin.");
+                    setCaptchaError(reg.captchaExpired);
                 },
                 "error-callback": () => {
                     setCaptchaToken("");
-                    setCaptchaError("reCAPTCHA yüklənmədi. Bir daha yoxlayın.");
+                    setCaptchaError(reg.captchaNotLoaded);
                 },
             });
 
@@ -267,7 +277,7 @@ const ProductDetailTabs = ({
 
             if (tries >= maxTries) {
                 window.clearInterval(timer);
-                setCaptchaError("reCAPTCHA yüklənmədi. Səhifəni yeniləyin.");
+                setCaptchaError(reg.captchaReload);
             }
         }, 200);
 
@@ -286,41 +296,41 @@ const ProductDetailTabs = ({
         setCaptchaError("");
 
         if (!productVariationId) {
-            notify.error("Məhsul variasiyası tapılmadı.");
+            notify.error(t.variationNotFound);
             return;
         }
 
         if (!fullname) {
-            notify.error("Adınızı daxil edin.");
+            notify.error(t.enterName);
             return;
         }
 
         if (!comment) {
-            notify.error("Şərh mətnini daxil edin.");
+            notify.error(t.enterComment);
             return;
         }
 
         if (commentRating < 1 || commentRating > 5) {
-            notify.error("Reytinq 1-5 aralığında olmalıdır.");
+            notify.error(t.ratingRange);
             return;
         }
 
         if (!acceptedTerms) {
-            const message = "Davam etmək üçün istifadə şərtlərini qəbul edin.";
+            const message = reg.acceptTerms;
             setTermsError(message);
             notify.error(message);
             return;
         }
 
         if (!recaptchaSiteKey) {
-            const message = "reCAPTCHA konfiqurasiyası tapılmadı.";
+            const message = reg.captchaMissingConfig;
             setCaptchaError(message);
             notify.error(message);
             return;
         }
 
         if (!captchaToken) {
-            const message = "Zəhmət olmasa reCAPTCHA təsdiqləyin.";
+            const message = reg.captchaRequired;
             setCaptchaError(message);
             notify.error(message);
             return;
@@ -344,14 +354,14 @@ const ProductDetailTabs = ({
             }
 
             if (!verifyResponse.ok || !verifyPayload.success) {
-                const message = verifyPayload.message || "reCAPTCHA təsdiqlənmədi. Yenidən cəhd edin.";
+                const message = verifyPayload.message || reg.captchaFailed;
                 setCaptchaError(message);
                 notify.error(message);
                 resetRecaptchaWidget();
                 return;
             }
         } catch {
-            const message = "reCAPTCHA yoxlanışı zamanı xəta baş verdi.";
+            const message = reg.captchaError;
             setCaptchaError(message);
             notify.error(message);
             resetRecaptchaWidget();
@@ -367,7 +377,7 @@ const ProductDetailTabs = ({
                 comment,
             });
 
-            notify.success(response.message || "Şərhiniz göndərildi.");
+            notify.success(response.message || t.commentSent);
             setCommentName("");
             setCommentText("");
             setCommentRating(0);
@@ -377,7 +387,7 @@ const ProductDetailTabs = ({
             resetRecaptchaWidget();
             setShowCommentForm(false);
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Şərh göndərilərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : t.commentFailed;
             notify.error(message);
         } finally {
             setIsSubmittingComment(false);
@@ -390,7 +400,7 @@ const ProductDetailTabs = ({
                 src="https://www.google.com/recaptcha/api.js?render=explicit"
                 strategy="afterInteractive"
                 onLoad={() => setIsRecaptchaScriptReady(true)}
-                onError={() => setCaptchaError("reCAPTCHA skripti yüklənmədi.")}
+                onError={() => setCaptchaError(reg.captchaScriptFailed)}
             />
 
             {/* Tab header with sliding indicator */}
@@ -441,7 +451,7 @@ const ProductDetailTabs = ({
                         color: activeTab === "about" ? "rgba(0, 56, 245, 1)" : "#8b95a8",
                     }}
                 >
-                    Məhsul haqqında
+                    {t.about}
                 </button>
                 <button
                     id="tab-features"
@@ -458,7 +468,7 @@ const ProductDetailTabs = ({
                         color: activeTab === "features" ? "rgba(0, 56, 245, 1)" : "#8b95a8",
                     }}
                 >
-                    Xüsusiyyətlər
+                    {t.features}
                 </button>
                 <button
                     type="button"
@@ -474,7 +484,7 @@ const ProductDetailTabs = ({
                         color: activeTab === "comments" ? "rgba(0, 56, 245, 1)" : "#8b95a8",
                     }}
                 >
-                    Şərhlər ({resolvedCommentsCount})
+                    {t.comments} ({resolvedCommentsCount})
                 </button>
             </div>
 
@@ -517,15 +527,15 @@ const ProductDetailTabs = ({
                         </div>
                     </div>
                 ) : (
-                    <div className="mt-4 min-h-[24px] text-[14px] text-[#8b95a8]">Xüsusiyyət tapılmadı.</div>
+                    <div className="mt-4 min-h-[24px] text-[14px] text-[#8b95a8]">{t.noFeatures}</div>
                 )
             ) : null}
 
             {activeTab === "comments" ? (
                 <div className="mt-6">
                     <div className="flex flex-wrap items-center gap-x-7 gap-y-3 text-[16px] leading-[1.35] font-[450] !text-[#000000] sm:text-[17px]">
-                        <span className="!text-[#000000]">Şərh: {resolvedCommentsCount}</span>
-                        <span className="!text-[#000000]">Orta qiymət: {averageRating.toFixed(1)}</span>
+                        <span className="!text-[#000000]">{t.comment}: {resolvedCommentsCount}</span>
+                        <span className="!text-[#000000]">{t.averageRating}: {averageRating.toFixed(1)}</span>
                         <div className="flex items-center gap-1 text-[18px] leading-none text-[#c7cdd9] sm:text-[19px]">
                             {Array.from({ length: 5 }).map((_, idx) => (
                                 <i
@@ -541,28 +551,28 @@ const ProductDetailTabs = ({
                             className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[rgba(0,61,255,1)] !px-5 !py-4 !text-[15px] !leading-none !font-[650] text-white transition-opacity hover:opacity-95 sm:!px-6"
                             style={{ fontFamily: "var(--font-inter), sans-serif" }}
                         >
-                            Şərh yaz
+                            {t.writeComment}
                         </button>
                     </div>
 
                     {showCommentForm ? (
                         <form onSubmit={handleSubmitComment} className="mt-8 w-[73.9%] max-w-full space-y-4 max-lg:w-full">
                             <div className="space-y-2">
-                                <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Adınız</div>
+                                <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{t.yourName}</div>
                                 <input
                                     value={commentName}
                                     onChange={(event) => setCommentName(event.target.value)}
-                                    placeholder="Adınız"
+                                    placeholder={t.yourName}
                                     className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Şərh yazın</div>
+                                <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{t.writeCommentPlaceholder}</div>
                                 <textarea
                                     value={commentText}
                                     onChange={(event) => setCommentText(event.target.value)}
-                                    placeholder="Şərh yazın"
+                                    placeholder={t.writeCommentPlaceholder}
                                     rows={5}
                                     className="min-h-[128px] w-full resize-y rounded-[18px] border border-[#d8dde6] bg-transparent px-4 py-4 text-[15px] leading-[1.45] text-[#161922] outline-none placeholder:font-normal placeholder:text-[#8e97a8]"
                                 />
@@ -632,7 +642,7 @@ const ProductDetailTabs = ({
                                     disabled={isSubmittingComment}
                                     className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-[#003dff] px-6 py-3 text-[16px] font-semibold text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    {isSubmittingComment ? <Spinner size={18} /> : <span>Göndər</span>}
+                                    {isSubmittingComment ? <Spinner size={18} /> : <span>{t.send}</span>}
                                 </button>
                             </div>
                         </form>
@@ -675,7 +685,7 @@ const ProductDetailTabs = ({
                             </div>
                         ) : (
                             <div className="min-h-[24px] text-[14px] font-[450] leading-[1.42857143] text-[#050505]" style={{ fontSize: "14px" }}>
-                                Bu məhsul üçün şərh yazılmayıb.
+                                {t.noComments}
                             </div>
                         )}
                     </div>

@@ -491,6 +491,8 @@ const navbarCopy = {
         noResults: "Nəticə tapılmadı",
         categoriesSection: "Kateqoriyalar",
         categoryLabel: "Kateqoriya",
+        noSubcategories: "Bu kateqoriya üçün alt bölmə yoxdur",
+        catalogUnavailable: "Kataloq mövcud deyil",
     },
     en: {
         tagline: "Construction and building materials",
@@ -500,6 +502,8 @@ const navbarCopy = {
         noResults: "No results found",
         categoriesSection: "Categories",
         categoryLabel: "Category",
+        noSubcategories: "There are no subcategories in this category",
+        catalogUnavailable: "The catalog is unavailable",
     },
     ru: {
         tagline: "Строительные материалы",
@@ -509,6 +513,8 @@ const navbarCopy = {
         noResults: "Ничего не найдено",
         categoriesSection: "Категории",
         categoryLabel: "Категория",
+        noSubcategories: "В этой категории нет подразделов",
+        catalogUnavailable: "Каталог недоступен",
     },
 } as const;
 
@@ -1973,14 +1979,14 @@ export function Navbar({
                                                               {activeParentChildren.map((child: any) => renderCatalogChild(child))}
                                                           </div>
                                                       ) : (
-                                                  <div className="px-4 py-4 text-sm text-[#6b7280]">Bu kateqoriya üçün alt bölmə yoxdur</div>
+                                                  <div className="px-4 py-4 text-sm text-[#6b7280]">{copy.noSubcategories}</div>
                                                   )}
                                               </div>
                                           </div>
                                       ) : (
                                           // Only show "no catalog" after we've attempted a fetch
                                           catalogFetched ? (
-                                              <div className="px-5 py-4 text-sm text-[#6b7280]">Kataloq mövcud deyil</div>
+                                              <div className="px-5 py-4 text-sm text-[#6b7280]">{copy.catalogUnavailable}</div>
                                           ) : null
                                       )}
                                   </div>,

@@ -416,6 +416,7 @@ export default async function GridDetailPage({
 }) {
     const { locale, slug, itemSlug } = await params;
     const normalizedLocale = locale.trim().toLowerCase();
+    const t = getTranslations(normalizedLocale).product;
 
     // Mirrors the guard on the two-segment catch-all: an unknown prefix must
     // 404 rather than serve the api's default language.
@@ -516,7 +517,7 @@ export default async function GridDetailPage({
         const oldPrice = typeof active.old_price === "number" ? active.old_price : null;
         const hasDiscount = typeof oldPrice === "number" && oldPrice > currentPrice;
         const discountPercent = hasDiscount ? Math.round((1 - currentPrice / oldPrice) * 100) : null;
-        const resolvedName = String(active.name ?? product?.name ?? "").trim() || "Məhsul";
+        const resolvedName = String(active.name ?? product?.name ?? "").trim() || t.productFallback;
         const activeVariationId = Number(active.id);
         const productVariationId = Number.isFinite(activeVariationId) && activeVariationId > 0 ? activeVariationId : null;
 
@@ -632,7 +633,7 @@ export default async function GridDetailPage({
             product?.id ??
             ""
         ).trim();
-        const stockText = typeof active.stock === "number" && active.stock > 0 ? "✓ Məhdud saydadır" : "Stokda yoxdur";
+        const stockText = typeof active.stock === "number" && active.stock > 0 ? `✓ ${t.inStock}` : t.outOfStock;
         // Alış düyməsi stok əsasında qərarlaşır (kartlardakı mavi/sarı qayda ilə eyni),
         // gəldiyi linkdəki `source=discount` parametrindən asılı deyil.
         const isPurchasable = !(typeof active.stock === "number" && active.stock <= 0);
@@ -664,7 +665,7 @@ export default async function GridDetailPage({
 
             initialComments.push({
                 id: String(item.id ?? `${idx + 1}`),
-                author: String(item.fullname ?? item.customer_name ?? item.name ?? "İstifadəçi").trim() || "İstifadəçi",
+                author: String(item.fullname ?? item.customer_name ?? item.name ?? t.userFallback).trim() || t.userFallback,
                 comment,
                 rating,
                 status: String(item.status ?? "").trim() || undefined,
@@ -701,7 +702,7 @@ export default async function GridDetailPage({
                     </h1>
 
                     <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] lg:hidden">
-                        <span className="text-[#77839b]">Məhsul kodu: {productCode || "-"}</span>
+                        <span className="text-[#77839b]">{t.productCode}: {productCode || "-"}</span>
                         <span className="font-semibold text-[#ff3030]">{stockText}</span>
                     </div>
 
@@ -744,7 +745,7 @@ export default async function GridDetailPage({
                                     <div className="relative ml-2 -mt-3 max-lg:ml-0 max-lg:mt-0">
                                         {hasDiscount && oldPrice ? (
                                             <div className="text-[1.05em] font-medium text-[#9aa3b4] line-through">
-                                                Qiymət: {oldPrice.toFixed(2)}₼
+                                                {t.price}: {oldPrice.toFixed(2)}₼
                                             </div>
                                         ) : null}
                                         <div className="text-[35px] leading-none font-bold text-[#ff0000] max-lg:text-[35px]">
@@ -756,7 +757,7 @@ export default async function GridDetailPage({
                                 <>
                                     {hasDiscount && oldPrice ? (
                                         <div className="text-[24px] font-semibold text-[#9aa3b4] line-through max-lg:text-[22px]">
-                                            Qiymət: {oldPrice.toFixed(2)}₼
+                                            {t.price}: {oldPrice.toFixed(2)}₼
                                         </div>
                                     ) : null}
                                     {hasDiscount && oldPrice ? (
@@ -765,7 +766,7 @@ export default async function GridDetailPage({
                                         </div>
                                     ) : (
                                         <div className="text-[1.8em] leading-none font-bold text-[#2a2a2d]">
-                                            Qiymət: {currentPrice.toFixed(2)}₼
+                                            {t.price}: {currentPrice.toFixed(2)}₼
                                         </div>
                                     )}
                                 </>
@@ -794,7 +795,7 @@ export default async function GridDetailPage({
                             <div className="mt-6 hidden h-px w-full bg-[#dce3ef] lg:block" />
 
                             <div className="mt-6 hidden flex-wrap items-center gap-x-6 gap-y-2 text-[15px] lg:flex">
-                                <span className="text-[#77839b]">Məhsul kodu: {productCode || "-"}</span>
+                                <span className="text-[#77839b]">{t.productCode}: {productCode || "-"}</span>
                                 <span className="font-semibold text-[#ffcc00]">{stockText}</span>
                             </div>
 <div className="mt-5 hidden space-y-2 text-[16px] lg:block">
@@ -870,7 +871,7 @@ export default async function GridDetailPage({
 
                 {related.length > 0 ? (
                     <section className="mx-auto mt-6 w-full max-w-[1280px] px-1 lg:mt-8 lg:px-2">
-                        <ProductStrip items={related as any} variant="latest" title="Oxşar məhsullar" layout="carousel" cardsTopSpacingClassName="pt-3 pb-4 lg:pt-3 lg:pb-6" />
+                        <ProductStrip items={related as any} variant="latest" title={t.relatedProducts} layout="carousel" cardsTopSpacingClassName="pt-3 pb-4 lg:pt-3 lg:pb-6" />
                     </section>
                 ) : null}
 

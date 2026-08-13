@@ -3,7 +3,10 @@
 import type { MouseEvent, ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useNotify } from "@repo/ui";
+import { getTranslations } from "@/lib/i18n";
+import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
@@ -39,12 +42,22 @@ type ProductGridCardActionsContextValue = {
     handleFavoriteClick: (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => Promise<void>;
     handleCompareClick: (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => Promise<void>;
     handleCartClick: (product: ProductGridCardActionItem, event: MouseEvent<HTMLButtonElement>) => Promise<void>;
+    productCopy: ReturnType<typeof getTranslations>["product"];
 };
 
 const ProductGridCardActionsContext = createContext<ProductGridCardActionsContextValue | null>(null);
 
 export function ProductGridCardActionsProvider({ children }: ProductGridCardActionsProviderProps) {
     const notify = useNotify();
+    const pathname = usePathname();
+    const cartCopy = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).cart;
+    }, [pathname]);
+    const productCopy = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).product;
+    }, [pathname]);
     const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
     const [compareIds, setCompareIds] = useState<Set<number>>(new Set());
     const [favoritePendingIds, setFavoritePendingIds] = useState<Set<number>>(new Set());
@@ -128,7 +141,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
 
         const variationId = product.productVariationId;
         if (!variationId) {
-            notify.error("Bu mehsul favorilere elave edile bilmedi.");
+            notify.error(cartCopy.favoriteFailed);
             return;
         }
         if (favoritePendingIds.has(variationId)) return;
@@ -151,7 +164,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 else next.add(variationId);
                 return next;
             });
-            if (response.message) notify.success(response.message);
+            notify.success(response.data.action === "created" ? productCopy.favoriteAdded : productCopy.favoriteRemoved);
         } catch (error) {
             setFavoriteIds((prev) => {
                 const next = new Set(prev);
@@ -159,7 +172,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 else next.delete(variationId);
                 return next;
             });
-            notify.error(error instanceof Error ? error.message : "Favorilere elave edilerken xeta bas verdi.");
+            notify.error(error instanceof Error ? error.message : cartCopy.favoriteError);
         } finally {
             setFavoritePendingIds((prev) => {
                 const next = new Set(prev);
@@ -175,7 +188,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
 
         const variationId = product.productVariationId;
         if (!variationId) {
-            notify.error("Bu mehsul muqayiseye elave edile bilmedi.");
+            notify.error(cartCopy.compareFailed);
             return;
         }
         if (comparePendingIds.has(variationId)) return;
@@ -198,7 +211,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 else next.add(variationId);
                 return next;
             });
-            if (response.message) notify.success(response.message);
+            notify.success(response.data.action === "created" ? productCopy.compareAdded : productCopy.compareRemoved);
         } catch (error) {
             setCompareIds((prev) => {
                 const next = new Set(prev);
@@ -206,7 +219,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 else next.delete(variationId);
                 return next;
             });
-            notify.error(error instanceof Error ? error.message : "Muqayise yenilenirken xeta bas verdi.");
+            notify.error(error instanceof Error ? error.message : cartCopy.compareError);
         } finally {
             setComparePendingIds((prev) => {
                 const next = new Set(prev);
@@ -239,9 +252,9 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 stock: product.stock,
             });
 
-            notify.success(product.title ? `${product.title} sebetinize muveffeqiyyetle elave edildi!` : "Mehsul sebetinize muveffeqiyyetle elave edildi!");
+            notify.success(product.title ? cartCopy.addedToCart.replace("{product}", product.title) : cartCopy.addedToCartFallback);
         } catch (error) {
-            notify.error(error instanceof Error ? error.message : "Sebete elave ederken xeta bas verdi.");
+            notify.error(error instanceof Error ? error.message : cartCopy.addToCartFailed);
         } finally {
             setCartPendingIds((prev) => {
                 const next = new Set(prev);
@@ -258,6 +271,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
             favoritePendingIds,
             comparePendingIds,
             cartPendingIds,
+            productCopy,
             handleFavoriteClick,
             handleCompareClick,
             handleCartClick,
@@ -342,7 +356,7 @@ export function ProductGridCartButton(props: ProductGridCardActionItem) {
             className={`relative z-[2] mt-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                 props.cartVariant === "blue" ? "bg-[#0f57d6] text-white" : "bg-[#ffd500] text-[#1b212e]"
             } ${isCartPending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-            aria-label={props.cartVariant === "blue" ? "Sebete elave et" : "Mehsul stokda yoxdur"}
+            aria-label={props.cartVariant === "blue" ? context.productCopy.addToCart : context.productCopy.outOfStock}
         >
             {props.cartVariant === "blue" ? (
                 <i className="fas fa-shopping-cart text-white" aria-hidden="true" />

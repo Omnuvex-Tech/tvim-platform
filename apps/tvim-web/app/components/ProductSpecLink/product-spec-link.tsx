@@ -1,8 +1,14 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
+import { getTranslations } from "@/lib/i18n";
+import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 
 const ProductSpecLink = () => {
+    const pathname = usePathname();
+    const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+    const t = getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).product;
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         const tabBtn = document.getElementById("tab-features");
@@ -25,7 +31,7 @@ style={{
     textUnderlineOffset: "3px",
 }}
         >
-            Bütün xüsusiyyətlər
+            {t.allSpecs}
         </a>
     );
 };

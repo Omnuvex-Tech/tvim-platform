@@ -5,6 +5,7 @@ import { Breadcrumb } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { buildNoIndexMetadata } from "@/lib/seo";
+import { getTranslations } from "@/lib/i18n";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { RegisterForm } from "./register-form";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
@@ -62,7 +63,7 @@ export default async function RegisterPage({
       <section className="w-full rounded-[20px] bg-white px-4 pt-1 pb-8 sm:px-8 sm:pt-2 sm:pb-10 lg:px-12">
         <div className="mx-auto w-full max-w-[640px]">
           <p className="mx-auto mt-0 max-w-[560px] text-center text-[15px] leading-[1.4] text-[#6f7786]">
-            Əlaqə məlumatlarınız yalnız sifariş vermək və saytda daha rahat işləmək üçün istifadə olunacaq
+            {getTranslations(normalizedLocale).register.intro}
           </p>
 
           <RegisterForm locale={locale} />

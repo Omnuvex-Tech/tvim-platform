@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import { getTranslations } from "@/lib/i18n";
+import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 import { useNotify } from "@repo/ui";
 import { Minus, Plus } from "lucide-react";
 import { addCartItem, hydrateCart, removeCartItem, updateCartItemQuantity, useCart } from "@/lib/cart/client";
@@ -24,6 +27,11 @@ const ProductDetailActions = ({
     productCode = "",
 }: ProductDetailActionsProps) => {
     const notify = useNotify();
+    const pathname = usePathname();
+    const t = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).product;
+    }, [pathname]);
     const { items } = useCart();
 
     const [quantity, setQuantity] = useState(1);
@@ -62,7 +70,7 @@ const ProductDetailActions = ({
         } catch (error) {
             const fallbackQuantity = Math.max(1, cartItem?.quantity ?? 1);
             setQuantity(fallbackQuantity);
-            const message = error instanceof Error ? error.message : "Səbət yenilənərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : t.cartUpdateFailed;
             notify.error(message);
         } finally {
             setIsUpdatingQuantity(false);
@@ -107,12 +115,12 @@ const ProductDetailActions = ({
 
     const handleAddToCart = async () => {
         if (!productVariationId) {
-            notify.error("Bu məhsul səbətə əlavə edilə bilmədi.");
+            notify.error(t.cartAddBlocked);
             return;
         }
 
         if (typeof stock === "number" && stock <= 0) {
-            notify.error("Bu məhsul stokda yoxdur.");
+            notify.error(t.outOfStockToast);
             return;
         }
 
@@ -123,15 +131,15 @@ const ProductDetailActions = ({
             if (inCart) {
                 await removeCartItem(productVariationId);
                 await hydrateCart(true);
-                notify.success("Məhsul səbətdən silindi.");
+                notify.success(t.removedFromCart);
                 return;
             }
 
             await addCartItem(productVariationId, quantity);
             await hydrateCart(true);
-            notify.success("Məhsul səbətə əlavə edildi.");
+            notify.success(t.addedToCart);
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Səbətə əlavə edilərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : t.cartAddFailed;
             notify.error(message);
         } finally {
             setIsAddingToCart(false);
@@ -148,12 +156,10 @@ const ProductDetailActions = ({
         try {
             const response = await toggleFavorite(productVariationId);
             setIsFavorite(response.data.action === "created");
-            if (response.message) {
-                notify.success(response.message);
-            }
+            notify.success(response.data.action === "created" ? t.favoriteAdded : t.favoriteRemoved);
         } catch (error) {
             setIsFavorite(previous);
-            const message = error instanceof Error ? error.message : "Favori yenilənərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : t.favoriteUpdateFailed;
             notify.error(message);
         } finally {
             setFavoritePending(false);
@@ -170,12 +176,10 @@ const ProductDetailActions = ({
         try {
             const response = await toggleCompare(productVariationId);
             setIsCompared(response.data.action === "created");
-            if (response.message) {
-                notify.success(response.message);
-            }
+            notify.success(response.data.action === "created" ? t.compareAdded : t.compareRemoved);
         } catch (error) {
             setIsCompared(previous);
-            const message = error instanceof Error ? error.message : "Müqayisə yenilənərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : t.compareUpdateFailed;
             notify.error(message);
         } finally {
             setComparePending(false);
@@ -192,7 +196,7 @@ const ProductDetailActions = ({
                             onClick={() => void handleQuantityChange(quantity - 1)}
                             disabled={isUpdatingQuantity}
                             className={`inline-flex h-9 w-7 items-center justify-center justify-self-start text-[#8a94a7] max-lg:h-8 max-lg:w-5 ${isUpdatingQuantity ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
-                            aria-label="Azalt"
+                            aria-label={t.decrease}
                         >
                             <Minus className="size-[18px] max-lg:size-[15px]" strokeWidth={3.2} aria-hidden="true" />
                         </button>
@@ -202,7 +206,7 @@ const ProductDetailActions = ({
                             onClick={() => void handleQuantityChange(quantity + 1)}
                             disabled={isUpdatingQuantity}
                             className={`inline-flex h-9 w-7 items-center justify-center justify-self-end text-[#8a94a7] max-lg:h-8 max-lg:w-5 ${isUpdatingQuantity ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
-                            aria-label="Artır"
+                            aria-label={t.increase}
                         >
                             <Plus className="size-[18px] max-lg:size-[15px]" strokeWidth={3.2} aria-hidden="true" />
                         </button>
@@ -223,7 +227,7 @@ const ProductDetailActions = ({
                 >
                     {variant === "order" ? (
                         <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-                            By order
+                            {t.byOrder}
                         </span>
                     ) : inCart ? (
                         <>
@@ -233,7 +237,7 @@ const ProductDetailActions = ({
                                 style={{ fontFamily: "'Twemoji Country Flags', 'Font Awesome 5 Free', FontAwesome", fontWeight: 900 }}
                             />
                             <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-                                Səbətdə
+                                {t.inCart}
                             </span>
                         </>
                     ) : (
@@ -244,7 +248,7 @@ const ProductDetailActions = ({
                                 style={{ fontFamily: "'Twemoji Country Flags', 'Font Awesome 5 Free', FontAwesome", fontWeight: 900 }}
                             />
                             <span className="text-[0.85em] font-medium" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-                                Səbətə at
+                                {t.addToCart}
                             </span>
                         </>
                     )}
@@ -259,7 +263,7 @@ const ProductDetailActions = ({
                             ? "border-[#0f57d6] bg-[#0f57d6] text-white"
                             : "border-[#dce3ef] bg-white text-[#0f57d6] hover:bg-[#f4f7ff]"
                     } ${!productVariationId || favoritePending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                    aria-label="Seçilmişlər"
+                    aria-label={t.favorites}
                 >
                     <i className={`${isFavorite ? "fa-solid" : "far"} fa-heart text-[16px] font-normal`} aria-hidden="true" />
                 </button>
@@ -273,7 +277,7 @@ const ProductDetailActions = ({
                             ? "border-[#0f57d6] bg-[#0f57d6] text-white"
                             : "border-[#dce3ef] bg-white text-[#0f57d6] hover:bg-[#f4f7ff]"
                     } ${!productVariationId || comparePending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                    aria-label="Müqayisə"
+                    aria-label={t.compareLabel}
                 >
                     <i className="fa-solid fa-code-compare text-[16px] font-normal" aria-hidden="true" />
                 </button>
