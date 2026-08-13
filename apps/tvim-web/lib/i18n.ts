@@ -220,6 +220,52 @@ type TranslationDictionary = {
         enterComment: string;
         ratingRange: string;
     };
+    checkout: {
+        loadFailed: string;
+        emptyCart: string;
+        productFallback: string;
+        productWithId: string;
+        productCode: string;
+        increase: string;
+        decrease: string;
+        unitPrice: string;
+        lineTotal: string;
+        removeItem: string;
+        summaryTitle: string;
+        itemsInCart: string;
+        delivery: string;
+        subtotal: string;
+        grandTotal: string;
+        submit: string;
+        loading: string;
+        select: string;
+        noOptions: string;
+        step1: string;
+        step2: string;
+        step3: string;
+        step4: string;
+        namePlaceholder: string;
+        surnamePlaceholder: string;
+        phonePlaceholder: string;
+        emailPlaceholder: string;
+        addressPlaceholder: string;
+        commentPlaceholder: string;
+        useExistingAddress: string;
+        useNewAddress: string;
+        deliveryTo: string;
+        payAtDoorTerminal: string;
+        payAtDoorCash: string;
+        payOnlineCard: string;
+        monthsSuffix: string;
+        installment: string;
+        selectPayment: string;
+        selectInstallment: string;
+        selectAddress: string;
+        addressIncomplete: string;
+        fillName: string;
+        fillAddress: string;
+        paymentLinkFailed: string;
+    };
     filters: {
         title: string;
         button: string;
@@ -563,6 +609,52 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             success: "Sorğu uğurla göndərildi.",
             failed: "Sorğu göndərilərkən xəta baş verdi.",
         },
+        checkout: {
+            loadFailed: "Checkout məlumatları yüklənmədi.",
+            emptyCart: "Səbətinizdə məhsul yoxdur.",
+            productFallback: "Məhsul",
+            productWithId: "Məhsul #{id}",
+            productCode: "Məhsul kodu",
+            increase: "Artır",
+            decrease: "Azalt",
+            unitPrice: "Qiyməti",
+            lineTotal: "Cəmi",
+            removeItem: "Səbətdən sil",
+            summaryTitle: "Sifarişiniz",
+            itemsInCart: "Səbətdəki məhsullar:",
+            delivery: "Ünvana çatdırılma",
+            subtotal: "Toplam qiymət",
+            grandTotal: "Ümumi məbləğ",
+            submit: "Sifarişi rəsmiləşdirin",
+            loading: "Yüklənir...",
+            select: "Seçin",
+            noOptions: "Seçim yoxdur",
+            step1: "1. Əlaqə məlumatları",
+            step2: "2. Ünvan",
+            step3: "3. Ödəniş üsulları",
+            step4: "4. Şərh",
+            namePlaceholder: "Ad *",
+            surnamePlaceholder: "Soyad *",
+            phonePlaceholder: "Telefon *",
+            emailPlaceholder: "Email *",
+            addressPlaceholder: "Ünvan *",
+            commentPlaceholder: "Şərh",
+            useExistingAddress: "Mən mövcud ünvanımı istifadə etmək istəyirəm",
+            useNewAddress: "Mən yeni ünvan istifadə etmək istəyirəm",
+            deliveryTo: "Ünvana çatdırılma",
+            payAtDoorTerminal: "Qapıda post terminalla",
+            payAtDoorCash: "Qapıda nəğd pulla",
+            payOnlineCard: "Saytda kart ilə ödəniş",
+            monthsSuffix: "ay",
+            installment: "Hissə",
+            selectPayment: "Ödəniş üsulunu seçin.",
+            selectInstallment: "Hissə sayını seçin.",
+            selectAddress: "Ünvan seçin.",
+            addressIncomplete: "Çatdırılma ünvanını son səviyyəyə qədər seçin.",
+            fillName: "Ad və soyad doldurun.",
+            fillAddress: "Ünvan doldurun.",
+            paymentLinkFailed: "Ödəniş linki alınmadı.",
+        },
         filters: {
             title: "Filtrlər",
             button: "Filtr",
@@ -888,6 +980,52 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             success: "The request has been sent successfully.",
             failed: "An error occurred while sending the request.",
         },
+        checkout: {
+            loadFailed: "The checkout details could not be loaded.",
+            emptyCart: "Your cart is empty.",
+            productFallback: "Product",
+            productWithId: "Product #{id}",
+            productCode: "Product code",
+            increase: "Increase",
+            decrease: "Decrease",
+            unitPrice: "Price",
+            lineTotal: "Total",
+            removeItem: "Remove from cart",
+            summaryTitle: "Your order",
+            itemsInCart: "Items in the cart:",
+            delivery: "Delivery to the address",
+            subtotal: "Subtotal",
+            grandTotal: "Total amount",
+            submit: "Place the order",
+            loading: "Loading...",
+            select: "Select",
+            noOptions: "No options",
+            step1: "1. Contact details",
+            step2: "2. Address",
+            step3: "3. Payment methods",
+            step4: "4. Comment",
+            namePlaceholder: "First name *",
+            surnamePlaceholder: "Last name *",
+            phonePlaceholder: "Phone *",
+            emailPlaceholder: "Email *",
+            addressPlaceholder: "Address *",
+            commentPlaceholder: "Comment",
+            useExistingAddress: "I want to use my existing address",
+            useNewAddress: "I want to use a new address",
+            deliveryTo: "Delivery to the address",
+            payAtDoorTerminal: "Card terminal at the door",
+            payAtDoorCash: "Cash at the door",
+            payOnlineCard: "Card payment on the site",
+            monthsSuffix: "months",
+            installment: "Instalment",
+            selectPayment: "Select a payment method.",
+            selectInstallment: "Select the number of instalments.",
+            selectAddress: "Select an address.",
+            addressIncomplete: "Select the delivery address down to the last level.",
+            fillName: "Fill in your first and last name.",
+            fillAddress: "Fill in the address.",
+            paymentLinkFailed: "The payment link could not be obtained.",
+        },
         filters: {
             title: "Filters",
             button: "Filter",
@@ -1030,7 +1168,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             form: {
                 name: "Имя",
                 surname: "Фамилия",
-                email: "Email",
+                email: "Электронная почта",
                 phone: "Телефон",
                 save: "Сохранить",
                 cancel: "Отмена",
@@ -1212,6 +1350,52 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             missingProduct: "Не удалось отправить запрос по этому товару.",
             success: "Запрос успешно отправлен.",
             failed: "Произошла ошибка при отправке запроса.",
+        },
+        checkout: {
+            loadFailed: "Не удалось загрузить данные оформления заказа.",
+            emptyCart: "Ваша корзина пуста.",
+            productFallback: "Товар",
+            productWithId: "Товар №{id}",
+            productCode: "Код товара",
+            increase: "Увеличить",
+            decrease: "Уменьшить",
+            unitPrice: "Цена",
+            lineTotal: "Итого",
+            removeItem: "Удалить из корзины",
+            summaryTitle: "Ваш заказ",
+            itemsInCart: "Товаров в корзине:",
+            delivery: "Доставка по адресу",
+            subtotal: "Сумма товаров",
+            grandTotal: "Общая сумма",
+            submit: "Оформить заказ",
+            loading: "Загрузка...",
+            select: "Выберите",
+            noOptions: "Нет вариантов",
+            step1: "1. Контактные данные",
+            step2: "2. Адрес",
+            step3: "3. Способы оплаты",
+            step4: "4. Комментарий",
+            namePlaceholder: "Имя *",
+            surnamePlaceholder: "Фамилия *",
+            phonePlaceholder: "Телефон *",
+            emailPlaceholder: "Электронная почта *",
+            addressPlaceholder: "Адрес *",
+            commentPlaceholder: "Комментарий",
+            useExistingAddress: "Я хочу использовать существующий адрес",
+            useNewAddress: "Я хочу использовать новый адрес",
+            deliveryTo: "Доставка по адресу",
+            payAtDoorTerminal: "Картой через терминал у двери",
+            payAtDoorCash: "Наличными у двери",
+            payOnlineCard: "Оплата картой на сайте",
+            monthsSuffix: "мес.",
+            installment: "Рассрочка",
+            selectPayment: "Выберите способ оплаты.",
+            selectInstallment: "Выберите количество платежей.",
+            selectAddress: "Выберите адрес.",
+            addressIncomplete: "Выберите адрес доставки до последнего уровня.",
+            fillName: "Заполните имя и фамилию.",
+            fillAddress: "Заполните адрес.",
+            paymentLinkFailed: "Не удалось получить ссылку на оплату.",
         },
         filters: {
             title: "Фильтры",
