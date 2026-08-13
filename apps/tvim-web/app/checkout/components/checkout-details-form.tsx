@@ -833,7 +833,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                             className="h-[15px] w-[15px] accent-[#2756ff]"
                                             disabled={Boolean(isLoading) || isSubmitting || !key}
                                         />
-                                        <span className={labelClass}>{toText(method.name) || key}</span>
+                                        <span className={labelClass}>{t.paymentMethodNames[key] || toText(method.name) || key}</span>
                                         {icon}
                                     </label>
                                 );
