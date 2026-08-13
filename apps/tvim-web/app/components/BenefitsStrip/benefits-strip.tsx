@@ -10,105 +10,150 @@ type BenefitItem = {
     link?: string;
 };
 
-const defaultBenefitItems: BenefitItem[] = [
+type DefaultBenefitLocalized = {
+    title: Record<string, string>;
+    description: Record<string, string>;
+    icon: ReactNode;
+    slugs: Record<string, string>;
+    matchKeywords: Record<string, string[]>;
+};
+
+const DEFAULT_BENEFIT_ITEMS: DefaultBenefitLocalized[] = [
     {
-        title: "Pulsuz çatdırılma",
-        description: "200 manatdan yuxarı sifarişlər üçün",
+        title: { az: "Pulsuz çatdırılma", en: "Free delivery", ru: "Бесплатная доставка" },
+        description: {
+            az: "200 manatdan yuxarı sifarişlər üçün",
+            en: "For orders over 200 manat",
+            ru: "Для заказов свыше 200 манат",
+        },
         icon: <BlueHexIcon />,
-        link: "/services/pulsuz-catdirilma",
+        slugs: { az: "catdirilma-ve-odenis", en: "delivery-and-payment", ru: "dostavka-i-oplata" },
+        matchKeywords: {
+            az: ["çatdır", "catdir", "çatdiril", "pulsuz", "delivery"],
+            en: ["delivery", "deliver", "free ship"],
+            ru: ["достав", "бесплат", "доставк"],
+        },
     },
     {
-        title: "Geriqaytarma",
-        description: "14 gün müddətində",
+        title: { az: "Geriqaytarma", en: "Returns", ru: "Возврат" },
+        description: {
+            az: "14 gün müddətində",
+            en: "Within 14 days",
+            ru: "В течение 14 дней",
+        },
         icon: <ReturnArrowIcon />,
-        link: "/services/geriqaytarma",
+        slugs: { az: "geri-qaytarma-ve-deyisdirilme", en: "redemption-and-replacement", ru: "iskuplenie-i-zamena" },
+        matchKeywords: {
+            az: ["geri", "geriq", "qaytar", "return"],
+            en: ["return", "replace", "refund"],
+            ru: ["возврат", "замен", "скуплен"],
+        },
     },
     {
-        title: "Korporativ satış",
-        description: "Xüsusi təkliflərdən yararlanın",
+        title: { az: "Korporativ satış", en: "Corporate sales", ru: "Корпоративные продажи" },
+        description: {
+            az: "Xüsusi təkliflərdən yararlanın",
+            en: "Take advantage of special offers",
+            ru: "Воспользуйтесь специальными предложениями",
+        },
         icon: <BuildingGridIcon />,
-        link: "/services/korporativ-satis",
+        slugs: { az: "korporativ", en: "korporativ", ru: "korporativ" },
+        matchKeywords: {
+            az: ["korporat", "korporativ", "korporativnye"],
+            en: ["corporate"],
+            ru: ["корпоративн", "корпорат"],
+        },
     },
     {
-        title: "Bonus kartları",
-        description: "Xərclədikcə daha çox qazanın",
+        title: { az: "Bonus kartları", en: "Bonus cards", ru: "Бонусные карты" },
+        description: {
+            az: "Xərclədikcə daha çox qazanın",
+            en: "Earn more as you spend",
+            ru: "Зарабатывайте больше по мере покупок",
+        },
         icon: <TicketCutIcon />,
-        link: "/services/bonus-kartlari",
+        slugs: { az: "bonus-kartlari", en: "bonus-cards", ru: "bonusnye-karty" },
+        matchKeywords: {
+            az: ["bonus", "kart", "kart"],
+            en: ["bonus", "card"],
+            ru: ["бонус", "карт"],
+        },
     },
 ];
 
-function slugifyTitle(value: string) {
-    return value
-        .toLocaleLowerCase("az")
-        .replace(/ə/g, "e")
-        .replace(/ı/g, "i")
-        .replace(/ö/g, "o")
-        .replace(/ü/g, "u")
-        .replace(/ğ/g, "g")
-        .replace(/ş/g, "s")
-        .replace(/ç/g, "c")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
+function getDefaultBenefitForLocale(def: DefaultBenefitLocalized, locale: string): BenefitItem & { matchKeywords: string[] } {
+    const resolvedTitle = String(def.title[locale] ?? def.title.az ?? def.title.en ?? Object.values(def.title)[0] ?? "");
+    const resolvedDescription = String(def.description[locale] ?? def.description.az ?? def.description.en ?? Object.values(def.description)[0] ?? "");
+    const resolvedSlug = String(def.slugs[locale] ?? def.slugs.az ?? def.slugs.en ?? Object.values(def.slugs)[0] ?? "");
+    const allKeywords: string[] = Object.values(def.matchKeywords).flat();
+    return {
+        title: resolvedTitle,
+        description: resolvedDescription,
+        icon: def.icon,
+        link: `/${locale}/${resolvedSlug}`,
+        matchKeywords: allKeywords,
+    };
 }
 
-function toServiceLink(rawLink: string | undefined, title: string, locale?: string) {
-    const source = String(rawLink ?? "").trim();
-    const normalizedLocale = String(locale ?? "az").trim().toLowerCase() || "az";
-
-    if (source.startsWith("http://") || source.startsWith("https://")) {
-        return source;
-    }
-
-    const cleaned = source.replace(/^\/+|\/+$/g, "");
-    if (cleaned) {
-        const parts = cleaned.split("/").filter(Boolean);
-        const slug = cleaned.startsWith("services/")
-            ? parts[1]
-            : parts[parts.length - 1];
-
-        if (slug) {
-            return `/${normalizedLocale}/services/${slug}`;
-        }
-    }
-
-    const titleSlug = slugifyTitle(title);
-    return titleSlug ? `/${normalizedLocale}/services/${titleSlug}` : `/${normalizedLocale}/services`;
+function matchesAnyKeyword(titleLower: string, keywords: string[]): boolean {
+    return keywords.some((kw) => titleLower.includes(kw));
 }
-// Descriptions are clamped via CSS to a fixed number of lines (3).
+
+function resolveIcon(titleLower: string): ReactNode {
+    const deliveryKw = ["çatdır", "catdir", "çatdiril", "pulsuz", "delivery", "deliver", "free ship", "достав", "бесплат", "доставк"];
+    const returnKw = ["geri", "geriq", "qaytar", "return", "replace", "refund", "возврат", "замен", "скуплен"];
+    const corporateKw = ["korporat", "korporativ", "korporativnye", "corporate", "корпоративн", "корпорат"];
+    const bonusKw = ["bonus", "kart", "card", "бонус", "карт"];
+
+    if (matchesAnyKeyword(titleLower, deliveryKw)) return <BlueHexIcon />;
+    if (matchesAnyKeyword(titleLower, returnKw)) return <ReturnArrowIcon />;
+    if (matchesAnyKeyword(titleLower, corporateKw)) return <BuildingGridIcon />;
+    if (matchesAnyKeyword(titleLower, bonusKw)) return <TicketCutIcon />;
+    return <TicketCutIcon />;
+}
 
 function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
+    const normalizedLocale = String(locale ?? "az").trim().toLowerCase() || "az";
+
     if (!rawItems || !Array.isArray(rawItems) || rawItems.length === 0) {
-        return defaultBenefitItems.map((item) => ({
-            ...item,
-            link: toServiceLink(item.link, item.title, locale),
-        }));
+        return DEFAULT_BENEFIT_ITEMS.map((def) => {
+            const { matchKeywords: _kw, ...rest } = getDefaultBenefitForLocale(def, normalizedLocale);
+            return rest;
+        });
     }
 
     const mapped = rawItems.map((it: any) => {
         const title = (it?.menu?.title ?? it?.data?.title ?? it?.menu?.name ?? "").toString();
         const description = htmlToText(it?.menu?.description ?? it?.data?.description ?? "");
-
         const t = title.toLowerCase();
-        let icon = <TicketCutIcon />;
-        if (t.includes("bonus") || t.includes("kart")) icon = <TicketCutIcon />;
-        else if (t.includes("geri") || t.includes("geriq")) icon = <ReturnArrowIcon />;
-        else if (t.includes("korporat") || t.includes("korporativ")) icon = <BuildingGridIcon />;
-        else if (t.includes("çatdır") || t.includes("catdir") || t.includes("çatdiril")) icon = <BlueHexIcon />;
+        const icon = resolveIcon(t);
 
-        const rawLink = it?.menu?.link ?? it?.data?.link ?? it?.menu?.url ?? it?.data?.url ?? it?.menu?.href ?? it?.data?.href ?? it?.menu?.path ?? it?.data?.path ?? "";
-        const link = toServiceLink(rawLink ? String(rawLink) : undefined, title, locale);
+        const multiLinks = it?.menu?.multi_links;
+        const localizedMenuLink = multiLinks && typeof multiLinks === "object" ? multiLinks[normalizedLocale] : undefined;
+        const menuLink = String(localizedMenuLink ?? it?.menu?.link ?? "").trim().replace(/^\/+|\/+$/g, "");
+        const link = menuLink ? `/${normalizedLocale}/${menuLink}` : undefined;
 
         return { title, description, icon, link } as BenefitItem;
-    }).filter((item) => item.title.trim().length > 0);
+    }).filter((item) => item.title.trim().length > 0 && item.link);
 
     if (mapped.length >= 4) return mapped;
 
-    const existing = new Set(mapped.map((item) => item.title.trim().toLocaleLowerCase("az")));
-    const missingDefaults = defaultBenefitItems.filter(
-        (item) => !existing.has(item.title.trim().toLocaleLowerCase("az"))
-    );
+    const existingTitlesLower = mapped.map((item) => item.title.trim().toLocaleLowerCase());
+    const missingDefaults = DEFAULT_BENEFIT_ITEMS
+        .filter((def) => {
+            const localized = getDefaultBenefitForLocale(def, normalizedLocale);
+            const titleLower = localized.title.trim().toLocaleLowerCase();
+            const matchInExisting = existingTitlesLower.some((et) =>
+                matchesAnyKeyword(et, localized.matchKeywords) ||
+                matchesAnyKeyword(titleLower, Object.values(def.matchKeywords).flat()) ||
+                localized.matchKeywords.some((kw) => existingTitlesLower.some((et) => et.includes(kw)))
+            );
+            return !matchInExisting;
+        })
+        .map((def) => {
+            const { matchKeywords: _kw, ...rest } = getDefaultBenefitForLocale(def, normalizedLocale);
+            return rest;
+        });
 
     return [...mapped, ...missingDefaults].slice(0, 4);
 }
@@ -117,7 +162,6 @@ const BenefitsStrip = ({ items, locale }: { items?: any[]; locale?: string }) =>
     const list = mapRawToBenefits(items, locale);
 
     return (
-        // <section className="w-full" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' }}>
         <section className="w-full font-sans">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {list.map((item, index) => (

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, MapPin, Pencil, Phone, Trash2, UserRound } from "lucide-react";
 import { Spinner, useNotify } from "@repo/ui";
+import { getTranslations } from "@/lib/i18n";
 
 type Address = {
     id: number;
@@ -65,12 +66,14 @@ function DeliverySelect({
     options,
     disabled,
     loading,
+    labels,
 }: {
     value: string;
     onChange: (nextValue: string) => void;
     options: DeliveryPrice[];
     disabled?: boolean;
     loading?: boolean;
+    labels: { loading: string; select: string; noOptions: string };
 }) {
     const [open, setOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -111,7 +114,7 @@ function DeliverySelect({
                 className="flex h-[64px] w-full cursor-pointer items-center justify-between rounded-[18px] border border-[#d8dde6] bg-white px-4 text-[15px] text-[#161922] outline-none transition focus:border-[#2050f5] focus:ring-2 focus:ring-[#2050f5]/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
                 <span className="min-w-0 truncate text-left">
-                    {loading ? "Yüklənir..." : selectedLabel || "Seçin"}
+                    {loading ? labels.loading : selectedLabel || labels.select}
                 </span>
                 <ChevronDown className="h-5 w-5 text-[#565F6F]" />
             </button>
@@ -119,7 +122,7 @@ function DeliverySelect({
             {open ? (
                 <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[280px] overflow-auto rounded-[18px] border border-[#d8dde6] bg-white p-2 shadow-[0_18px_40px_-22px_rgba(15,23,42,0.55)]">
                     {options.length === 0 ? (
-                        <div className="px-3 py-2 text-[14px] text-[#565F6F]">Seçim yoxdur</div>
+                        <div className="px-3 py-2 text-[14px] text-[#565F6F]">{labels.noOptions}</div>
                     ) : (
                         options.map((opt) => {
                             const optValue = String(opt.id);
@@ -161,6 +164,12 @@ export function AddressClient({
         const normalized = locale.trim().toLowerCase();
         return ["az", "ru", "en"].includes(normalized) ? normalized : "az";
     }, [locale]);
+
+    const t = useMemo(() => getTranslations(effectiveLocale).account, [effectiveLocale]);
+    const selectLabels = useMemo(
+        () => ({ loading: t.form.loading, select: t.form.select, noOptions: t.form.noOptions }),
+        [t]
+    );
 
     const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -357,10 +366,10 @@ export function AddressClient({
 
     const validate = (payload: AddressForm): Errors => {
         const next: Errors = {};
-        if (!payload.name.trim()) next.name = "Ad tələb olunur.";
-        if (!payload.surname.trim()) next.surname = "Soyad tələb olunur.";
-        if (!payload.city.trim()) next.city = "Şəhər tələb olunur.";
-        if (!payload.address_line1.trim()) next.address_line1 = "Ünvan tələb olunur.";
+        if (!payload.name.trim()) next.name = t.form.requiredName;
+        if (!payload.surname.trim()) next.surname = t.form.requiredSurname;
+        if (!payload.city.trim()) next.city = t.address.requiredCity;
+        if (!payload.address_line1.trim()) next.address_line1 = t.address.requiredAddress;
         return next;
     };
 
@@ -385,7 +394,7 @@ export function AddressClient({
         if (isSubmitting) return;
 
         if (!deliveryLeafId) {
-            notify.error("Ölkə/region seçimi tamamlanmayıb.");
+            notify.error(t.address.incompleteRegion);
             return;
         }
 
@@ -434,16 +443,16 @@ export function AddressClient({
             const json = (await res.json().catch(() => null)) as ApiResponse<Address | null> | null;
             const ok = res.ok && (json?.success ?? true);
             if (!ok) {
-                notify.error(json?.message || "Ünvan əlavə edilmədi.");
+                notify.error(json?.message || t.address.saveFailed);
                 return;
             }
 
-            notify.success(isEditing ? "Ünvan yeniləndi." : "Ünvan əlavə olundu.");
+            notify.success(isEditing ? t.address.updated : t.address.added);
             closeForm();
             await refreshAddresses();
             router.refresh();
         } catch {
-            notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
+            notify.error(t.form.serverError);
         } finally {
             setIsSubmitting(false);
         }
@@ -474,7 +483,7 @@ export function AddressClient({
             const json = (await res.json().catch(() => null)) as ApiResponse<Address | null> | null;
             const addr = res.ok && json?.success && json.data ? json.data : null;
             if (!addr) {
-                notify.error(json?.message || "Ünvan tapılmadı.");
+                notify.error(json?.message || t.address.notFound);
                 closeForm();
                 return;
             }
@@ -498,7 +507,7 @@ export function AddressClient({
             setDeliveryLevels(levels);
             setDeliveryLeafId(leafId);
         } catch {
-            notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
+            notify.error(t.form.serverError);
             closeForm();
         } finally {
             setIsEditingLoading(false);
@@ -523,16 +532,16 @@ export function AddressClient({
             const json = (await res.json().catch(() => null)) as ApiResponse<unknown> | null;
             const ok = res.ok && (json?.success ?? true);
             if (!ok) {
-                notify.error(json?.message || "Ünvan silinmədi.");
+                notify.error(json?.message || t.address.deleteFailed);
                 return;
             }
 
-            notify.success("Ünvan silindi.");
+            notify.success(t.address.deleted);
             if (editingId === id) closeForm();
             setAddresses((prev) => prev.filter((a) => a.id !== id));
             router.refresh();
         } catch {
-            notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
+            notify.error(t.form.serverError);
         } finally {
             setDeletingId((prev) => (prev === id ? null : prev));
         }
@@ -603,7 +612,7 @@ export function AddressClient({
             <div className="grid gap-5">
                 <div className="rounded-[20px] bg-[#f7f7f7] p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-[15px] font-semibold text-[#0F131A]">Ünvanlar</div>
+                        <div className="text-[15px] font-semibold text-[#0F131A]">{t.address.heading}</div>
                         <button
                             type="button"
                             onClick={() => {
@@ -616,12 +625,12 @@ export function AddressClient({
                             <span aria-hidden className="text-[18px] leading-none">
                                 +
                             </span>
-                            Yeni ünvan
+                            {t.address.newAddress}
                         </button>
                     </div>
 
                     {addresses.length === 0 ? (
-                        <div className="mt-3 text-[14px] font-medium text-[#202938]">Ünvan tapılmadı.</div>
+                        <div className="mt-3 text-[14px] font-medium text-[#202938]">{t.address.notFound}</div>
                     ) : (
                         <div className="mt-4 grid gap-3">
                             {addresses.map((addr) => (
@@ -629,11 +638,11 @@ export function AddressClient({
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <div className="flex min-w-0 items-center gap-2">
                                             <div className="min-w-0 truncate text-[14px] font-semibold text-[#0F131A]">
-                                                {addr.label || "Ünvan"}
+                                                {addr.label || t.address.addressLine}
                                             </div>
                                             {addr.is_default ? (
                                                 <span className="shrink-0 rounded-full bg-[#e8efff] px-2 py-0.5 text-[12px] font-semibold text-[#0D47FF]">
-                                                    Əsas ünvan
+                                                    {t.address.primary}
                                                 </span>
                                             ) : null}
                                         </div>
@@ -644,7 +653,7 @@ export function AddressClient({
                                                 disabled={isSubmitting || isEditingLoading || deletingId === addr.id}
                                                 className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#f0f1f3] text-[#0F131A] hover:bg-[#e5e7eb] disabled:cursor-not-allowed disabled:opacity-60"
                                             >
-                                                <span className="sr-only">Redaktə et</span>
+                                                <span className="sr-only">{t.form.edit}</span>
                                                 <Pencil className="h-4 w-4" />
                                             </button>
                                             <button
@@ -653,7 +662,7 @@ export function AddressClient({
                                                 disabled={isSubmitting || isEditingLoading || deletingId === addr.id}
                                                 className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#fff1f2] text-[#b91c1c] hover:bg-[#ffe4e6] disabled:cursor-not-allowed disabled:opacity-60"
                                             >
-                                                <span className="sr-only">Sil</span>
+                                                <span className="sr-only">{t.form.remove}</span>
                                                 {deletingId === addr.id ? <Spinner className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                                             </button>
                                         </div>
@@ -695,7 +704,7 @@ export function AddressClient({
                     <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                         <div className="flex flex-nowrap items-center justify-between gap-3">
                             <div className="min-w-0 truncate text-[15px] font-semibold text-[#0F131A]">
-                                {editingId ? "Ünvanı redaktə et" : "Ünvan əlavə et"}
+                                {editingId ? t.address.editTitle : t.address.addTitle}
                             </div>
                             <div className="shrink-0">
                                 <button
@@ -704,7 +713,7 @@ export function AddressClient({
                                     disabled={isSubmitting || isEditingLoading}
                                     className="h-9 cursor-pointer rounded-[12px] bg-[#f0f1f3] px-4 text-[13px] font-semibold text-[#0F131A] hover:bg-[#e5e7eb] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    Ləğv et
+                                    {t.form.cancel}
                                 </button>
                             </div>
                         </div>
@@ -712,35 +721,35 @@ export function AddressClient({
                         <form className="mt-4" onSubmit={onSubmit}>
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
-                                    <div className="text-[13px] font-semibold text-[#0F131A]">Başlıq</div>
+                                    <div className="text-[13px] font-semibold text-[#0F131A]">{t.address.label}</div>
                                     <input
                                         type="text"
                                         value={formData.label}
                                         onChange={(e) => updateField("label", e.target.value)}
-                                        placeholder="Məsələn: Ev, İş"
+                                        placeholder={t.address.labelPlaceholder}
                                         className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <div className="text-[13px] font-semibold text-[#0F131A]">Ad</div>
+                                        <div className="text-[13px] font-semibold text-[#0F131A]">{t.form.name}</div>
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => updateField("name", e.target.value)}
-                                            placeholder="Ad"
+                                            placeholder={t.form.name}
                                             className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                         />
                                         {errors.name ? <p className="px-2 text-sm text-red-600">{errors.name}</p> : null}
                                     </div>
 
                                     <div className="space-y-2">
-                                        <div className="text-[13px] font-semibold text-[#0F131A]">Soyad</div>
+                                        <div className="text-[13px] font-semibold text-[#0F131A]">{t.form.surname}</div>
                                         <input
                                             type="text"
                                             value={formData.surname}
                                             onChange={(e) => updateField("surname", e.target.value)}
-                                            placeholder="Soyad"
+                                            placeholder={t.form.surname}
                                             className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                         />
                                         {errors.surname ? <p className="px-2 text-sm text-red-600">{errors.surname}</p> : null}
@@ -748,7 +757,7 @@ export function AddressClient({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="text-[13px] font-semibold text-[#0F131A]">Ölkə</div>
+                                    <div className="text-[13px] font-semibold text-[#0F131A]">{t.address.country}</div>
                                     <DeliverySelect
                                         value={deliveryLevels[0]?.selectedId ?? ""}
                                         onChange={(selectedId) => {
@@ -761,6 +770,7 @@ export function AddressClient({
                                         }}
                                         options={deliveryLevels[0]?.options ?? []}
                                         loading={deliveryRootLoading}
+                                        labels={selectLabels}
                                     />
                                 </div>
 
@@ -768,7 +778,7 @@ export function AddressClient({
                                     const absoluteIndex = index + 1;
                                     return (
                                         <div key={`region-${absoluteIndex}`} className="space-y-2">
-                                            <div className="text-[13px] font-semibold text-[#0F131A]">Region</div>
+                                            <div className="text-[13px] font-semibold text-[#0F131A]">{t.address.region}</div>
                                             <DeliverySelect
                                                 value={level.selectedId}
                                                 onChange={(selectedId) => {
@@ -782,30 +792,31 @@ export function AddressClient({
                                                     void loadChildrenFor(absoluteIndex, selectedId);
                                                 }}
                                                 options={level.options}
+                                                labels={selectLabels}
                                             />
                                         </div>
                                     );
                                 })}
 
                                 <div className="space-y-2">
-                                    <div className="text-[13px] font-semibold text-[#0F131A]">Şəhər</div>
+                                    <div className="text-[13px] font-semibold text-[#0F131A]">{t.address.city}</div>
                                     <input
                                         type="text"
                                         value={formData.city}
                                         onChange={(e) => updateField("city", e.target.value)}
-                                        placeholder="Şəhər"
+                                        placeholder={t.address.city}
                                         className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                     />
                                     {errors.city ? <p className="px-2 text-sm text-red-600">{errors.city}</p> : null}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="text-[13px] font-semibold text-[#0F131A]">Ünvan</div>
+                                    <div className="text-[13px] font-semibold text-[#0F131A]">{t.address.addressLine}</div>
                                     <input
                                         type="text"
                                         value={formData.address_line1}
                                         onChange={(e) => updateField("address_line1", e.target.value)}
-                                        placeholder="Ünvan"
+                                        placeholder={t.address.addressLine}
                                         className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                     />
                                     {errors.address_line1 ? (
@@ -814,7 +825,7 @@ export function AddressClient({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="text-[13px] font-semibold text-[#0F131A]">Əsas ünvan</div>
+                                    <div className="text-[13px] font-semibold text-[#0F131A]">{t.address.primary}</div>
                                     <div className="flex flex-wrap items-center gap-6">
                                         <label className="inline-flex cursor-pointer items-center gap-2 text-[14px] font-medium text-[#0F131A]">
                                             <input
@@ -823,7 +834,7 @@ export function AddressClient({
                                                 checked={formData.is_default === true}
                                                 onChange={() => updateField("is_default", true)}
                                             />
-                                            <span>Bəli</span>
+                                            <span>{t.form.yes}</span>
                                         </label>
                                         <label className="inline-flex cursor-pointer items-center gap-2 text-[14px] font-medium text-[#0F131A]">
                                             <input
@@ -832,7 +843,7 @@ export function AddressClient({
                                                 checked={formData.is_default === false}
                                                 onChange={() => updateField("is_default", false)}
                                             />
-                                            <span>Xeyr</span>
+                                            <span>{t.form.no}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -843,7 +854,7 @@ export function AddressClient({
                                         disabled={isSubmitting || isEditingLoading}
                                         className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[16px] bg-[#2050f5] text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        {isSubmitting ? <Spinner className="h-5 w-5" /> : "Yadda saxla"}
+                                        {isSubmitting ? <Spinner className="h-5 w-5" /> : t.form.save}
                                     </button>
                                     <button
                                         type="button"
@@ -851,7 +862,7 @@ export function AddressClient({
                                         disabled={isSubmitting || isEditingLoading}
                                         className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[16px] bg-[#f0f1f3] text-[15px] font-semibold text-[#0F131A] transition-opacity hover:bg-[#e5e7eb] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        Ləğv et
+                                        {t.form.cancel}
                                     </button>
                                 </div>
                             </div>

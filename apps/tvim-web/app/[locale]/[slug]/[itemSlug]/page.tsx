@@ -10,13 +10,13 @@ import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
 import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-link";
-import { generateServiceMetadata, renderServiceSlugPage } from "@/app/services/[slug]/page";
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
-import { isSupportedLocale } from "@/lib/site-locales";
-import { getTranslations } from "@/lib/i18n";
+import { isSupportedLocale, type SiteLocale } from "@/lib/site-locales";
 import { getProductSlugsByLocale } from "@/lib/product-slugs";
+import { getTranslations } from "@/lib/i18n";
+import { resolveLegacyServicePath } from "@/lib/legacy-services";
 
 type GridItem = {
     id?: number | string;
@@ -278,7 +278,7 @@ async function getProductDetailBySlug(slug: string, locale: string) {
 }
 
 function getHomeLabel(locale: string) {
-    return locale === "en" ? "Home" : "Ana sehife";
+    return getTranslations(locale).common.home;
 }
 
 function toBreadcrumbSlug(value: string) {
@@ -331,8 +331,10 @@ export async function generateMetadata({
 
     if (!isSupportedLocale(normalizedLocale)) return {};
 
+    // /services/{slug} is a redirect now (see the render branch below), not a
+    // page — nothing to publish metadata for.
     if (slug.trim().toLowerCase() === "services") {
-        return await generateServiceMetadata({ slug: itemSlug, locale: normalizedLocale });
+        return {};
     }
     if (slug.trim().toLowerCase() === "brand-news") {
         return {};
@@ -422,8 +424,13 @@ export default async function GridDetailPage({
         notFound();
     }
 
+    // /services/{slug} was its own page; every one of those four concepts now
+    // has a real page reached through the normal locale/slug route, so this
+    // just forwards onto it instead of rendering something separate.
     if (slug.trim().toLowerCase() === "services") {
-        return await renderServiceSlugPage({ slug: itemSlug, locale: normalizedLocale });
+        const target = resolveLegacyServicePath(itemSlug, normalizedLocale as SiteLocale);
+        if (target) permanentRedirect(target);
+        notFound();
     }
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const sourceParamRaw = resolvedSearchParams?.source;

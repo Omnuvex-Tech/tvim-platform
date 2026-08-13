@@ -53,7 +53,9 @@ const performRemoteLogout = async (token: string) => {
     }
 };
 
-export async function GET(request: NextRequest) {
+// POST for the same reason as the localized route: a GET that destroys the
+// session is executed by prefetches, preloads and crawlers alike.
+export async function POST(request: NextRequest) {
     const token = decodeTokenFromCookie(request.cookies.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
     let logoutMessage = "Hesabdan uğurla çıxdınız";
 
@@ -64,7 +66,8 @@ export async function GET(request: NextRequest) {
     const targetLocale = resolveLocale(request.cookies.get("preferred-locale")?.value);
     const redirectUrl = new URL(`/${targetLocale}`, request.url);
     redirectUrl.searchParams.set("logout_message", logoutMessage);
-    const response = NextResponse.redirect(redirectUrl);
+    // 303 so the browser follows with GET instead of re-posting.
+    const response = NextResponse.redirect(redirectUrl, 303);
 
     response.cookies.set({
         name: AUTH_SESSION_TOKEN_COOKIE,

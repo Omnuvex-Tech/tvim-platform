@@ -79,6 +79,22 @@ export const asRouteLocale = (locale: string): RouteLocale => {
 export const localizedHref = (key: LocalizedRouteKey, locale: string, suffix = "") =>
     routePath(key, asRouteLocale(locale), suffix);
 
+/**
+ * Where every discount strip's "view all" link points. The collection is brand
+ * filter value 7666, served under each language's own slug, so the wording is
+ * fixed here instead of costing a brand lookup on every page with a strip.
+ */
+const SPECIALS_SLUGS: Record<RouteLocale, string> = {
+    az: "xususiler",
+    en: "specials",
+    ru: "spetsialnie",
+};
+
+export const specialsHref = (locale: string) => {
+    const routeLocale = asRouteLocale(locale);
+    return `/${routeLocale}/brands/${SPECIALS_SLUGS[routeLocale]}`;
+};
+
 const matchRule = (rest: string) => {
     for (const rule of ROUTE_RULES) {
         const internalSuffix = stripPrefix(rest, rule.internal);
@@ -203,14 +219,6 @@ export const resolveBlogRedirect = (rest: string, locale: RouteLocale) => {
     // it — except for "/xeberler/{slug}", which is one of our own item URLs.
     if (isBlogRootSlug(segments[0]!) && segments.length > (changed ? 1 : 2)) {
         segments.shift();
-        changed = true;
-    }
-
-    // A root slug from another locale used to be served in place, because the
-    // CMS resolves it under the requested language anyway. That gave one page
-    // three urls per language, so it is now moved onto this locale's root.
-    if (isBlogRootSlug(segments[0]!) && segments[0] !== BLOG_ROOT_SLUGS[locale]) {
-        segments[0] = BLOG_ROOT_SLUGS[locale];
         changed = true;
     }
 

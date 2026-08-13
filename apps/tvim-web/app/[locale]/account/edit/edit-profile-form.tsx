@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Phone, UserRound } from "lucide-react";
 import { Spinner, useNotify } from "@repo/ui";
+import { getTranslations } from "@/lib/i18n";
 
 type EditProfileFormProps = {
     locale: string;
@@ -39,6 +40,8 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
         return ["az", "ru", "en"].includes(normalized) ? normalized : "az";
     }, [locale]);
 
+    const t = useMemo(() => getTranslations(effectiveLocale).account, [effectiveLocale]);
+
     const placeholders = useMemo(
         () => ({
             name: (initialValues?.name ?? "").toString(),
@@ -65,8 +68,8 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
 
     const validate = (payload: Payload): Errors => {
         const next: Errors = {};
-        if (!payload.name.trim()) next.name = "Ad tələb olunur.";
-        if (!payload.email.trim()) next.email = "Email tələb olunur.";
+        if (!payload.name.trim()) next.name = t.form.requiredName;
+        if (!payload.email.trim()) next.email = t.form.requiredEmail;
         return next;
     };
 
@@ -103,15 +106,15 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
             const success = response.ok && (json?.success ?? true);
 
             if (!success) {
-                notify.error(json?.message || "Profil yenilənmədi.");
+                notify.error(json?.message || t.profile.updateFailed);
                 return;
             }
 
             await fetch("/api/auth/session", { method: "GET", cache: "no-store" });
-            notify.success("Profil yeniləndi.");
+            notify.success(t.profile.updated);
             router.refresh();
         } catch {
-            notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
+            notify.error(t.form.serverError);
         } finally {
             setIsSubmitting(false);
         }
@@ -122,13 +125,13 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
             <div className="grid grid-cols-1 gap-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Ad</div>
+                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{t.form.name}</div>
                         <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
                             <UserRound className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="text"
                                 placeholder={placeholders.name}
-                                aria-label="Ad"
+                                aria-label={t.form.name}
                                 autoComplete="given-name"
                                 value={formData.name}
                                 onChange={(e) => updateField("name", e.target.value)}
@@ -139,13 +142,13 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                     </div>
 
                     <div className="space-y-2">
-                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Soyad</div>
+                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{t.form.surname}</div>
                         <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
                             <UserRound className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="text"
                                 placeholder={placeholders.surname}
-                                aria-label="Soyad"
+                                aria-label={t.form.surname}
                                 autoComplete="family-name"
                                 value={formData.surname}
                                 onChange={(e) => updateField("surname", e.target.value)}
@@ -158,13 +161,13 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Email</div>
+                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{t.form.email}</div>
                         <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
                             <Mail className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="email"
                                 placeholder={placeholders.email}
-                                aria-label="Email"
+                                aria-label={t.form.email}
                                 autoComplete="email"
                                 value={formData.email}
                                 onChange={(e) => updateField("email", e.target.value)}
@@ -175,13 +178,13 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                     </div>
 
                     <div className="space-y-2">
-                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">Telefon</div>
+                        <div className="px-1 text-[13px] font-semibold text-[#0F131A]">{t.form.phone}</div>
                         <label className="group relative flex h-[64px] w-full items-center rounded-[18px] border border-[#d8dde6]">
                             <Phone className="ml-4 mr-3 size-5 shrink-0 text-[#2050f5]" strokeWidth={2.1} />
                             <input
                                 type="tel"
                                 placeholder={placeholders.phone}
-                                aria-label="Telefon"
+                                aria-label={t.form.phone}
                                 autoComplete="tel"
                                 value={formData.phone}
                                 onChange={(e) => updateField("phone", e.target.value)}
@@ -198,7 +201,7 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                         disabled={isSubmitting}
                         className="inline-flex h-[62px] min-w-[170px] cursor-pointer items-center justify-center rounded-[18px] bg-[#2050f5] px-7 text-[15px] leading-none font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {isSubmitting ? <Spinner className="h-5 w-5" /> : "Yadda saxla"}
+                        {isSubmitting ? <Spinner className="h-5 w-5" /> : t.form.save}
                     </button>
                 </div>
             </div>

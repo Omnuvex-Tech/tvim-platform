@@ -11,6 +11,7 @@ import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/ses
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../account-navigation";
 import { localizedHref } from "@/lib/routes";
+import { getTranslations } from "@/lib/i18n";
 
 type OrderStatus = {
     code?: string | null;
@@ -102,33 +103,6 @@ type OrdersApiPayload = {
     orders?: Order[] | null;
 };
 
-const getStatusTabs = (locale: "az" | "ru" | "en") => {
-    if (locale === "en") {
-        return [
-            { label: "All", value: "" },
-            { label: "Processing", value: "processing" },
-            { label: "Delivered", value: "completed" },
-            { label: "Cancelled", value: "canceled" },
-        ];
-    }
-
-    if (locale === "ru") {
-        return [
-            { label: "Все", value: "" },
-            { label: "В процессе", value: "processing" },
-            { label: "Доставлено", value: "completed" },
-            { label: "Отменено", value: "canceled" },
-        ];
-    }
-
-    return [
-        { label: "Hamısı", value: "" },
-        { label: "Prosessdə", value: "processing" },
-        { label: "Təhvil verildi", value: "completed" },
-        { label: "Ləğv edildi", value: "canceled" },
-    ];
-};
-
 const extractOrders = (payload: unknown): Order[] => {
     if (Array.isArray(payload)) return payload as Order[];
     if (!payload || typeof payload !== "object") return [];
@@ -154,11 +128,14 @@ const formatAmount = (value: unknown) => {
     return numeric.toFixed(2).replace(/\.00$/, "");
 };
 
-const formatDate = (value?: string | null) => {
+/** Dates follow the visitor's language, not a fixed az-AZ format. */
+const DATE_LOCALES: Record<"az" | "ru" | "en", string> = { az: "az-AZ", ru: "ru-RU", en: "en-GB" };
+
+const formatDate = (value: string | null | undefined, locale: "az" | "ru" | "en") => {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString("az-AZ", {
+    return date.toLocaleDateString(DATE_LOCALES[locale], {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -179,6 +156,7 @@ export default async function OrdersPage({
 }) {
     const { locale: routeLocale } = await params;
     const locale = normalizeLocale(routeLocale);
+    const t = getTranslations(locale).account;
     const homePageMeta = config.pages.home[locale];
     const accountPageMeta = config.pages.account[locale];
     const orderHistoryPageMeta = config.pages.orderHistory[locale];
@@ -245,10 +223,10 @@ export default async function OrdersPage({
     });
 
     const tabs = [
-        { label: "Hamısı", value: "" },
-        { label: "Prosessdə", value: "processing" },
-        { label: "Təhvil verildi", value: "completed" },
-        { label: "Ləğv edildi", value: "canceled" },
+        { label: t.orders.all, value: "" },
+        { label: t.orders.processing, value: "processing" },
+        { label: t.orders.delivered, value: "completed" },
+        { label: t.orders.cancelled, value: "canceled" },
     ];
     const ordersPageUrl = localizedHref("orders", locale);
     const activeHref = "/account/orders";
@@ -293,11 +271,11 @@ export default async function OrdersPage({
                         <div className="mt-8 space-y-6 sm:mt-10 sm:space-y-8">
                             {!ordersResponse.success ? (
                                 <div className="rounded-[18px] bg-[#f7f8fb] p-5 text-[14px] font-medium text-[#b42318]">
-                                    {ordersResponse.message || "Sifarişlər yüklənmədi."}
+                                    {ordersResponse.message || t.orders.loadFailed}
                                 </div>
                             ) : orders.length === 0 ? (
                                 <div className="rounded-[18px] bg-[#f7f8fb] p-5 text-[14px] font-medium text-[#202938]">
-                                    Sizin hər hansı bir sifarişiniz mövcud deyil!
+                                    {t.orders.empty}
                                 </div>
                             ) : (
                                 orders.map((order, index) => {
@@ -307,7 +285,7 @@ export default async function OrdersPage({
                                     const statusText = (orderData.status?.text ?? order.status?.text ?? "").toString();
                                     const paymentStatusText = (orderData.payment_status?.text ?? order.payment_status?.text ?? "").toString();
                                     const orderNumber = orderData.number || order.number || `#${order.id}`;
-                                    const placedAt = formatDate(orderData.placed_at || order.placed_at);
+                                    const placedAt = formatDate(orderData.placed_at || order.placed_at, locale);
                                     const currency = (orderData.currency || order.currency || "AZN").toString();
                                     const payableTotal = formatAmount(
                                         orderData.totals?.payable_total ?? orderData.totals?.total ?? order.totals?.payable_total ?? order.totals?.total
@@ -322,7 +300,7 @@ export default async function OrdersPage({
                                             <summary className="flex list-none cursor-pointer items-center justify-between gap-4 py-4 [&::-webkit-details-marker]:hidden">
                                                 <div className="flex min-w-0 flex-wrap items-center gap-x-10 gap-y-2">
                                                     <div className="text-[15px] font-semibold text-[#0D47FF] sm:text-[16px]">
-                                                        Sifariş №: {orderNumber}
+                                                        {t.orders.orderNumber}: {orderNumber}
                                                     </div>
                                                     {placedAt ? (
                                                         <div className="text-[13px] font-semibold text-[#0D47FF] sm:text-[14px]">{placedAt}</div>
@@ -350,13 +328,13 @@ export default async function OrdersPage({
                                                                 <div className="flex min-w-0 items-start gap-4">
                                                                     <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
                                                                         {itemImage(item) ? (
-                                                                            <img src={itemImage(item)} alt={item.product_name || "Məhsul"} className="h-full w-full object-contain" />
+                                                                            <img src={itemImage(item)} alt={item.product_name || t.orders.productAlt} className="h-full w-full object-contain" />
                                                                         ) : null}
                                                                     </div>
 
                                                                     <div className="min-w-0 pt-1">
-                                                                        <p className="text-[13px] text-[#8A97AB] sm:text-[14px]">Model: {item.sku || item.variation_name || "-"}</p>
-                                                                        <p className="mt-1 text-[13px] font-semibold text-[#0F131A] sm:text-[14px]">Sayı: {item.qty ?? 0}</p>
+                                                                        <p className="text-[13px] text-[#8A97AB] sm:text-[14px]">{t.orders.model}: {item.sku || item.variation_name || "-"}</p>
+                                                                        <p className="mt-1 text-[13px] font-semibold text-[#0F131A] sm:text-[14px]">{t.orders.quantity}: {item.qty ?? 0}</p>
                                                                         <p className="mt-2 text-[16px] font-semibold leading-tight text-[#0F131A] sm:text-[18px]">
                                                                             {item.product_name || "-"}
                                                                         </p>
@@ -377,12 +355,12 @@ export default async function OrdersPage({
                                                         <div className="flex min-w-0 items-start gap-4">
                                                             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
                                                                 {mainItem.image ? (
-                                                                    <img src={mainItem.image} alt={mainItem.product_name || "Məhsul"} className="h-full w-full object-contain" />
+                                                                    <img src={mainItem.image} alt={mainItem.product_name || t.orders.productAlt} className="h-full w-full object-contain" />
                                                                 ) : null}
                                                             </div>
                                                             <div className="min-w-0 pt-1">
-                                                                <p className="text-[13px] text-[#8A97AB] sm:text-[14px]">Model: {mainItem.sku || mainItem.variation_name || "-"}</p>
-                                                                <p className="mt-1 text-[13px] font-semibold text-[#0F131A] sm:text-[14px]">Sayı: {mainItem.qty ?? 0}</p>
+                                                                <p className="text-[13px] text-[#8A97AB] sm:text-[14px]">{t.orders.model}: {mainItem.sku || mainItem.variation_name || "-"}</p>
+                                                                <p className="mt-1 text-[13px] font-semibold text-[#0F131A] sm:text-[14px]">{t.orders.quantity}: {mainItem.qty ?? 0}</p>
                                                                 <p className="mt-2 text-[16px] font-semibold leading-tight text-[#0F131A] sm:text-[18px]">{mainItem.product_name || "-"}</p>
                                                             </div>
                                                         </div>
@@ -399,11 +377,11 @@ export default async function OrdersPage({
                                             <div className="border-t border-[#D8E1EC] pt-6">
                                                 <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
                                                     <div className="text-[14px] font-semibold leading-tight text-[#0F131A] sm:self-center sm:text-[16px]">
-                                                        Ödəmə metodu:: {paymentMethodName}
+                                                        {t.orders.paymentMethod}: {paymentMethodName}
                                                     </div>
                                                     <div className="flex flex-col items-start gap-1 sm:items-end">
                                                         <div className="text-[14px] font-semibold leading-tight text-[#0F131A] sm:text-[16px]">
-                                                            Məbləğ: {payableTotal}
+                                                            {t.orders.amount}: {payableTotal}
                                                             <span className="ml-0.5">{currency === "AZN" ? "₼" : currency}</span>
                                                         </div>
                                                         {paymentStatusText ? (

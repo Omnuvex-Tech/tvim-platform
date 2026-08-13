@@ -70,13 +70,6 @@ type ProductListResponse = {
     };
 };
 
-const STATIC_SERVICE_SLUGS = [
-    "bonus-kartlari",
-    "pulsuz-catdirilma",
-    "geriqaytarma",
-    "korporativ-satis",
-] as const;
-
 const toNormalizedLocale = (value: string) => value.trim().toLowerCase();
 
 const normalizePath = (value: string) =>
@@ -318,9 +311,9 @@ const collectLocalePathEntries = async (locale: string) => {
     collectMenuPaths(menusPayload?.data ?? menusPayload, locale, paths);
     collectCategoryPaths(categoriesPayload?.data ?? categoriesPayload, locale, paths);
 
-    STATIC_SERVICE_SLUGS.forEach((slug) => {
-        paths.set(`${locale}/services/${slug}`, undefined);
-    });
+    // /services/{slug} used to be a separate page with its own dictionary of
+    // slugs; it is gone, and the four concepts it published now redirect onto
+    // real menu pages, which collectMenuPaths above already lists.
 
     // The admin menu still points the brand list at the legacy /product/brands
     // path, which now redirects; the sitemap lists the served URL instead.
