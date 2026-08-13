@@ -8,6 +8,7 @@ import { useNotify, Spinner } from "@repo/ui";
 import { useLanguageStore } from "@/stores";
 import { hydrateCart } from "@/lib/cart/client";
 import { localizedHref } from "@/lib/routes";
+import { getTranslations } from "@/lib/i18n";
 
 type LoginFormProps = {
     locale: string;
@@ -57,6 +58,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
 
         return "az";
     }, [locale, storedLocale]);
+    const t = useMemo(() => getTranslations(effectiveLocale).login, [effectiveLocale]);
 
     const [formData, setFormData] = useState<LoginPayload>({
         email: "",
@@ -75,11 +77,11 @@ const LoginForm = ({ locale }: LoginFormProps) => {
         const nextErrors: LoginErrors = {};
 
         if (!formData.email.trim()) {
-            nextErrors.email = "Zəhmət olmasa e-mail daxil edin";
+            nextErrors.email = t.requiredEmail;
         }
 
         if (!formData.password.trim()) {
-            nextErrors.password = "Zəhmət olmasa şifrə daxil edin";
+            nextErrors.password = t.requiredPassword;
         }
 
         return nextErrors;
@@ -112,7 +114,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
         }
 
         if (!response.ok || payload.success === false) {
-            throw new Error(payload.message || "Sessiya yaradıla bilmədi.");
+            throw new Error(payload.message || t.sessionFailed);
         }
     };
 
@@ -122,7 +124,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
         const nextErrors = validate();
         if (Object.keys(nextErrors).length > 0) {
             setErrors(nextErrors);
-            notify.error("Zəhmət olmasa məcburi xanaları doldurun.");
+            notify.error(t.fillRequired);
             return;
         }
 
@@ -148,7 +150,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             }
 
             if (!response.ok) {
-                const message = extractMessage(payload, "Giriş zamanı xəta baş verdi.");
+                const message = extractMessage(payload, t.loginFailed);
                 const needsVerification = resolveRequiresEmailVerification(payload);
 
                 notify.error(message);
@@ -164,19 +166,19 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             const user = payload.data?.user || payload.user;
 
             if (!token) {
-                notify.error("Token tapılmadı. Yenidən cəhd edin.");
+                notify.error(t.tokenMissing);
                 return;
             }
 
             try {
                 await persistAuthSession(token, user);
             } catch (error) {
-                const message = error instanceof Error ? error.message : "Sessiya yaradıla bilmədi.";
+                const message = error instanceof Error ? error.message : t.sessionFailed;
                 notify.error(message);
                 return;
             }
 
-            notify.success("Giriş uğurla tamamlandı.");
+            notify.success(t.success);
             try {
                 await hydrateCart(true);
             } catch {
@@ -194,7 +196,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
             router.replace(`/${effectiveLocale}`);
             router.refresh();
         } catch {
-            notify.error("Server ilə bağlantı zamanı xəta baş verdi.");
+            notify.error(t.connectionError);
         } finally {
             setIsSubmitting(false);
         }
@@ -207,7 +209,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                 <input
                     type="email"
                     placeholder=""
-                    aria-label="E-mail ünvanı"
+                    aria-label={t.email}
                     autoComplete="email"
                     value={formData.email}
                     onChange={(event) => updateField("email", event.target.value)}
@@ -216,7 +218,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                 <span
                     className={`pointer-events-none absolute top-1/2 left-[52px] -translate-y-1/2 text-[15px] leading-5 text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.email ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                 >
-                    E-mail ünvanı
+                    {t.email}
                 </span>
             </label>
             {errors.email ? <p className="-mt-2 px-2 text-sm text-red-600">{errors.email}</p> : null}
@@ -226,7 +228,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                 <input
                     type={showPassword ? "text" : "password"}
                     placeholder=""
-                    aria-label="Şifrə"
+                    aria-label={t.password}
                     autoComplete="current-password"
                     value={formData.password}
                     onChange={(event) => updateField("password", event.target.value)}
@@ -235,13 +237,13 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                 <span
                     className={`pointer-events-none absolute top-1/2 left-[52px] -translate-y-1/2 text-[15px] leading-5 text-[#9aa3b2] transition-opacity duration-200 ease-out ${formData.password ? "opacity-0" : "opacity-100"} group-focus-within:opacity-0`}
                 >
-                    Şifrə
+                    {t.password}
                 </span>
                 <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute top-1/2 right-5 -translate-y-1/2 cursor-pointer text-[#8ea1bf]"
-                    aria-label="Şifrəni göstər/gizlət"
+                    aria-label={t.togglePassword}
                 >
                     {showPassword ? <EyeOff className="size-5" strokeWidth={2.1} /> : <Eye className="size-5" strokeWidth={2.1} />}
                 </button>
@@ -253,7 +255,7 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     href={`/${effectiveLocale}/forgot-password`}
                     className="inline-block text-[13px] font-[500] text-[#1f2430] no-underline hover:no-underline"
                 >
-                    Şifrənizi unutmusunuz?
+                    {t.forgotPassword}
                 </Link>
             </div>
 
@@ -263,16 +265,16 @@ const LoginForm = ({ locale }: LoginFormProps) => {
                     disabled={isSubmitting}
                     className="inline-flex h-[62px] min-w-[136px] cursor-pointer items-center justify-center rounded-[18px] bg-[#ffd500] px-7 text-[15px] leading-none font-[780] text-[#000000] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    {isSubmitting ? <Spinner size={20} /> : <span className="-translate-y-[1px]">Giriş</span>}
+                    {isSubmitting ? <Spinner size={20} /> : <span className="-translate-y-[1px]">{t.submit}</span>}
                 </button>
             </div>
 
             <div className="mt-8 text-center text-[15px] font-[450] text-[#111111]">
-                Hesab yaradaraq saytın bütün imkanlarından istifadə edə bilərsiniz.
+                {t.noAccountText}
             </div>
 
             <div className="-mt-2 text-center text-[15px]">
-                <Link href={localizedHref("signup", effectiveLocale)} className="font-semibold text-[#2258f6] no-underline hover:no-underline">Hesab qeydiyyatı</Link>
+                <Link href={localizedHref("signup", effectiveLocale)} className="font-semibold text-[#2258f6] no-underline hover:no-underline">{t.createAccount}</Link>
             </div>
         </form>
     );

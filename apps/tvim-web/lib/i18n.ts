@@ -220,6 +220,34 @@ type TranslationDictionary = {
         enterComment: string;
         ratingRange: string;
     };
+    filters: {
+        title: string;
+        button: string;
+        showMore: string;
+        showLess: string;
+        showMoreCount: string;
+        filterFallback: string;
+        subcategoryFallback: string;
+        noProducts: string;
+        loadFailed: string;
+    };
+    login: {
+        email: string;
+        password: string;
+        togglePassword: string;
+        forgotPassword: string;
+        submit: string;
+        noAccountText: string;
+        createAccount: string;
+        requiredEmail: string;
+        requiredPassword: string;
+        fillRequired: string;
+        sessionFailed: string;
+        loginFailed: string;
+        tokenMissing: string;
+        success: string;
+        connectionError: string;
+    };
     home: {
         selected: string;
         special: string;
@@ -535,6 +563,34 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             success: "Sorğu uğurla göndərildi.",
             failed: "Sorğu göndərilərkən xəta baş verdi.",
         },
+        filters: {
+            title: "Filtrlər",
+            button: "Filtr",
+            showMore: "Daha çox göstər",
+            showLess: "Daha az göstər",
+            showMoreCount: "Əlavə {count} ədəd göstər",
+            filterFallback: "Filtr",
+            subcategoryFallback: "Alt kateqoriya",
+            noProducts: "Məhsul tapılmadı.",
+            loadFailed: "Məhsullar yüklənmədi.",
+        },
+        login: {
+            email: "E-mail ünvanı",
+            password: "Şifrə",
+            togglePassword: "Şifrəni göstər/gizlət",
+            forgotPassword: "Şifrənizi unutmusunuz?",
+            submit: "Giriş",
+            noAccountText: "Hesab yaradaraq saytın bütün imkanlarından istifadə edə bilərsiniz.",
+            createAccount: "Hesab qeydiyyatı",
+            requiredEmail: "Zəhmət olmasa e-mail daxil edin",
+            requiredPassword: "Zəhmət olmasa şifrə daxil edin",
+            fillRequired: "Zəhmət olmasa məcburi xanaları doldurun.",
+            sessionFailed: "Sessiya yaradıla bilmədi.",
+            loginFailed: "Giriş zamanı xəta baş verdi.",
+            tokenMissing: "Token tapılmadı. Yenidən cəhd edin.",
+            success: "Giriş uğurla tamamlandı.",
+            connectionError: "Server ilə bağlantı zamanı xəta baş verdi.",
+        },
         home: {
             selected: "Sizin üçün seçdiklərimiz",
             special: "Xüsusi endirimlər",
@@ -832,6 +888,34 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             success: "The request has been sent successfully.",
             failed: "An error occurred while sending the request.",
         },
+        filters: {
+            title: "Filters",
+            button: "Filter",
+            showMore: "Show more",
+            showLess: "Show less",
+            showMoreCount: "Show {count} more",
+            filterFallback: "Filter",
+            subcategoryFallback: "Subcategory",
+            noProducts: "No products found.",
+            loadFailed: "The products could not be loaded.",
+        },
+        login: {
+            email: "Email address",
+            password: "Password",
+            togglePassword: "Show/hide password",
+            forgotPassword: "Forgot your password?",
+            submit: "Sign in",
+            noAccountText: "Create an account to use every feature of the site.",
+            createAccount: "Create an account",
+            requiredEmail: "Please enter your email",
+            requiredPassword: "Please enter your password",
+            fillRequired: "Please fill in the required fields.",
+            sessionFailed: "The session could not be created.",
+            loginFailed: "An error occurred while signing in.",
+            tokenMissing: "The token was not found. Please try again.",
+            success: "You have signed in successfully.",
+            connectionError: "An error occurred while connecting to the server.",
+        },
         home: {
             selected: "Our Picks for You",
             special: "Specials",
@@ -906,7 +990,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continue: "Продолжить",
             send: "Отправить",
             sending: "Отправляется...",
-            email: "Email",
+            email: "Электронная почта",
             phone: "Телефон",
             address: "Адрес",
             callUs: "Позвоните нам",
@@ -1128,6 +1212,34 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             missingProduct: "Не удалось отправить запрос по этому товару.",
             success: "Запрос успешно отправлен.",
             failed: "Произошла ошибка при отправке запроса.",
+        },
+        filters: {
+            title: "Фильтры",
+            button: "Фильтр",
+            showMore: "Показать больше",
+            showLess: "Показать меньше",
+            showMoreCount: "Показать ещё {count}",
+            filterFallback: "Фильтр",
+            subcategoryFallback: "Подкатегория",
+            noProducts: "Товары не найдены.",
+            loadFailed: "Не удалось загрузить товары.",
+        },
+        login: {
+            email: "Адрес электронной почты",
+            password: "Пароль",
+            togglePassword: "Показать/скрыть пароль",
+            forgotPassword: "Забыли пароль?",
+            submit: "Войти",
+            noAccountText: "Создайте аккаунт, чтобы пользоваться всеми возможностями сайта.",
+            createAccount: "Регистрация аккаунта",
+            requiredEmail: "Пожалуйста, введите электронную почту",
+            requiredPassword: "Пожалуйста, введите пароль",
+            fillRequired: "Пожалуйста, заполните обязательные поля.",
+            sessionFailed: "Не удалось создать сессию.",
+            loginFailed: "Произошла ошибка при входе.",
+            tokenMissing: "Токен не найден. Попробуйте ещё раз.",
+            success: "Вход выполнен успешно.",
+            connectionError: "Произошла ошибка при подключении к серверу.",
         },
         home: {
             selected: "Наш выбор для вас",
