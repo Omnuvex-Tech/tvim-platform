@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Language } from "@repo/types/types";
-import { Breadcrumb } from "@repo/ui";
+import { Breadcrumb, RemoteImage } from "@repo/ui";
 import { api } from "@/lib/api";
 import { config } from "@/config";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
@@ -380,7 +380,7 @@ export default async function OrderDetailPage({
                                     return (
                                         <div key={item.id ?? `${item.product_variation_id ?? "item"}-${index}`} className="flex gap-4 rounded-[16px] bg-[#f7f8fb] p-4">
                                             <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[12px] bg-white">
-                                                {item.image ? <img src={item.image} alt={item.product_name || t.products} className="h-full w-full object-contain" /> : null}
+                                                {item.image ? <RemoteImage src={item.image} alt={item.product_name || t.products} width={144} height={144} className="h-full w-full object-contain" /> : null}
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="truncate text-[16px] font-semibold text-[#111826]">{item.product_name || "-"}</p>
@@ -403,7 +403,7 @@ export default async function OrderDetailPage({
                                 <p><span className="font-medium text-[#111826]">{t.method}:</span> {order.payment_method?.name || "-"}</p>
                                 {order.payment_method?.icon_path ? (
                                     <div className="flex items-center gap-3">
-                                        <img src={order.payment_method.icon_path} alt={order.payment_method.name || t.payment} className="h-8 w-auto object-contain" />
+                                        <RemoteImage src={order.payment_method.icon_path} alt={order.payment_method.name || t.payment} width={128} height={64} className="h-8 w-auto object-contain" />
                                         <span className="text-[14px] text-[#667085]">{order.payment_method.description || ""}</span>
                                     </div>
                                 ) : null}

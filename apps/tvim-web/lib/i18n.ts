@@ -270,7 +270,9 @@ type TranslationDictionary = {
         addressIncomplete: string;
         fillName: string;
         fillAddress: string;
+        fillPhone: string;
         paymentLinkFailed: string;
+        submitFailed: string;
     };
     filters: {
         title: string;
@@ -663,7 +665,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             addressIncomplete: "Çatdırılma ünvanını son səviyyəyə qədər seçin.",
             fillName: "Ad və soyad doldurun.",
             fillAddress: "Ünvan doldurun.",
+            fillPhone: "Telefon doldurun.",
             paymentLinkFailed: "Ödəniş linki alınmadı.",
+            submitFailed: "Sifariş göndərilərkən xəta baş verdi.",
         },
         filters: {
             title: "Filtrlər",
@@ -1038,7 +1042,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             addressIncomplete: "Select the delivery address down to the last level.",
             fillName: "Fill in your first and last name.",
             fillAddress: "Fill in the address.",
+            fillPhone: "Fill in the phone number.",
             paymentLinkFailed: "The payment link could not be obtained.",
+            submitFailed: "The order could not be placed. Please try again.",
         },
         filters: {
             title: "Filters",
@@ -1413,7 +1419,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             addressIncomplete: "Выберите адрес доставки до последнего уровня.",
             fillName: "Заполните имя и фамилию.",
             fillAddress: "Заполните адрес.",
+            fillPhone: "Заполните номер телефона.",
             paymentLinkFailed: "Не удалось получить ссылку на оплату.",
+            submitFailed: "Не удалось оформить заказ. Попробуйте ещё раз.",
         },
         filters: {
             title: "Фильтры",

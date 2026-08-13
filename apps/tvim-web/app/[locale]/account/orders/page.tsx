@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Language } from "@repo/types/types";
-import { Breadcrumb } from "@repo/ui";
+import { Breadcrumb, RemoteImage } from "@repo/ui";
 import { ChevronUp } from "lucide-react";
 import { config } from "@/config";
 import { api } from "@/lib/api";
@@ -328,7 +328,7 @@ export default async function OrdersPage({
                                                                 <div className="flex min-w-0 items-start gap-4">
                                                                     <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
                                                                         {itemImage(item) ? (
-                                                                            <img src={itemImage(item)} alt={item.product_name || t.orders.productAlt} className="h-full w-full object-contain" />
+                                                                            <RemoteImage src={itemImage(item)} alt={item.product_name || t.orders.productAlt} width={192} height={192} className="h-full w-full object-contain" />
                                                                         ) : null}
                                                                     </div>
 
@@ -355,7 +355,7 @@ export default async function OrdersPage({
                                                         <div className="flex min-w-0 items-start gap-4">
                                                             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-[#F7F8FB] sm:h-24 sm:w-24">
                                                                 {mainItem.image ? (
-                                                                    <img src={mainItem.image} alt={mainItem.product_name || t.orders.productAlt} className="h-full w-full object-contain" />
+                                                                    <RemoteImage src={mainItem.image} alt={mainItem.product_name || t.orders.productAlt} width={192} height={192} className="h-full w-full object-contain" />
                                                                 ) : null}
                                                             </div>
                                                             <div className="min-w-0 pt-1">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useNotify } from "@repo/ui";
+import { RemoteImage, useNotify } from "@repo/ui";
 import { addProductToCart } from "@/lib/cart/client";
 import { toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
@@ -191,11 +191,12 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
                                 <div className="relative z-[1] h-full w-full overflow-hidden">
                                     {item.main_image ? (
-                                        <img
+                                        <RemoteImage
                                             src={item.main_image}
                                             alt={item.name}
+                                            width={320}
+                                            height={320}
                                             className="h-full w-full object-contain transition-transform duration-200 ease-out"
-                                            loading="lazy"
                                         />
                                     ) : null}
                                 </div>

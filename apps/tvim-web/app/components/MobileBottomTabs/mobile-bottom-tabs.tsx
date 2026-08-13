@@ -140,9 +140,9 @@ export const MobileBottomTabs = () => {
             },
             {
                 label: LABELS[locale].cart,
-                href: `/${locale}/checkout`,
+                href: localizedHref("checkout", locale),
                 icon: ShoppingCart,
-                active: pathname?.startsWith(`/${locale}/checkout`) ?? false,
+                active: pathname?.startsWith(localizedHref("checkout", locale)) ?? false,
                 count: cartCount,
             },
             {

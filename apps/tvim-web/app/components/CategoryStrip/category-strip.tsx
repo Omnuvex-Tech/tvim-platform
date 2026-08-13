@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
+import { RemoteImage } from "@repo/ui";
 
 type CategoryItem = {
     label: string;
@@ -140,7 +141,7 @@ const CategoryStrip = ({ items = [] }: CategoryStripProps) => {
                             <>
                                 <span className="inline-flex h-11 items-center justify-center select-none" aria-hidden="true">
                                     {iconImageUrl ? (
-                                        <img src={iconImageUrl} alt="" className="h-16 w-16 object-contain select-none" draggable={false} />
+                                        <RemoteImage src={iconImageUrl} alt="" width={128} height={128} className="h-16 w-16 object-contain select-none" draggable={false} />
                                     ) : iconClass ? (
                                         <i className={`${iconClass} text-[42px] leading-none text-[#475066] select-none`} />
                                     ) : (
@@ -283,9 +284,15 @@ const CategoryStrip2 = ({ items = [] }: CategoryStrip2Props) => {
                             >
                                 {image ? (
                                     <>
-                                        <img
+                                        {/* Explicit dimensions rather than `fill`: fill writes inset:0
+                                            as an inline style, which would beat the 3px inset this
+                                            tile is drawn with. */}
+                                        <RemoteImage
                                             src={image}
                                             alt={label}
+                                            width={296}
+                                            height={296}
+                                            sizes="(max-width: 640px) 100px, (max-width: 1024px) 148px, 15vw"
                                             className="absolute inset-[3px] h-[calc(100%-6px)] w-[calc(100%-6px)] object-cover object-center"
                                             draggable={false}
                                         />

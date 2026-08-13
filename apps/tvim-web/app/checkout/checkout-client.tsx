@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { RemoteImage } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { RequestForm } from "../components/RequestForm/request-form";
@@ -147,14 +148,6 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
         setSelectedDeliveryPriceId(defaultDeliveryPriceId);
     }, [defaultDeliveryPriceId, selectedDeliveryPriceId]);
 
-    if (!initialCheckout) {
-        return (
-            <div className="rounded-[6px] border border-dashed border-[#d3dbe7] bg-white px-4 py-12 text-center">
-                <p className="text-lg font-semibold text-[#171d28]">{t.loadFailed}</p>
-            </div>
-        );
-    }
-
     const items = useMemo(() => (Array.isArray(checkout?.items) ? checkout!.items! : []), [checkout]);
     const totals = checkout?.totals ?? {};
 
@@ -218,7 +211,18 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
         return () => window.removeEventListener(CHECKOUT_SUBMIT_DONE_EVENT, onDone);
     }, []);
 
-    if (!items || items.length === 0) {
+    // Both empty states sit below every hook: `initialCheckout` arrives as null
+    // and turns into data on a refresh, so returning above the hooks would
+    // change how many of them run between renders.
+    if (!checkout) {
+        return (
+            <div className="rounded-[6px] border border-dashed border-[#d3dbe7] bg-white px-4 py-12 text-center">
+                <p className="text-lg font-semibold text-[#171d28]">{t.loadFailed}</p>
+            </div>
+        );
+    }
+
+    if (items.length === 0) {
         return (
             <div className="rounded-[6px] border border-dashed border-[#d3dbe7] bg-white px-4 py-12 text-center">
                 <p className="text-lg font-semibold text-[#171d28]">{t.emptyCart}</p>
@@ -248,8 +252,7 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                                 <div className="flex min-w-0 items-center gap-4 self-center">
                                     <div className="h-[96px] w-[96px] flex-none overflow-hidden rounded-[6px] bg-white sm:h-[120px] sm:w-[120px] lg:h-[144px] lg:w-[144px]">
                                         {imageUrl ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={imageUrl} alt={title || fallbackTitle} className="h-full w-full object-contain" />
+                                            <RemoteImage src={imageUrl} alt={title || fallbackTitle} width={288} height={288} className="h-full w-full object-contain" />
                                         ) : null}
                                     </div>
                                     <div className="min-w-0">
@@ -316,16 +319,14 @@ export default function CheckoutClient({ locale, initialCheckout, isAuthenticate
                     })}
                 </div>
 
-                    {checkout ? (
-                        <CheckoutDetailsForm
-                            locale={effectiveLocale}
-                            checkout={checkout}
-                            isAuthenticated={isAuthenticated}
-                            isLoading={isRefreshing || isUpdating}
-                            onDeliveryPriceIdChange={onDeliveryPriceIdChange}
-                            authUser={authUser}
-                        />
-                    ) : null}
+                    <CheckoutDetailsForm
+                        locale={effectiveLocale}
+                        checkout={checkout}
+                        isAuthenticated={isAuthenticated}
+                        isLoading={isRefreshing || isUpdating}
+                        onDeliveryPriceIdChange={onDeliveryPriceIdChange}
+                        authUser={authUser}
+                    />
                 </section>
 
                 <CheckoutOrderSummary

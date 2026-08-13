@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RemoteImage } from "@repo/ui";
 import { ProductGridCartButton, ProductGridCardActionsProvider, ProductGridCardSideActions } from "./product-grid-card-actions";
 
 type ProductGridProps = {
@@ -180,13 +181,14 @@ export function ProductGrid({ locale, items }: ProductGridProps) {
                                     <Link href={product.href} className="block h-full w-full text-center">
                                         <div className="relative z-[1] h-full w-full overflow-hidden">
                                             {product.imageUrl ? (
-                                                <img
+                                                <RemoteImage
                                                     draggable={false}
                                                     src={product.imageUrl}
                                                     alt={product.title}
+                                                    fill
+                                                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 260px"
                                                     className="h-full w-full object-contain transition-transform duration-200 ease-out"
-                                                    loading={index === 0 ? "eager" : "lazy"}
-                                                    fetchPriority={index === 0 ? "high" : "auto"}
+                                                    priority={index === 0}
                                                 />
                                             ) : null}
                                         </div>

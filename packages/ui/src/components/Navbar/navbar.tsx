@@ -3,6 +3,7 @@
 import { type ReactNode, useMemo, useState, useEffect, useRef, useCallback, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { RemoteImage } from "../RemoteImage";
 import {
     Boxes,
     Briefcase,
@@ -603,9 +604,11 @@ function ParentCategoryIcon({
 
     if (iconImage) {
         return (
-            <img
+            <RemoteImage
                 src={iconImage}
                 alt={category.name ?? ""}
+                width={32}
+                height={32}
                 className={cn("h-4 w-4 shrink-0 object-contain", imageClassName ?? className)}
             />
         );
@@ -875,7 +878,7 @@ function NavbarSearch({
                                         >
                                             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#f3f5f9]">
                                                 {product.imageUrl ? (
-                                                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" />
+                                                    <RemoteImage src={product.imageUrl} alt={product.name} width={40} height={40} className="h-full w-full object-contain" />
                                                 ) : (
                                                     <Package className="size-4 text-[#98a1b2]" strokeWidth={2} />
                                                 )}

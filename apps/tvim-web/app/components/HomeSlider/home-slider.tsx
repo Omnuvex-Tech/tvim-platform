@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { optimizedImageSrc, optimizedSrcSet } from "@repo/ui";
 import { useRouter } from "next/navigation";
 import type { Slider } from "@repo/types/types";
 import { htmlToText } from "@repo/shared/utils";
@@ -256,10 +257,24 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                                         )
                                     ) : null}
 
+                                    {/* Stays a <picture>: the slides carry a separate mobile crop,
+                                        which next/image cannot express. Both sources are still put
+                                        through the optimizer by hand so the hero is not shipped at
+                                        its full upload size. */}
                                     <picture className="block h-full w-full">
-                                        {slide.mobile_image ? <source media="(max-width: 768px)" srcSet={slide.mobile_image} /> : null}
+                                        {slide.mobile_image ? (
+                                            <source
+                                                media="(max-width: 768px)"
+                                                srcSet={optimizedSrcSet(slide.mobile_image, [640, 828]) || slide.mobile_image}
+                                                sizes="100vw"
+                                            />
+                                        ) : null}
+                                        <source
+                                            srcSet={optimizedSrcSet(slide.image, [1200, 1920]) || slide.image}
+                                            sizes="100vw"
+                                        />
                                         <img
-                                            src={slide.image}
+                                            src={optimizedImageSrc(slide.image, 1200)}
                                             alt={slide.title ?? "Slider image"}
                                             className="h-full w-full object-cover"
                                             loading={isPrioritySlide ? "eager" : "lazy"}

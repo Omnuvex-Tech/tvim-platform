@@ -258,17 +258,17 @@ export const pages = {
     },
     checkout: {
         az: {
-            url: "/az/checkout",
+            url: routePath("checkout", "az"),
             title: "Sifariş rəsmiləşdirmə",
             name: "Sifariş rəsmiləşdirmə",
         },
         ru: {
-            url: "/ru/checkout",
+            url: routePath("checkout", "ru"),
             title: "Оформление заказа",
             name: "Оформление заказа",
         },
         en: {
-            url: "/en/checkout",
+            url: routePath("checkout", "en"),
             title: "Checkout",
             name: "Checkout",
         },

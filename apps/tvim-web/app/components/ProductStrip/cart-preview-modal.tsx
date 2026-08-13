@@ -2,10 +2,11 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Spinner } from "@repo/ui";
+import { RemoteImage, Spinner } from "@repo/ui";
 import { useCart } from "@/lib/cart/client";
 import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
+import { localizedHref } from "@/lib/routes";
 
 type CartPreviewModalProduct = {
     key: string;
@@ -89,9 +90,11 @@ const CartPreviewModal = ({
                                     <div className="col-span-2 flex items-center gap-3 min-w-0 md:col-span-1 md:gap-4">
                                         <div className="h-[64px] w-[64px] flex-none overflow-hidden rounded-[6px] bg-white">
                                             {item.imageUrl ? (
-                                                <img
+                                                <RemoteImage
                                                     src={item.imageUrl}
                                                     alt={item.title}
+                                                    width={128}
+                                                    height={128}
                                                     className="h-full w-full object-contain"
                                                 />
                                             ) : null}
@@ -215,7 +218,7 @@ const CartPreviewModal = ({
                                 try {
                                     onClose();
                                 } catch {}
-                                router.push(`/${locale}/checkout`);
+                                router.push(localizedHref("checkout", locale));
                             }}
                             className="inline-flex h-[40px] min-w-[176px] items-center justify-center self-end rounded-full bg-[#1f4fff] px-5 text-[16px] leading-none font-semibold text-white cursor-pointer"
                         >

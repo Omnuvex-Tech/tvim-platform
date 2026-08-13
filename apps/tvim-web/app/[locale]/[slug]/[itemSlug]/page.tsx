@@ -1,11 +1,12 @@
 import { notFound, permanentRedirect, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Breadcrumb } from "@repo/ui";
+import { Breadcrumb, RemoteImage } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
@@ -448,9 +449,12 @@ export default async function GridDetailPage({
     const navbarPhones = Array.isArray(generalSettings?.phones) ? generalSettings.phones : [];
 
     const navbarLogo = navbarLogoSrc ? (
-        <img
+        <RemoteImage
             src={navbarLogoSrc}
             alt={navbarSiteTitle}
+            width={224}
+            height={64}
+            priority
             className="h-10 w-auto object-contain sm:h-12 lg:h-14"
         />
     ) : navbarSiteTitle ? (
@@ -687,7 +691,8 @@ export default async function GridDetailPage({
         ];
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={productLocalizedLinks}>
+            <SitePageShell chrome={chrome} includeLogoutToast>
+                <LocalizedLinks value={productLocalizedLinks} />
                 <Breadcrumb
                     items={breadcrumbItems as any}
                     className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
@@ -715,9 +720,13 @@ export default async function GridDetailPage({
                                     </span>
                                 ) : null}
                                 {images[0] ? (
-                                    <img
+                                    <RemoteImage
                                         src={images[0]}
                                         alt={resolvedName}
+                                        width={1000}
+                                        height={1000}
+                                        sizes="(max-width: 1024px) 100vw, 520px"
+                                        priority
                                         className="max-h-[320px] w-full object-contain lg:max-h-[500px]"
                                     />
                                 ) : (
@@ -732,7 +741,7 @@ export default async function GridDetailPage({
                                             key={`${src}-${idx}`}
                                             className="overflow-hidden rounded-[10px] border border-[#e2e6ef] bg-white"
                                         >
-                                            <img src={src} alt={resolvedName} className="h-[66px] w-full object-contain" />
+                                            <RemoteImage src={src} alt={resolvedName} width={132} height={132} className="h-[66px] w-full object-contain" />
                                         </div>
                                     ))}
                                 </div>
@@ -921,7 +930,8 @@ export default async function GridDetailPage({
     const image = item.banner || item.main_photo || null;
 
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={itemLocalizedLinks}>
+        <SitePageShell chrome={chrome} includeLogoutToast>
+            <LocalizedLinks value={itemLocalizedLinks} />
             <Breadcrumb
                 items={[
                     { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
@@ -937,9 +947,13 @@ export default async function GridDetailPage({
             <article className="news_page mx-auto w-full max-w-[1280px] !px-1 pt-0 pb-10 lg:!px-2 lg:pb-12">
                 {image ? (
                     <div className="blog_h mb-8 overflow-hidden rounded-[14px] lg:rounded-[24px]">
-                        <img
+                        <RemoteImage
                             src={image}
                             alt={item.name || "Grid item"}
+                            width={1280}
+                            height={520}
+                            sizes="(max-width: 1280px) 100vw, 1280px"
+                            priority
                             className="blog_h__img w-full object-cover"
                         />
                         <div className="blog_h__content">

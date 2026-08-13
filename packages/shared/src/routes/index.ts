@@ -2,7 +2,7 @@ export const ROUTE_LOCALES = ["az", "en", "ru"] as const;
 
 export type RouteLocale = (typeof ROUTE_LOCALES)[number];
 
-export type LocalizedRouteKey = "signin" | "signup" | "account" | "orders" | "compare" | "wishlist" | "search";
+export type LocalizedRouteKey = "signin" | "signup" | "account" | "orders" | "compare" | "wishlist" | "search" | "checkout";
 
 type RouteRule = {
     key: LocalizedRouteKey;
@@ -18,6 +18,7 @@ const ROUTE_RULES: readonly RouteRule[] = [
     { key: "compare", internal: "/compare", segments: { az: "muqayise", en: "compare", ru: "sravnit" } },
     { key: "wishlist", internal: "/wishlist", segments: { az: "wishlist", en: "wishlist", ru: "spisok-zhelanii" } },
     { key: "search", internal: "/search", segments: { az: "axtaris", en: "search", ru: "poisk" } },
+    { key: "checkout", internal: "/checkout", segments: { az: "odenis", en: "checkout", ru: "oplata" } },
 ] as const;
 
 type TvimPageRule = {

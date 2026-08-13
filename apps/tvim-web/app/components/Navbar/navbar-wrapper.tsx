@@ -10,6 +10,7 @@ import { useLanguageStore } from "@/stores";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { useCart } from "@/lib/cart/client";
+import { useLocalizedLinks } from "../SiteChrome/localized-links";
 import { CartPreviewModal } from "../ProductStrip/cart-preview-modal";
 
 interface NavbarWrapperProps {
@@ -173,9 +174,13 @@ const NavbarWrapper = ({
     searchPlaceholder,
     menuItems,
     initialCatalogItems,
-    localizedLinks,
+    localizedLinks: localizedLinksProp,
 }: NavbarWrapperProps) => {
     const pathname = usePathname();
+    // Passed as a prop while pages still render their own chrome, and read from
+    // the page-published context once the navbar lives in the [locale] layout.
+    const publishedLocalizedLinks = useLocalizedLinks();
+    const localizedLinks = localizedLinksProp ?? publishedLocalizedLinks ?? undefined;
     const { locale: storedLocale, setLocale } = useLanguageStore();
     const {
         isCartModalOpen,

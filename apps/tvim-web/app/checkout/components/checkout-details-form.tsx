@@ -510,7 +510,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 return;
             }
             if (!phone.trim()) {
-                notify.error("Telefon doldurun.");
+                notify.error(t.fillPhone);
                 return;
             }
             if (!addressLine1.trim()) {
@@ -565,7 +565,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
 
             const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string; data?: any } | null;
             if (!res.ok || !json?.success) {
-                notify.error(json?.message || "Server Error");
+                notify.error(json?.message || t.submitFailed);
                 return;
             }
 
@@ -597,7 +597,6 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
             router.refresh();
         } finally {
             setIsSubmitting(false);
-            window.dispatchEvent(new Event(CHECKOUT_SUBMIT_DONE_EVENT));
         }
     }, [
         addressLine1,
@@ -624,8 +623,18 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
     ]);
 
     useEffect(() => {
+        // The summary button owns the spinner, so the "done" event has to fire
+        // for every way submitOrder can end — including the validation returns
+        // that never reach its try block. Missing one leaves the button
+        // spinning on a page that is done working.
         const onSubmitRequested = () => {
-            submitOrder();
+            void (async () => {
+                try {
+                    await submitOrder();
+                } finally {
+                    window.dispatchEvent(new Event(CHECKOUT_SUBMIT_DONE_EVENT));
+                }
+            })();
         };
 
         window.addEventListener(CHECKOUT_SUBMIT_EVENT, onSubmitRequested);

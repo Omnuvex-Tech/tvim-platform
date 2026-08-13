@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image, { type StaticImageData } from "next/image";
+import { isOptimizableSrc } from "../RemoteImage";
 import styles from "../../styles/components/company-carousel.module.css";
 import { cn } from "../../lib/utils";
 
@@ -377,7 +378,7 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
                     fill
                     style={{ objectFit: "contain" }}
                     sizes={measured ? `${Math.round(itemWidth)}px` : "200px"}
-                    unoptimized={typeof c.logo === "string" && c.logo.startsWith("http")}
+                    unoptimized={!isOptimizableSrc(c.logo)}
                     loading={shouldEagerLoad ? "eager" : "lazy"}
                     draggable={false}
                   />

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import { Breadcrumb, type Company } from "@repo/ui";
+import { RemoteImage } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
 import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
@@ -15,6 +16,7 @@ import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
 import { Pagination } from "@/app/components/Pagination/pagination";
 import { DrawerScrollLock, PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
@@ -930,9 +932,11 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     <div className="flex flex-col gap-4 rounded-[16px] bg-[#f5f7fb] p-5 sm:flex-row sm:items-start sm:gap-6 lg:p-7">
                         {categoryIconUrl ? (
                             <div className="flex size-[96px] shrink-0 items-center justify-center rounded-[12px] bg-white p-3">
-                                <img
+                                <RemoteImage
                                     src={categoryIconUrl}
                                     alt={menu.title || menu.name}
+                                    width={192}
+                                    height={192}
                                     className="h-full w-full object-contain"
                                 />
                             </div>
@@ -947,7 +951,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         ) : null;
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
+            <SitePageShell chrome={chrome} includeLogoutToast>
+                <LocalizedLinks value={localizedLinks} />
                 <Breadcrumb
                     items={[
                         { label: t.common.home, href: `/${normalizedLocale}` },
@@ -1138,9 +1143,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             : ownCategories.length > 0
                 ? { name: String(menu.name ?? "").trim(), slug }
                 : null;
-        const hasBlogSidebar = Boolean(blogRoot?.slug && blogRoot.name && blogCategories.length > 0);
 
-        const blogMenuToggleId = `blog-menu-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
         const gridCurrentPage = Math.max(1, Number(pageData?.meta?.page ?? requestedPage));
         const gridLastPage = Math.max(1, Number(pageData?.meta?.last_page ?? 1));
 
@@ -1164,8 +1167,10 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         };
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
-                <div className={`${roboto.className} w-full text-[14px] leading-[1.42857143]`}>
+            <SitePageShell chrome={chrome} includeLogoutToast>
+                <LocalizedLinks value={localizedLinks} />
+                {/* The breadcrumb stays outside the Roboto wrapper below, which
+                    would otherwise shrink its type the way no other page does. */}
                 <Breadcrumb
                     items={[
                         { label: t.common.home, href: `/${normalizedLocale}` },
@@ -1174,65 +1179,16 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                             : []),
                         { label: menu.name, isCurrent: true },
                     ]}
-                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2 [&_.breadcrumb_li]:!text-[13px] [&_.breadcrumb-current]:!text-[#8496ab] [&_.breadcrumb-previous]:!text-[#8496ab]"
+                    className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
+                    showTitle
+                    pageTitle={menu.title || menu.name}
+                    titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
                 />
 
-                <div className="mx-auto w-full max-w-[1280px] px-1 lg:px-2">
-                    <h1 className="m-0 text-left text-[24px] leading-[24px] font-bold text-[#0f0f0f] min-[768px]:mb-[25px] min-[768px]:text-[39px] min-[768px]:leading-[39px]">
-                        {menu.title || menu.name}
-                    </h1>
-                </div>
-
-                <section className="mx-auto w-full max-w-[1280px] px-1 pb-10 lg:px-2 lg:pb-12">
+                <div className={`${roboto.className} w-full text-[14px] leading-[1.42857143]`}>
+                <section className="mx-auto w-full max-w-[1280px] px-1 pt-6 lg:px-2">
                     <div className="-mx-[10px] flex flex-wrap">
-                        {hasBlogSidebar ? (
-                            <aside className="hidden px-[10px] min-[768px]:block min-[768px]:w-1/3 min-[992px]:w-1/4 min-[1600px]:w-1/5">
-                                <nav>
-                                    <ul className="m-0 mb-[25px] list-none rounded-[20px] bg-[#f3f3f3] p-0">
-                                        <li className="mb-[10px] overflow-hidden rounded-[20px] bg-[#ffda00]">
-                                            <input id={blogMenuToggleId} type="checkbox" className="peer hidden" />
-                                            <div className="flex items-center justify-between px-[15px] py-[13px] peer-checked:[&>label]:rotate-0 peer-checked:[&>label]:bg-transparent">
-                                                <Link
-                                                    href={`/${normalizedLocale}/${blogRoot!.slug}`}
-                                                    className="text-[14px] font-bold text-black transition-colors duration-150 ease-linear"
-                                                >
-                                                    {blogRoot!.name}
-                                                </Link>
-                                                <label
-                                                    htmlFor={blogMenuToggleId}
-                                                    aria-label={blogRoot!.name}
-                                                    className="-mr-[5px] flex h-[20px] w-[24px] rotate-180 cursor-pointer items-center justify-center rounded-[20px] bg-black/5 text-[14px] text-black transition-transform duration-150 ease-linear"
-                                                >
-                                                    <i className="fa-solid fa-chevron-down" aria-hidden="true" />
-                                                </label>
-                                            </div>
-                                            <div className="grid grid-rows-[1fr] transition-[grid-template-rows] duration-[350ms] ease-[ease] peer-checked:grid-rows-[0fr]">
-                                                <div className="overflow-hidden">
-                                                    {blogCategories.map((category) => (
-                                                        <Link
-                                                            key={`side-${category.id ?? category.slug}`}
-                                                            href={`/${normalizedLocale}/${category.slug}`}
-                                                            aria-current={category.slug === slug ? "page" : undefined}
-                                                            className="flex items-center px-[15px] pb-[7px] text-[13.3px] text-[#222] transition-colors duration-150 ease-linear first:-mt-[2px] last:pb-[15px] hover:text-[#e66761]"
-                                                        >
-                                                            {category.name}
-                                                        </Link>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </nav>
-                            </aside>
-                        ) : null}
-
-                        <div
-                            className={`w-full px-[10px] ${
-                                hasBlogSidebar
-                                    ? "min-[768px]:w-2/3 min-[992px]:w-3/4 min-[1600px]:w-4/5"
-                                    : ""
-                            }`}
-                        >
+                        <div className="w-full px-[10px]">
                             {blogCategories.length > 0 ? (
                                 <div className="-mx-[10px] mb-[25px] flex flex-wrap">
                                     {blogCategories.map((category) => (
@@ -1247,9 +1203,11 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                                 className="flex h-full w-full flex-wrap items-start justify-center rounded-[20px] border border-black/[0.06] bg-white bg-clip-padding p-[15px] text-center text-[13.3px] font-medium text-black transition-shadow duration-100 ease-linear min-[992px]:hover:shadow-[0_5px_15px_rgba(0,0,0,0.12)]"
                                             >
                                                 {category.icon ? (
-                                                    <img
+                                                    <RemoteImage
                                                         src={category.icon}
                                                         alt={category.name}
+                                                        width={220}
+                                                        height={220}
                                                         className="mx-auto block h-auto max-w-full rounded-t-[4px]"
                                                     />
                                                 ) : null}
@@ -1282,10 +1240,11 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                                         with short titles stay as tall as the rest. */}
                                                     <div className="aspect-square w-2/5 shrink-0">
                                                         {image ? (
-                                                            <img
+                                                            <RemoteImage
                                                                 src={image}
                                                                 alt={item.name || menu.name}
-                                                                loading="lazy"
+                                                                width={320}
+                                                                height={320}
                                                                 className="h-full w-full rounded-t-[4px] object-cover"
                                                             />
                                                         ) : (
@@ -1322,15 +1281,19 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 </div>
                             )}
 
-                            <Pagination
-                                currentPage={gridCurrentPage}
-                                lastPage={gridLastPage}
-                                buildHref={buildGridPageHref}
-                                variant="accent"
-                            />
                         </div>
                     </div>
                 </section>
+                </div>
+
+                {/* Outside the Roboto wrapper as well, so the page numbers are
+                    set in the same face as every other paginated page. */}
+                <div className="mx-auto w-full max-w-[1280px] px-1 pb-10 lg:px-2 lg:pb-12">
+                    <Pagination
+                        currentPage={gridCurrentPage}
+                        lastPage={gridLastPage}
+                        buildHref={buildGridPageHref}
+                    />
                 </div>
 
                 {includedItemsSection}
@@ -1354,7 +1317,8 @@ const firstPhone =
         const address = projectSettings?.general.address || "Bakı, Süleyman Sani Axundov 225b";
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
+            <SitePageShell chrome={chrome} includeLogoutToast>
+                <LocalizedLinks value={localizedLinks} />
                 <Breadcrumb
                     items={[
                         { label: t.common.home, href: `/${normalizedLocale}` },
@@ -1469,7 +1433,8 @@ const firstPhone =
 
     // Default view type (fallback for content and others)
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast localizedLinks={localizedLinks}>
+        <SitePageShell chrome={chrome} includeLogoutToast>
+                <LocalizedLinks value={localizedLinks} />
             <Breadcrumb
                 items={[
                     { label: t.common.home, href: `/${normalizedLocale}` },

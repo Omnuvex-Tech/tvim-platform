@@ -7,6 +7,7 @@ import type {
     ProjectSettingsResponseData,
 } from "@repo/types/types";
 import type { NavbarMenuItem } from "@repo/ui";
+import { RemoteImage } from "@repo/ui";
 import type { ReactNode } from "react";
 import { config } from "@/config";
 import {
@@ -72,9 +73,12 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
     }
 
     const logo = projectSettings?.general.images.logo ? (
-        <img
+        <RemoteImage
             src={projectSettings.general.images.logo}
             alt={projectSettings.general.site_title}
+            width={224}
+            height={64}
+            priority
             className="h-10 w-auto object-contain sm:h-12 lg:h-14"
         />
     ) : projectSettings?.general.site_title ? (

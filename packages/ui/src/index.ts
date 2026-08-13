@@ -52,3 +52,4 @@ export { CompanyCarousel } from "./components/CompanyCarousel";
 export type { Company } from "./components/CompanyCarousel";
 export { default as Spinner } from "./components/Spinner/Spinner";
 export type { SpinnerProps } from "./components/Spinner/Spinner";
+export { RemoteImage, isOptimizableSrc, optimizedImageSrc, optimizedSrcSet, type RemoteImageProps } from "./components/RemoteImage";

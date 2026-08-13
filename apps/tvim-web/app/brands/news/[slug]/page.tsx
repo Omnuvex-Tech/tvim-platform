@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { Breadcrumb } from "@repo/ui";
+import { Breadcrumb, RemoteImage } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
@@ -10,6 +10,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 
 type NewsVariation = {
@@ -295,11 +296,12 @@ export async function renderBrandNewsSlugPage({
         .filter(Boolean);
 
     return (
-        <SitePageShell chrome={chrome} localizedLinks={localizedLinks}>
+        <SitePageShell chrome={chrome}>
+            <LocalizedLinks value={localizedLinks} />
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
                 <div className="relative w-full overflow-hidden rounded-[16px] bg-[#e0e3e8] skeleton-loader">
                     {bannerImage ? (
-                        <img src={bannerImage} alt={pageTitle} className="h-[clamp(120px,25vw,300px)] w-full object-cover" />
+                        <RemoteImage src={bannerImage} alt={pageTitle} width={1280} height={300} priority className="h-[clamp(120px,25vw,300px)] w-full object-cover" />
                     ) : (
                         <div className="h-[clamp(120px,25vw,300px)] w-full bg-gradient-to-r from-[#243447] via-[#31465d] to-[#4a5f74]" />
                     )}

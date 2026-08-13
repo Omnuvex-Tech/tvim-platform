@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useNotify } from "@repo/ui";
+import { RemoteImage, useNotify } from "@repo/ui";
 import type { CompareListItem } from "./page";
 import { addProductToCart } from "@/lib/cart/client";
 import { toggleCompare } from "@/lib/compare/client";
@@ -331,7 +331,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                             <span className="product-thumb product-thumb--bleed -ml-4 -mt-3 inline-flex aspect-square w-[calc(100%+2rem)] items-center justify-center overflow-hidden p-2">
                                                 <span className="relative z-[1] h-full w-full overflow-hidden">
                                                     {item.main_image ? (
-                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
+                                                        <RemoteImage src={item.main_image} alt={item.name} width={320} height={320} className="h-full w-full object-contain" />
                                                     ) : null}
                                                 </span>
                                             </span>
@@ -344,7 +344,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                                             <span className="product-thumb product-thumb--bleed -ml-4 -mt-3 inline-flex aspect-square w-[calc(100%+2rem)] items-center justify-center overflow-hidden p-2">
                                                 <span className="relative z-[1] h-full w-full overflow-hidden">
                                                     {item.main_image ? (
-                                                        <img src={item.main_image} alt={item.name} className="h-full w-full object-contain" />
+                                                        <RemoteImage src={item.main_image} alt={item.name} width={320} height={320} className="h-full w-full object-contain" />
                                                     ) : null}
                                                 </span>
                                             </span>

@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { PendingLink, PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { getSiteChromeData } from "@/lib/site-chrome";
@@ -340,7 +341,8 @@ export async function renderBrandSlugPage({
     const sortedItems = sortProductItems(listItems, activeSort, locale);
 
     return (
-        <SitePageShell chrome={chrome} localizedLinks={localizedLinks}>
+        <SitePageShell chrome={chrome}>
+            <LocalizedLinks value={localizedLinks} />
             <Breadcrumb
                 items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"

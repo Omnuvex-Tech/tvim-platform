@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { toHref } from "@repo/shared/utils";
+import { RemoteImage } from "@repo/ui";
 import {
     type MenuItem,
     type ProjectSettingsData,
@@ -283,9 +284,11 @@ const mapSettingsToFooterMeta = (settings: ProjectSettingsData) => {
 
     if (settings.general.images.logo) {
         logo = (
-            <img
+            <RemoteImage
                 src={settings.general.images.logo}
                 alt={settings.general.site_title}
+                width={300}
+                height={86}
                 className="h-auto w-auto max-w-[150px] object-contain"
             />
         );

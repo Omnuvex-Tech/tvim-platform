@@ -9,7 +9,6 @@ type SitePageShellProps = {
     chrome: SiteChromeData;
     contentClassName?: string;
     includeLogoutToast?: boolean;
-    localizedLinks?: Record<string, string>;
 };
 
 export function SitePageShell({
@@ -17,7 +16,6 @@ export function SitePageShell({
     chrome,
     contentClassName = "gap-0",
     includeLogoutToast = false,
-    localizedLinks,
 }: SitePageShellProps) {
     return (
         <div className={`flex min-h-svh w-full flex-col items-center justify-start ${contentClassName} pt-0 pb-8`}>
@@ -28,7 +26,6 @@ export function SitePageShell({
                 languages={chrome.languages}
                 menuItems={chrome.menuItems}
                 initialCatalogItems={chrome.initialCatalogItems}
-                localizedLinks={localizedLinks}
             />
 
             {children}
