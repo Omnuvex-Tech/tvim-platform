@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Spinner } from "@repo/ui";
 import { useCart } from "@/lib/cart/client";
 import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
+import { getTranslations } from "@/lib/i18n";
 
 type CartPreviewModalProduct = {
     key: string;
@@ -39,6 +40,7 @@ const CartPreviewModal = ({
     const isBusy = isAdding || pendingCount > 0;
     const localeSegment = pathname?.split("/").filter(Boolean)[0] ?? "";
     const locale = isSupportedLocale(localeSegment) ? localeSegment : defaultLocale;
+    const t = getTranslations(locale).cart;
 
     return (
         <div
@@ -59,7 +61,7 @@ const CartPreviewModal = ({
                         className="flex-1 px-5 h-full flex items-center font-semibold"
                         style={{ fontSize: "1.2em", color: "var(--h4-c)" }}
                     >
-                        Səbət
+                        {t.title}
                     </h3>
                     <button
                         type="button"
@@ -136,7 +138,7 @@ const CartPreviewModal = ({
                                                 className="whitespace-nowrap"
                                                 style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em", fontWeight: 500 }}
                                             >
-                                                Bir ədəd üçün qiymət
+                                                {t.unitPrice}
                                             </p>
                                             <p className="mt-[2px] whitespace-nowrap text-[15px] leading-none font-medium text-[#171d28]">
                                                 {item.unitPriceText}
@@ -148,7 +150,7 @@ const CartPreviewModal = ({
                                                 className="whitespace-nowrap"
                                                 style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em", fontWeight: 500 }}
                                             >
-                                                Cəmi
+                                                {t.lineTotal}
                                             </p>
                                             <p className="mt-[2px] whitespace-nowrap text-[15px] leading-none font-medium text-[#171d28]">
                                                 {item.totalPriceText}
@@ -161,7 +163,7 @@ const CartPreviewModal = ({
                                             className="whitespace-nowrap"
                                             style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em", fontWeight: 500 }}
                                         >
-                                            Bir ədəd üçün qiymət
+                                            {t.unitPrice}
                                         </p>
                                         <p className="mt-[2px] whitespace-nowrap text-[15px] leading-none font-medium text-[#171d28]">{item.unitPriceText}</p>
                                     </div>
@@ -171,7 +173,7 @@ const CartPreviewModal = ({
                                             className="whitespace-nowrap"
                                             style={{ margin: "0 0 5px", color: "#888", lineHeight: "1em", fontSize: "0.65em", fontWeight: 500 }}
                                         >
-                                            Cəmi
+                                            {t.lineTotal}
                                         </p>
                                         <p className="mt-[2px] whitespace-nowrap text-[15px] leading-none font-medium text-[#171d28]">{item.totalPriceText}</p>
                                     </div>
@@ -181,7 +183,7 @@ const CartPreviewModal = ({
                                             type="button"
                                             onClick={() => onRemove(item.key)}
                                             className="inline-flex h-8 w-8 items-center justify-center text-[#93a1b6] transition-colors hover:text-[#5f6f86] cursor-pointer"
-                                            aria-label="Səbətdən sil"
+                                            aria-label={t.remove}
                                         >
                                             <i className="fa-regular fa-circle-xmark text-[18px]" aria-hidden="true" />
                                         </button>
@@ -193,7 +195,7 @@ const CartPreviewModal = ({
 
                     <div className="mt-6 flex justify-end">
                         <p className="leading-none text-[#161c27]" style={{ fontSize: "1.15em", fontWeight: 700 }}>
-                            Toplam qiymət: {totalPriceText}
+                            {t.total}: {totalPriceText}
                         </p>
                     </div>
                 </div>
@@ -205,7 +207,7 @@ const CartPreviewModal = ({
                             onClick={onClose}
                             className="inline-flex h-[36px] min-w-[148px] items-center justify-center rounded-full bg-[#f3f5f8] px-4 text-[15px] leading-none font-normal text-[#8a95a5] transition-colors duration-200 hover:bg-[#dfe5ec] cursor-pointer"
                         >
-                            Alış-verişə davam et
+                            {t.continueShopping}
                         </button>
                         <button
                             type="button"
@@ -217,7 +219,7 @@ const CartPreviewModal = ({
                             }}
                             className="inline-flex h-[40px] min-w-[176px] items-center justify-center self-end rounded-full bg-[#1f4fff] px-5 text-[16px] leading-none font-semibold text-white cursor-pointer"
                         >
-                            Sifarişi rəsmiləşdir
+                            {t.checkout}
                         </button>
                     </div>
                 </div>

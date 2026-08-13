@@ -8,6 +8,7 @@ import { Breadcrumb, type Company } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
 import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
+import { htmlToText } from "@repo/shared/utils";
 import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
@@ -500,10 +501,12 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     if (inc.included_type === "menu" && inc.type === "form") {
                         const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
                         const fields = inc.data?.fields ?? inc.data?.data?.fields;
+                        const formHeading = String(inc?.menu?.title ?? inc?.menu?.name ?? "").trim();
+                        const formSubheading = htmlToText(inc?.menu?.description ?? inc?.data?.description ?? "");
 
                         return (
                             <div key={idx}>
-                                <RequestForm submitConfig={submitConfig} fields={fields} />
+                                <RequestForm submitConfig={submitConfig} fields={fields} heading={formHeading} subheading={formSubheading} />
                             </div>
                         );
                     }
@@ -589,7 +592,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
             {pageSubmitConfig && (
                 <div className="mt-8 lg:mt-12">
-                    <RequestForm submitConfig={pageSubmitConfig} />
+                    <RequestForm submitConfig={pageSubmitConfig} fields={pageData?.fields} heading={String(menu.title ?? menu.name ?? "").trim()} subheading={htmlToText(menu.description ?? "")} />
                 </div>
             )}
         </>
@@ -1425,10 +1428,12 @@ const firstPhone =
                                 if (inc.included_type === "menu" && inc.type === "form") {
                                     const submitConfig = resolveRequestFormSubmitConfig(inc?.data?.submit ?? inc?.data ?? inc);
                                     const fields = inc.data?.fields ?? inc.data?.data?.fields;
+                        const formHeading = String(inc?.menu?.title ?? inc?.menu?.name ?? "").trim();
+                        const formSubheading = htmlToText(inc?.menu?.description ?? inc?.data?.description ?? "");
 
                                     return (
                                         <div key={idx}>
-                                            <RequestForm submitConfig={submitConfig} fields={fields} />
+                                            <RequestForm submitConfig={submitConfig} fields={fields} heading={formHeading} subheading={formSubheading} />
                                         </div>
                                     );
                                 }

@@ -113,32 +113,83 @@ function extractOkFlag(payload: unknown) {
     return typeof nestedOk === "boolean" ? nestedOk : false;
 }
 
+const requestFormCopy = {
+    az: {
+        heading: "Təmir və tikinti üçün lazım olan məhsulları seçməkdə sizə peşəkar dəstək veririk!",
+        subheading: "Bir sorğu göndərin və ən qısa zamanda sizinlə əlaqə saxlayaq.",
+        submitLabel: "Göndər",
+        consentText: "“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.",
+        placeholders: {
+            name: "Adınız *",
+            phone: "Telefon *",
+            file: "Fayl seç",
+            description: "Layihəni təsvir edin... *",
+        },
+    },
+    en: {
+        heading: "We give you professional support in choosing the products you need for repair and construction!",
+        subheading: "Send a request and we will contact you as soon as possible.",
+        submitLabel: "Send",
+        consentText: "By clicking the “Send” button, you consent to the processing of personal data.",
+        placeholders: {
+            name: "Your name *",
+            phone: "Phone *",
+            file: "Choose file",
+            description: "Describe the project... *",
+        },
+    },
+    ru: {
+        heading: "Мы оказываем вам профессиональную поддержку в выборе материалов для ремонта и строительства!",
+        subheading: "Отправьте запрос, и мы свяжемся с вами в кратчайшие сроки.",
+        submitLabel: "Отправить",
+        consentText: "Нажимая кнопку «Отправить», вы соглашаетесь на обработку персональных данных.",
+        placeholders: {
+            name: "Ваше имя *",
+            phone: "Телефон *",
+            file: "Выберите файл",
+            description: "Опишите проект... *",
+        },
+    },
+} as const;
+
+const FIELD_PLACEHOLDER_KEYS: Record<string, "name" | "phone" | "file" | "description"> = {
+    textbox: "name",
+    text: "name",
+    phone_number: "phone",
+    phone: "phone",
+    file: "file",
+    textarea: "description",
+};
+
+function placeholdersFromFields(fields: RequestFormField[] | undefined) {
+    if (!Array.isArray(fields)) return undefined;
+
+    const resolved: Partial<Record<"name" | "phone" | "file" | "description", string>> = {};
+
+    for (const field of fields) {
+        const key = FIELD_PLACEHOLDER_KEYS[String((field as any)?.type ?? "").trim().toLowerCase()];
+        if (!key || resolved[key]) continue;
+
+        const label = String((field as any)?.name ?? (field as any)?.label ?? "").trim();
+        if (!label) continue;
+
+        resolved[key] = (field as any)?.is_required ? `${label} *` : label;
+    }
+
+    return Object.keys(resolved).length > 0 ? resolved : undefined;
+}
+
 const RequestForm = (props: RequestFormProps) => {
     const pathname = usePathname();
     const locale = useMemo(() => {
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
         return segment === "ru" || segment === "en" || segment === "az" ? segment : "az";
     }, [pathname]);
-    const localizedCopy = useMemo(() => {
-        if (locale === "ru") {
-            return {
-                submitLabel: "Отправить",
-                consentText: "Нажимая кнопку «Отправить», вы соглашаетесь на обработку персональных данных.",
-            };
-        }
-
-        if (locale === "en") {
-            return {
-                submitLabel: "Send",
-                consentText: "By clicking the “Send” button, you consent to the processing of personal data.",
-            };
-        }
-
-        return {
-            submitLabel: "Göndər",
-            consentText: "“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.",
-        };
-    }, [locale]);
+    const localizedCopy = useMemo(() => requestFormCopy[locale], [locale]);
+    const fieldPlaceholders = useMemo(
+        () => placeholdersFromFields(props.fields),
+        [props.fields],
+    );
 
     const handleSubmit = async (data: RequestFormData) => {
         let successMessage = "";
@@ -264,6 +315,13 @@ const RequestForm = (props: RequestFormProps) => {
     return (
         <RequestFormUI
             {...props}
+            heading={props.heading?.trim() || localizedCopy.heading}
+            subheading={props.subheading?.trim() || localizedCopy.subheading}
+            placeholders={{
+                ...localizedCopy.placeholders,
+                ...fieldPlaceholders,
+                ...props.placeholders,
+            }}
             submitLabel={props.submitLabel ?? localizedCopy.submitLabel}
             consentText={props.consentText ?? localizedCopy.consentText}
             onSubmit={handleSubmit}

@@ -11,6 +11,7 @@ import { usePathname, } from "next/navigation";
 import { useNotify } from "@repo/ui";
 
 import { addProductToCart } from "@/lib/cart/client";
+import { getTranslations } from "@/lib/i18n";
 
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 
@@ -240,6 +241,8 @@ const localePrefix = useMemo(() => {
 }, [pathname]);
 
     const copy = getStripCopy(localePrefix);
+    const cartCopy = getTranslations(localePrefix).cart;
+    const productCopy = getTranslations(localePrefix).product;
 const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
 
@@ -890,7 +893,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
         if (!variationId) {
 
-            notify.error("Bu məhsul favorilərə əlavə edilə bilmədi.");
+            notify.error(cartCopy.favoriteFailed);
 
             return;
 
@@ -952,11 +955,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
 
 
-            if (response.message) {
-
-                notify.success(response.message);
-
-            }
+            notify.success(response.data.action === "created" ? productCopy.favoriteAdded : productCopy.favoriteRemoved);
 
         } catch (error) {
 
@@ -1012,7 +1011,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
         if (!variationId) {
 
-            notify.error("Bu məhsul müqayisəyə əlavə edilə bilmədi.");
+            notify.error(cartCopy.compareFailed);
 
             return;
 
@@ -1074,11 +1073,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
 
 
-            if (response.message) {
-
-                notify.success(response.message);
-
-            }
+            notify.success(response.data.action === "created" ? productCopy.compareAdded : productCopy.compareRemoved);
 
         } catch (error) {
 
@@ -1247,9 +1242,9 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
             const message = product.title
 
-                ? `${product.title} səbətinizə müvəffəqiyyətlə əlavə edildi!`
+                ? cartCopy.addedToCart.replace("{product}", product.title)
 
-                : "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!";
+                : cartCopy.addedToCartFallback;
 
 
 
@@ -1257,7 +1252,7 @@ const effectiveViewAllText = viewAllText ?? copy.viewAllText;
 
         } catch (error) {
 
-            const message = error instanceof Error ? error.message : "Səbətə əlavə edərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;
 
             notify.error(message);
 
