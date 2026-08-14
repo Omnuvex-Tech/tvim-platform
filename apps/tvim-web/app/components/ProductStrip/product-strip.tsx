@@ -18,6 +18,7 @@ import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 
 import { specialsHref } from "@/lib/routes";
+import { buildAddedToCartToast } from "@/lib/cart/toast";
 
 import { QuickOrderPopup } from "./quick-order-popup";
 
@@ -1245,18 +1246,12 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
 
 
-            const message = product.title
-
-                ? cartCopy.addedToCart.replace("{product}", product.title)
-
-                : cartCopy.addedToCartFallback;
+            const toast = buildAddedToCartToast(cartCopy, localePrefix, product);
 
 
 
-            notify.success(message, {
-                muted: cartCopy.addedToCartMuted,
-                ...(product.title && product.href ? { link: { label: product.title, href: product.href } } : {}),
-            });
+
+            notify.success(toast.message, toast.options);
 
         } catch (error) {
 

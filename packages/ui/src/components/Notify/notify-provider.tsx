@@ -92,7 +92,15 @@ const NotifyProvider = ({ children }: { children: ReactNode }) => {
             const id = generateId();
             setItems((prev) => [
                 ...prev,
-                { id, variant, message, link: options?.link, muted: options?.muted, isEntering: true, isLeaving: false },
+                {
+                    id,
+                    variant,
+                    message,
+                    links: options?.links,
+                    onNavigate: options?.onNavigate,
+                    isEntering: true,
+                    isLeaving: false,
+                },
             ]);
 
             requestAnimationFrame(() => {

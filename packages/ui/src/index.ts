@@ -9,7 +9,7 @@ export {
 } from "./components/Card";
 export { LanguageSwitcher } from "./components/LanguageSwitcher";
 export { NotifyProvider, useNotify } from "./components/Notify";
-export { NotifyContainer, notifyVariants } from "./components/Notify";
+export { NotifyContainer } from "./components/Notify";
 export { NotifyV2 } from "./components/Notify";
 export {
     Footer,

@@ -6,18 +6,17 @@ export type NotifyLink = {
 };
 
 export type NotifyOptions = {
-    /** Turns the label where it appears in the message into a link. */
-    link?: NotifyLink;
-    /** Renders this part of the message in a lighter colour. */
-    muted?: string;
+    links?: NotifyLink[];
+    /** Runs when one of the links is followed, before the toast is dismissed. */
+    onNavigate?: () => void;
 };
 
 export type NotifyItem = {
     id: string;
     variant: NotifyVariant;
     message: string;
-    link?: NotifyLink;
-    muted?: string;
+    links?: NotifyLink[];
+    onNavigate?: () => void;
     isEntering?: boolean;
     isLeaving?: boolean;
 };
