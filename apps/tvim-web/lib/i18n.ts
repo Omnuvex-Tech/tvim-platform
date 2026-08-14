@@ -332,6 +332,7 @@ type TranslationDictionary = {
         checkout: string;
         remove: string;
         addedToCart: string;
+        addedToCartMuted: string;
         addedToCartFallback: string;
         addToCartFailed: string;
         favoriteFailed: string;
@@ -710,8 +711,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Alış-verişə davam et",
             checkout: "Sifarişi rəsmiləşdir",
             remove: "Səbətdən sil",
-            addedToCart: "{product} səbətinizə müvəffəqiyyətlə əlavə edildi!",
-            addedToCartFallback: "Məhsul səbətinizə müvəffəqiyyətlə əlavə edildi!",
+            addedToCart: "Siz {product} səbətinizə müvəffəqiyyətlə əlavə etdiniz!",
+            addedToCartMuted: "müvəffəqiyyətlə əlavə etdiniz!",
+            addedToCartFallback: "Siz məhsulu səbətinizə müvəffəqiyyətlə əlavə etdiniz!",
             addToCartFailed: "Səbətə əlavə edərkən xəta baş verdi.",
             favoriteFailed: "Bu məhsul favorilərə əlavə edilə bilmədi.",
             favoriteError: "Favorilərə əlavə edilərkən xəta baş verdi.",
@@ -1087,8 +1089,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Continue shopping",
             checkout: "Place the order",
             remove: "Remove from cart",
-            addedToCart: "{product} has been added to your cart!",
-            addedToCartFallback: "The product has been added to your cart!",
+            addedToCart: "You have successfully added {product} to your cart!",
+            addedToCartMuted: "to your cart!",
+            addedToCartFallback: "You have successfully added the product to your cart!",
             addToCartFailed: "An error occurred while adding to the cart.",
             favoriteFailed: "This product could not be added to favourites.",
             favoriteError: "An error occurred while adding to favourites.",
@@ -1464,8 +1467,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Продолжить покупки",
             checkout: "Оформить заказ",
             remove: "Удалить из корзины",
-            addedToCart: "{product} успешно добавлен в вашу корзину!",
-            addedToCartFallback: "Товар успешно добавлен в вашу корзину!",
+            addedToCart: "Вы успешно добавили {product} в вашу корзину!",
+            addedToCartMuted: "в вашу корзину!",
+            addedToCartFallback: "Вы успешно добавили товар в вашу корзину!",
             addToCartFailed: "Произошла ошибка при добавлении в корзину.",
             favoriteFailed: "Этот товар не удалось добавить в избранное.",
             favoriteError: "Произошла ошибка при добавлении в избранное.",

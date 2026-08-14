@@ -161,6 +161,7 @@ export function ProductGrid({ locale, items }: ProductGridProps) {
                                 <ProductGridCardSideActions
                                     id={product.id}
                                     title={product.title}
+                                    href={product.href}
                                     priceText={product.priceText}
                                     imageUrl={product.imageUrl}
                                     productVariationId={product.productVariationId}
@@ -220,6 +221,7 @@ export function ProductGrid({ locale, items }: ProductGridProps) {
                                 <ProductGridCartButton
                                     id={product.id}
                                     title={product.title}
+                                    href={product.href}
                                     priceText={product.priceText}
                                     imageUrl={product.imageUrl}
                                     productVariationId={product.productVariationId}

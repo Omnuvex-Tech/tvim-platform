@@ -1253,7 +1253,10 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
 
 
-            notify.success(message);
+            notify.success(message, {
+                muted: cartCopy.addedToCartMuted,
+                ...(product.title && product.href ? { link: { label: product.title, href: product.href } } : {}),
+            });
 
         } catch (error) {
 

@@ -32,6 +32,10 @@ const ProductDetailActions = ({
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
         return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).product;
     }, [pathname]);
+    const cartCopy = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).cart;
+    }, [pathname]);
     const { items } = useCart();
 
     const [quantity, setQuantity] = useState(1);
@@ -137,7 +141,14 @@ const ProductDetailActions = ({
 
             await addCartItem(productVariationId, quantity);
             await hydrateCart(true);
-            notify.success(t.addedToCart);
+            const title = productTitle.trim();
+            notify.success(
+                title ? cartCopy.addedToCart.replace("{product}", title) : cartCopy.addedToCartFallback,
+                {
+                    muted: cartCopy.addedToCartMuted,
+                    ...(title && pathname ? { link: { label: title, href: pathname } } : {}),
+                }
+            );
         } catch (error) {
             const message = error instanceof Error ? error.message : t.cartAddFailed;
             notify.error(message);

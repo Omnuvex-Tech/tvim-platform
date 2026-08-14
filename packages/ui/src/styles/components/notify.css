@@ -1,0 +1,63 @@
+/* Keyframes copied from SweetAlert2, which is what tvim.az shows after adding
+   to the cart: the toast wobbles in, and the check draws itself. */
+
+@keyframes notify-toast-show {
+    0% {
+        transform: translateY(-0.625em) rotateZ(2deg);
+    }
+    33% {
+        transform: translateY(0) rotateZ(-2deg);
+    }
+    66% {
+        transform: translateY(0.3125em) rotateZ(2deg);
+    }
+    100% {
+        transform: translateY(0) rotateZ(0deg);
+    }
+}
+
+@keyframes notify-toast-hide {
+    100% {
+        transform: rotateZ(1deg);
+        opacity: 0;
+    }
+}
+
+@keyframes notify-icon-ring {
+    0% {
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes notify-icon-draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.notify-toast-show {
+    animation: notify-toast-show 0.5s;
+}
+
+.notify-toast-hide {
+    animation: notify-toast-hide 0.1s forwards;
+}
+
+.notify-icon {
+    animation: notify-icon-ring 0.35s ease-out;
+}
+
+.notify-icon-check {
+    stroke-dasharray: 26;
+    stroke-dashoffset: 26;
+    animation: notify-icon-draw 0.45s 0.15s ease-out forwards;
+}

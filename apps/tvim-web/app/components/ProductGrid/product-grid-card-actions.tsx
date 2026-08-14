@@ -22,6 +22,7 @@ const loadCartClient = () => import("@/lib/cart/client");
 export type ProductGridCardActionItem = {
     id: number;
     title: string;
+    href?: string;
     priceText: string;
     imageUrl: string;
     productVariationId: number | null;
@@ -252,7 +253,13 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 stock: product.stock,
             });
 
-            notify.success(product.title ? cartCopy.addedToCart.replace("{product}", product.title) : cartCopy.addedToCartFallback);
+            notify.success(
+                product.title ? cartCopy.addedToCart.replace("{product}", product.title) : cartCopy.addedToCartFallback,
+                {
+                    muted: cartCopy.addedToCartMuted,
+                    ...(product.title && product.href ? { link: { label: product.title, href: product.href } } : {}),
+                }
+            );
         } catch (error) {
             notify.error(error instanceof Error ? error.message : cartCopy.addToCartFailed);
         } finally {

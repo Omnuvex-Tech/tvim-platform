@@ -286,6 +286,7 @@ export const resolveProjectSettings = (responseData: unknown): ProjectSettingsDa
             site_about: String(general.site_about ?? general.about ?? ""),
             site_header_text: String(general.site_header_text ?? ""),
             address: String(general.address ?? ""),
+            map_iframe: String(general.map_iframe ?? ""),
             email: String(general.email ?? ""),
             phones: normalizePhones(general),
             images: {

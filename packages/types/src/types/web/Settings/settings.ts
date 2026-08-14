@@ -11,6 +11,7 @@ export type ProjectSettingsGeneral = {
     site_about: string;
     site_header_text: string;
     address: string;
+    map_iframe: string;
     email: string;
     phones: ProjectSettingsPhone[];
     images: {
