@@ -10,6 +10,7 @@ import { addCartItem, hydrateCart, removeCartItem, updateCartItemQuantity, useCa
 import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "../ProductStrip/quick-order-popup";
+import { buildAddedToCartToast } from "@/lib/cart/toast";
 
 type ProductDetailActionsProps = {
     productVariationId: number | null;
@@ -28,10 +29,12 @@ const ProductDetailActions = ({
 }: ProductDetailActionsProps) => {
     const notify = useNotify();
     const pathname = usePathname();
-    const t = useMemo(() => {
+    const locale = useMemo(() => {
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
-        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).product;
+        return isSupportedLocale(segment) ? segment : defaultLocale;
     }, [pathname]);
+    const t = useMemo(() => getTranslations(locale).product, [locale]);
+    const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
     const { items } = useCart();
 
     const [quantity, setQuantity] = useState(1);
@@ -137,7 +140,9 @@ const ProductDetailActions = ({
 
             await addCartItem(productVariationId, quantity);
             await hydrateCart(true);
-            notify.success(t.addedToCart);
+            // Already on the product's own page, so only the cart word is a link.
+            const toast = buildAddedToCartToast(cartCopy, locale, { title: productTitle });
+            notify.success(toast.message, toast.options);
         } catch (error) {
             const message = error instanceof Error ? error.message : t.cartAddFailed;
             notify.error(message);

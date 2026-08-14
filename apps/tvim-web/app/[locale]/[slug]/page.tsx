@@ -24,6 +24,7 @@ import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { isSupportedLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
+import { resolveMapEmbedUrl } from "@/lib/map";
 
 type MenuDetailData = {
     type: string;
@@ -1377,15 +1378,16 @@ const firstPhone =
 
                     <div className="mt-8 lg:mt-12">
                         <div className="h-[300px] w-full overflow-hidden rounded-[20px] lg:h-[400px]">
-                            <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3037.1477464366063!2d49.82902267657685!3d40.42775615430342!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x403087f978e8741b%3A0x6a1a1b8e4e0d4e5c!2sS%C3%BCleyman%20Sani%20Axundov%2C%20Baku!5e0!3m2!1sen!2saz!4v1715600000000!5m2!1sen!2saz"
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                allowFullScreen
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                            />
+                        <iframe
+        src={resolveMapEmbedUrl(projectSettings?.general.map_iframe)}
+        width="100%"
+        height="100%"
+        style={{ border: 0 }}
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        title="Google Maps"
+      />
                         </div>
                     </div>
 

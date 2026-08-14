@@ -1,1 +1,1 @@
-export { type NotifyVariant, type NotifyItem } from "./notify";
+export { type NotifyVariant, type NotifyItem, type NotifyLink, type NotifyOptions } from "./notify";

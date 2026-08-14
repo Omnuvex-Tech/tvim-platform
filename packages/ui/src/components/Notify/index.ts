@@ -1,3 +1,3 @@
 export { NotifyProvider, useNotify } from "./notify-provider";
-export { NotifyContainer, notifyVariants } from "./notify";
+export { NotifyContainer } from "./notify";
 export { NotifyV2 } from "./notify-v2";

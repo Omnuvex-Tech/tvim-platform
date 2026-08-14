@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useNotify } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
 import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
+import { buildAddedToCartToast } from "@/lib/cart/toast";
 
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
@@ -22,6 +23,7 @@ const loadCartClient = () => import("@/lib/cart/client");
 export type ProductGridCardActionItem = {
     id: number;
     title: string;
+    href?: string;
     priceText: string;
     imageUrl: string;
     productVariationId: number | null;
@@ -50,14 +52,12 @@ const ProductGridCardActionsContext = createContext<ProductGridCardActionsContex
 export function ProductGridCardActionsProvider({ children }: ProductGridCardActionsProviderProps) {
     const notify = useNotify();
     const pathname = usePathname();
-    const cartCopy = useMemo(() => {
+    const locale = useMemo(() => {
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
-        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).cart;
+        return isSupportedLocale(segment) ? segment : defaultLocale;
     }, [pathname]);
-    const productCopy = useMemo(() => {
-        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
-        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).product;
-    }, [pathname]);
+    const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
+    const productCopy = useMemo(() => getTranslations(locale).product, [locale]);
     const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
     const [compareIds, setCompareIds] = useState<Set<number>>(new Set());
     const [favoritePendingIds, setFavoritePendingIds] = useState<Set<number>>(new Set());
@@ -252,7 +252,8 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 stock: product.stock,
             });
 
-            notify.success(product.title ? cartCopy.addedToCart.replace("{product}", product.title) : cartCopy.addedToCartFallback);
+            const toast = buildAddedToCartToast(cartCopy, locale, product);
+            notify.success(toast.message, toast.options);
         } catch (error) {
             notify.error(error instanceof Error ? error.message : cartCopy.addToCartFailed);
         } finally {

@@ -158,17 +158,28 @@ function mapRawToBenefits(rawItems?: any[], locale?: string): BenefitItem[] {
     return [...mapped, ...missingDefaults].slice(0, 4);
 }
 
+// Written out in full so the class names survive Tailwind's scan.
+const LG_COLUMNS_BY_COUNT: Record<number, string> = {
+    1: "lg:grid-cols-1",
+    2: "lg:grid-cols-2",
+    3: "lg:grid-cols-3",
+    4: "lg:grid-cols-4",
+};
+
 const BenefitsStrip = ({ items, locale }: { items?: any[]; locale?: string }) => {
     const list = mapRawToBenefits(items, locale);
+    // The columns follow the number of cards, so three of them fill the row
+    // instead of leaving a fourth one empty.
+    const lgColumns = LG_COLUMNS_BY_COUNT[Math.min(Math.max(list.length, 1), 4)] ?? "lg:grid-cols-4";
 
     return (
         <section className="w-full font-sans">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${lgColumns}`}>
                 {list.map((item, index) => (
                         <Link
                             key={`${item.title}-${index}`}
                             href={item.link ?? "#"}
-                            className="group relative flex h-[140px] w-full items-center gap-2.5 rounded-[16px] bg-white px-4 pt-6 pb-10 text-left transition-all duration-200 ease-out hover:bg-[#f3f4f6] hover:shadow-none cursor-pointer select-none sm:h-[160px] sm:gap-3.5 sm:rounded-[24px] sm:px-6 sm:pt-10 sm:pb-14"
+                            className="group relative flex h-[120px] w-full items-center gap-2.5 rounded-[16px] bg-white px-4 pt-4 pb-8 text-left transition-all duration-200 ease-out hover:bg-[#f3f4f6] hover:shadow-none cursor-pointer select-none sm:h-[132px] sm:gap-3.5 sm:rounded-[24px] sm:px-6 sm:pt-6 sm:pb-10"
                         >
                         <span className="shrink-0 text-[#1f4fff] w-[32px] h-[32px] flex items-center justify-center [&_svg]:w-full [&_svg]:h-full sm:w-[40px] sm:h-[40px]">{item.icon}</span>
                         <span className="flex-1 min-w-0 w-full flex flex-col">

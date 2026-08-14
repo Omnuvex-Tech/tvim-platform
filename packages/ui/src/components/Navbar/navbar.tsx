@@ -1069,7 +1069,7 @@ function CatalogButton({ open = false, onClick, toggleRef, label }: { open?: boo
 
 function NavbarMenu({ menuItems }: { menuItems: NavbarMenuItem[] }) {
     return (
-   <nav className="space-x-8 items-center px-2 text-[14px] font-bold text-[#151822] lg:ml-8 lg:-translate-y-0.5 lg:justify-start">
+   <nav className="flex items-center justify-center space-x-[44px] px-2 text-[16px] leading-[19px] font-semibold text-[#151822] lg:-translate-y-0.5">
     {menuItems.map((item) => (
         <SmartLink key={item.label} href={item.href} className="cursor-pointer transition-colors hover:text-[#1d4fff]">
             {item.label}

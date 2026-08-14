@@ -1,0 +1,237 @@
+@keyframes notify-toast-show {
+    0% {
+        transform: translateY(-0.625em) rotateZ(2deg);
+    }
+    33% {
+        transform: translateY(0) rotateZ(-2deg);
+    }
+    66% {
+        transform: translateY(0.3125em) rotateZ(2deg);
+    }
+    100% {
+        transform: translateY(0) rotateZ(0deg);
+    }
+}
+
+@keyframes notify-toast-hide {
+    100% {
+        transform: rotateZ(1deg);
+        opacity: 0;
+    }
+}
+
+@keyframes notify-success-line-tip {
+    0% {
+        top: 0.5625em;
+        left: 0.0625em;
+        width: 0;
+    }
+    54% {
+        top: 0.125em;
+        left: 0.125em;
+        width: 0;
+    }
+    70% {
+        top: 0.625em;
+        left: -0.25em;
+        width: 1.625em;
+    }
+    84% {
+        top: 1.0625em;
+        left: 0.75em;
+        width: 0.5em;
+    }
+    100% {
+        top: 1.125em;
+        left: 0.1875em;
+        width: 0.75em;
+    }
+}
+
+@keyframes notify-success-line-long {
+    0% {
+        top: 1.625em;
+        right: 1.375em;
+        width: 0;
+    }
+    65% {
+        top: 1.25em;
+        right: 0.9375em;
+        width: 0;
+    }
+    84% {
+        top: 0.9375em;
+        right: 0;
+        width: 1.125em;
+    }
+    100% {
+        top: 0.9375em;
+        right: 0.1875em;
+        width: 1.375em;
+    }
+}
+
+@keyframes notify-error-icon {
+    0% {
+        transform: rotateX(100deg);
+        opacity: 0;
+    }
+    100% {
+        transform: rotateX(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes notify-error-x-mark {
+    0% {
+        margin-top: 1.625em;
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    50% {
+        margin-top: 1.625em;
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    80% {
+        margin-top: -0.375em;
+        transform: scale(1.15);
+    }
+    100% {
+        margin-top: 0;
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.notify-toast {
+    display: grid;
+    grid-template-columns: min-content auto;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 1em;
+    overflow-y: hidden;
+    border: none;
+    border-radius: 0.3125rem;
+    background: #fff;
+    color: #545454;
+    font-size: 1rem;
+    box-shadow:
+        0 0 1px hsl(0deg 0% 0% / 0.075),
+        0 1px 2px hsl(0deg 0% 0% / 0.075),
+        1px 2px 4px hsl(0deg 0% 0% / 0.075),
+        1px 3px 8px hsl(0deg 0% 0% / 0.075),
+        2px 4px 16px hsl(0deg 0% 0% / 0.075);
+    pointer-events: auto;
+    animation: notify-toast-show 0.5s;
+}
+
+.notify-toast-hide {
+    animation: notify-toast-hide 0.1s forwards;
+}
+
+.notify-title {
+    margin: 0.5em 1em;
+    padding: 0;
+    font-size: 1em;
+    line-height: 1.4285714;
+    text-align: initial;
+    overflow-wrap: break-word;
+}
+
+.notify-title a {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.notify-icon {
+    position: relative;
+    display: flex;
+    box-sizing: content-box;
+    grid-column: 1;
+    align-self: center;
+    justify-content: center;
+    width: 2em;
+    min-width: 2em;
+    height: 2em;
+    margin: 0 0.5em 0 0;
+    border: 0.25em solid transparent;
+    border-radius: 50%;
+    line-height: 2em;
+    user-select: none;
+}
+
+.notify-icon-success {
+    border-color: #a5dc86;
+    color: #a5dc86;
+}
+
+.notify-icon-error {
+    border-color: #f27474;
+    color: #f27474;
+    animation: notify-error-icon 0.5s;
+}
+
+.notify-success-ring {
+    position: absolute;
+    z-index: 2;
+    top: -0.25em;
+    left: -0.25em;
+    box-sizing: content-box;
+    width: 100%;
+    height: 100%;
+    border: 0.25em solid rgba(165, 220, 134, 0.3);
+    border-radius: 50%;
+}
+
+.notify-success-line {
+    display: block;
+    position: absolute;
+    z-index: 2;
+    height: 0.3125em;
+    border-radius: 0.125em;
+    background-color: #a5dc86;
+}
+
+.notify-success-line-tip {
+    top: 1.125em;
+    left: 0.1875em;
+    width: 0.75em;
+    transform: rotate(45deg);
+    animation: notify-success-line-tip 0.75s;
+}
+
+.notify-success-line-long {
+    top: 0.9375em;
+    right: 0.1875em;
+    width: 1.375em;
+    transform: rotate(-45deg);
+    animation: notify-success-line-long 0.75s;
+}
+
+.notify-x-mark {
+    position: relative;
+    flex-grow: 1;
+    animation: notify-error-x-mark 0.5s;
+}
+
+.notify-x-mark-line {
+    display: block;
+    position: absolute;
+    top: 0.875em;
+    width: 1.375em;
+    height: 0.3125em;
+    border-radius: 0.125em;
+    background-color: #f27474;
+}
+
+.notify-x-mark-line-left {
+    left: 0.3125em;
+    transform: rotate(45deg);
+}
+
+.notify-x-mark-line-right {
+    right: 0.3125em;
+    transform: rotate(-45deg);
+}
