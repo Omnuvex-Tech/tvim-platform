@@ -13,6 +13,16 @@ import {
     type RouteLocale,
 } from "@repo/shared/routes";
 
+export const REQUEST_PATHNAME_HEADER = "x-request-pathname";
+
+// not-found.tsx never receives params, so the language it should render in is
+// carried over from the request itself.
+const passThrough = (request: NextRequest) => {
+    const headers = new Headers(request.headers);
+    headers.set(REQUEST_PATHNAME_HEADER, request.nextUrl.pathname);
+    return NextResponse.next({ request: { headers } });
+};
+
 const renameLegacySearchParam = (url: URL) => {
     const legacy = url.searchParams.get(LEGACY_SEARCH_QUERY_PARAM);
     if (legacy === null || url.searchParams.has(SEARCH_QUERY_PARAM)) return false;
@@ -31,7 +41,7 @@ export function middleware(request: NextRequest) {
         // Legacy blog links also exist without a locale prefix; send those to
         // the visitor's locale instead of letting them fall through to a 404.
         const path = `/${[maybeLocale, ...restSegments].filter(Boolean).join("/")}`;
-        if (!maybeLocale || !isBlogPath(path)) return NextResponse.next();
+        if (!maybeLocale || !isBlogPath(path)) return passThrough(request);
 
         const fallbackLocale = preferredLocale(request);
         const url = request.nextUrl.clone();
@@ -88,7 +98,7 @@ export function middleware(request: NextRequest) {
     }
 
     const tvimPagePath = resolveTvimPageRedirect(rest, locale);
-    if (tvimPagePath === null) return NextResponse.next();
+    if (tvimPagePath === null) return passThrough(request);
 
     url.pathname = `/${locale}${tvimPagePath}`;
     return NextResponse.redirect(url, 308);
