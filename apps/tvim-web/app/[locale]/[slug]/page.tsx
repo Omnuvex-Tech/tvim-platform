@@ -212,8 +212,8 @@ const getCachedProductListPayload = unstable_cache(
     { revalidate: 300, tags: ["public-product-list-payload"] }
 );
 
-async function getMenuDetail(slug: string, locale: string, page?: number) {
-    return await getPublicMenuDetail<MenuDetailData>(slug, locale, undefined, page);
+async function getMenuDetail(slug: string, locale: string, page?: number, perPage?: number) {
+    return await getPublicMenuDetail<MenuDetailData>(slug, locale, undefined, page, perPage);
 }
 
 const roboto = Roboto({
@@ -225,6 +225,21 @@ const roboto = Roboto({
 const formatBlogDate = (value?: string | null) => {
     const matched = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
     return matched ? `${matched[3]}/${matched[2]}/${matched[1]}` : "";
+};
+
+/** Undated posts sink to the bottom instead of being read as the oldest. */
+const blogItemTimestamp = (value?: string | null) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return Number.NEGATIVE_INFINITY;
+
+    const parsed = Date.parse(raw.replace(" ", "T"));
+    return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+};
+
+const byNewestFirst = (a: { datetime1?: string | null }, b: { datetime1?: string | null }) => {
+    const left = blogItemTimestamp(a?.datetime1);
+    const right = blogItemTimestamp(b?.datetime1);
+    return left === right ? 0 : right - left;
 };
 
 type BlogCategoryTile = {
@@ -1145,8 +1160,31 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 ? { name: String(menu.name ?? "").trim(), slug }
                 : null;
 
-        const gridCurrentPage = Math.max(1, Number(pageData?.meta?.page ?? requestedPage));
-        const gridLastPage = Math.max(1, Number(pageData?.meta?.last_page ?? 1));
+        // Blog items arrive oldest-first and /menus/detail ignores every sort
+        // parameter, so the whole list is pulled once, ordered here and paged
+        // locally. Sorting just the fetched page would leave the newest posts
+        // stranded on the last one.
+        const gridTotal = Math.max(0, Number(pageData?.meta?.total ?? 0)) || gridItems.length;
+        const gridPerPage = Math.max(1, Number(pageData?.meta?.per_page ?? 0) || gridItems.length || 1);
+
+        const fullBlogList = isBlogView && gridTotal > gridItems.length
+            ? (await getMenuDetail(slug, normalizedLocale, 1, gridTotal))?.data?.items
+            : undefined;
+
+        const orderedItems = isBlogView
+            ? [...(Array.isArray(fullBlogList) && fullBlogList.length > 0 ? fullBlogList : gridItems)].sort(byNewestFirst)
+            : gridItems;
+
+        const gridLastPage = isBlogView
+            ? Math.max(1, Math.ceil(orderedItems.length / gridPerPage))
+            : Math.max(1, Number(pageData?.meta?.last_page ?? 1));
+        const gridCurrentPage = isBlogView
+            ? Math.min(Math.max(1, requestedPage), gridLastPage)
+            : Math.max(1, Number(pageData?.meta?.page ?? requestedPage));
+
+        const pageItems = isBlogView
+            ? orderedItems.slice((gridCurrentPage - 1) * gridPerPage, gridCurrentPage * gridPerPage)
+            : gridItems;
 
         const buildGridPageHref = (page: number) => {
             const next = new URLSearchParams();
@@ -1219,9 +1257,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                 </div>
                             ) : null}
 
-                            {gridItems.length > 0 ? (
+                            {pageItems.length > 0 ? (
                                 <div className="-mx-[10px] mb-[10px] flex flex-wrap">
-                                    {gridItems.map((item, index) => {
+                                    {pageItems.map((item, index) => {
                                         const href = resolveGridItemHref(item);
                                         // The banner is a wide hero image; the main photo is the one
                                         // meant for thumbnails, so it wins when the item has both.
