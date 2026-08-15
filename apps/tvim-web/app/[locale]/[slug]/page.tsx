@@ -24,7 +24,7 @@ import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { isSupportedLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
-import { resolveMapEmbedUrl } from "@/lib/map";
+import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 type MenuDetailData = {
     type: string;
@@ -1316,6 +1316,9 @@ const firstPhone =
     "+994 (50) 828-08-88";
         const email = projectSettings?.general.email || "Info@tvim.az";
         const address = projectSettings?.general.address || "Bakı, Süleyman Sani Axundov 225b";
+        // Clicking the address opens the same pin the map below shows, so it
+        // never lands on whatever Google matches the prose address to.
+        const addressMapLink = resolveMapLink(projectSettings?.general.map_iframe, address);
 
         return (
             <SitePageShell chrome={chrome} includeLogoutToast>
@@ -1369,9 +1372,20 @@ const firstPhone =
                                 <span className="text-[12px] font-medium text-[#8496ab]">
                                     {contactCopy.address}
                                 </span>
-                                <span className="text-[18px] lg:text-[22px] font-semibold text-black leading-tight">
-                                    {address}
-                                </span>
+                                {addressMapLink ? (
+                                    <a
+                                        className="text-[18px] lg:text-[22px] font-semibold text-black leading-tight hover:underline"
+                                        href={addressMapLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        {address}
+                                    </a>
+                                ) : (
+                                    <span className="text-[18px] lg:text-[22px] font-semibold text-black leading-tight">
+                                        {address}
+                                    </span>
+                                )}
                             </div>
                         </article>
                     </div>

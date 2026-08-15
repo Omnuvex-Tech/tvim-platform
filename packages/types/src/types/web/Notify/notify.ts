@@ -3,6 +3,8 @@ export type NotifyVariant = "success" | "error";
 export type NotifyLink = {
     label: string;
     href: string;
+    /** The product name is set apart from the rest of the sentence in bold. */
+    isBold?: boolean;
 };
 
 export type NotifyOptions = {

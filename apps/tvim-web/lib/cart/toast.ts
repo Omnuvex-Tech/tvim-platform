@@ -36,7 +36,7 @@ export const buildAddedToCartToast = (
 
     const links: NotifyLink[] = [];
     if (href) {
-        links.push({ label: title, href });
+        links.push({ label: title, href, isBold: true });
     }
     links.push({ label: copy.addedToCartLink, href: localizedHref("checkout", locale) });
 

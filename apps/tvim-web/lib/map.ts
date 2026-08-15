@@ -9,9 +9,18 @@ export const FALLBACK_MAP_EMBED_URL =
 const isFiniteCoordinate = (value: number, limit: number) =>
     Number.isFinite(value) && Math.abs(value) <= limit;
 
+/** A stray "%" in a pasted iframe would make decodeURIComponent throw mid-render. */
+const decodeSafely = (value: string) => {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+};
+
 /** Pulls "lat,lng" out of an embed url, an iframe snippet or a plain maps link. */
 export const extractMapCoordinates = (value: unknown) => {
-    const raw = String(value ?? "").trim();
+    const raw = decodeSafely(String(value ?? "").trim());
     if (!raw) return "";
 
     // Embed urls encode the centre as !3d<lat> and !2d<lng>.
@@ -53,7 +62,7 @@ export const resolveMapEmbedUrl = (mapIframe: unknown) => {
  * bare pin.
  */
 export const extractMapPlaceId = (value: unknown) => {
-    const raw = decodeURIComponent(String(value ?? "").trim());
+    const raw = decodeSafely(String(value ?? "").trim());
     if (!raw) return "";
 
     const matched = raw.match(/!1s0x[0-9a-f]+:0x([0-9a-f]+)/i) ?? raw.match(/[?&]cid=(\d+)/i);
