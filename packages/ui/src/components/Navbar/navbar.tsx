@@ -490,6 +490,8 @@ const navbarCopy = {
         catalog: "Kataloq",
         login: "Daxil ol",
         noResults: "Nəticə tapılmadı",
+        searching: "Axtarılır...",
+        allResults: "Bütün axtarış nəticələri",
         categoriesSection: "Kateqoriyalar",
         categoryLabel: "Kateqoriya",
         noSubcategories: "Bu kateqoriya üçün alt bölmə yoxdur",
@@ -501,6 +503,8 @@ const navbarCopy = {
         catalog: "Catalog",
         login: "Login",
         noResults: "No results found",
+        searching: "Searching...",
+        allResults: "All search results",
         categoriesSection: "Categories",
         categoryLabel: "Category",
         noSubcategories: "There are no subcategories in this category",
@@ -512,6 +516,8 @@ const navbarCopy = {
         catalog: "Каталог",
         login: "Войти",
         noResults: "Ничего не найдено",
+        searching: "Идёт поиск...",
+        allResults: "Все результаты поиска",
         categoriesSection: "Категории",
         categoryLabel: "Категория",
         noSubcategories: "В этой категории нет подразделов",
@@ -658,8 +664,10 @@ function LocaleFlag({ country }: { country: string }) {
 }
 
 function NavbarLogo({ logo, logoHref = "#", tagline }: { logo?: ReactNode; logoHref?: string; tagline: string }) {
+    // The tagline sits on the logo's baseline, not beside its middle — same
+    // arrangement as the footer's logo block.
     return (
-        <SmartLink href={logoHref} className="flex min-w-0 flex-1 items-center gap-1 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-1">
+        <SmartLink href={logoHref} className="flex min-w-0 flex-1 items-end gap-0 cursor-pointer lg:min-w-[240px] lg:flex-none lg:gap-0">
             <span className="flex min-w-0 shrink overflow-hidden [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-[150px]">
                 {logo ?? null}
             </span>
@@ -853,7 +861,7 @@ function NavbarSearch({
                         {isLoading && totalResults === 0 ? (
                             <div className="flex min-h-[78px] items-center justify-center px-4 py-5">
                                 <Spinner size={21} strokeWidth={1.5} className="text-black" />
-                                <span className="sr-only">Axtarılır...</span>
+                                <span className="sr-only">{copy.searching}</span>
                             </div>
                         ) : error ? (
                             <div className="px-4 py-4 text-[13px] text-[#d14343]">{error}</div>
@@ -907,7 +915,7 @@ function NavbarSearch({
                             className="block border-t border-[#edf1f7] px-4 py-3 text-center text-[13px] font-semibold text-[#3a4354] transition-colors hover:bg-[#f6f8fc]"
                             onClick={() => setIsOpen(false)}
                         >
-                            Bütün axtarış nəticələri ({totalResults})
+                            {copy.allResults} ({totalResults})
                         </SmartLink>
                     ) : null}
                 </div>

@@ -9,6 +9,8 @@ export type FooterContactItem = {
     label: string;
     href?: string;
     icon?: ReactNode;
+    /** Set for the map link, so the site is not replaced by Google Maps. */
+    target?: string;
 };
 
 export type FooterSocialItem = {

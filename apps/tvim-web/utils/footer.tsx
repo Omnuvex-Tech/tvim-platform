@@ -219,6 +219,7 @@ if (settings.general.address) {
     contacts.push({
         label: settings.general.address,
         href: resolveMapLink(settings.general.map_iframe, settings.general.address),
+        target: "_blank",
         icon: <i className="fas fa-map-marker-alt -mt-[2px] text-[16px]" aria-hidden="true" />,
     });
 }

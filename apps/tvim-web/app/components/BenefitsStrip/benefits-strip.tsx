@@ -179,21 +179,23 @@ const BenefitsStrip = ({ items, locale }: { items?: any[]; locale?: string }) =>
                         <Link
                             key={`${item.title}-${index}`}
                             href={item.link ?? "#"}
-                            className="group relative flex h-[120px] w-full items-center gap-2.5 rounded-[16px] bg-white px-4 pt-4 pb-8 text-left transition-all duration-200 ease-out hover:bg-[#f3f4f6] hover:shadow-none cursor-pointer select-none sm:h-[132px] sm:gap-3.5 sm:rounded-[24px] sm:px-6 sm:pt-6 sm:pb-10"
+                            className="group relative flex min-h-[104px] w-full items-center gap-2.5 rounded-[16px] bg-white px-4 pt-4 pb-7 text-left transition-all duration-200 ease-out hover:bg-[#f3f4f6] hover:shadow-none cursor-pointer select-none sm:min-h-[112px] sm:gap-3 sm:rounded-[20px] sm:px-5 sm:pt-5 sm:pb-8 xl:min-h-[124px] xl:gap-3.5 xl:rounded-[24px] xl:px-6 xl:pt-6 xl:pb-9"
                         >
-                        <span className="shrink-0 text-[#1f4fff] w-[32px] h-[32px] flex items-center justify-center [&_svg]:w-full [&_svg]:h-full sm:w-[40px] sm:h-[40px]">{item.icon}</span>
+                        <span className="shrink-0 text-[#1f4fff] w-[28px] h-[28px] flex items-center justify-center [&_svg]:w-full [&_svg]:h-full sm:w-[32px] sm:h-[32px] xl:w-[38px] xl:h-[38px]">{item.icon}</span>
                         <span className="flex-1 min-w-0 w-full flex flex-col">
-                                <span className="block text-[18px] leading-[22px] font-bold text-black truncate sm:text-[24px] sm:leading-[30px]">{item.title}</span>
+                                {/* Two columns at sm and four at lg leave the title barely
+                                    200px, so it scales with the card instead of being cut off. */}
+                                <span className="block text-[16px] leading-[20px] font-bold text-black line-clamp-2 sm:text-[17px] sm:leading-[22px] lg:text-[18px] lg:leading-[24px] xl:text-[20px] xl:leading-[26px]">{item.title}</span>
                                 {item.description ? (
                                     <span
-                                        className="mt-1 block text-[11px] leading-normal font-normal text-[#555555] line-clamp-3 tracking-[0.05em] sm:mt-2 sm:text-[12px]"
-                                        style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as any}
+                                        className="mt-1 block text-[11px] leading-normal font-normal text-[#555555] line-clamp-2 tracking-[0.05em] sm:mt-1.5 sm:text-[12px]"
+                                        style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as any}
                                     >
                                         {item.description}
                                     </span>
                                 ) : null}
                         </span>
-                            <span className="absolute right-4 bottom-2 text-[18px] text-[#9ca3af] transition-colors group-hover:text-[#2050ff] sm:right-6 sm:bottom-2" aria-hidden="true">→</span>
+                            <span className="absolute right-4 bottom-2 text-[18px] text-[#9ca3af] transition-colors group-hover:text-[#2050ff] sm:right-5 xl:right-6" aria-hidden="true">→</span>
                     </Link>
                 ))}
             </div>

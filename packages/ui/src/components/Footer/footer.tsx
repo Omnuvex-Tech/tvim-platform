@@ -163,6 +163,8 @@ const Footer = ({
         <a
             key={item.label}
             href={item.href}
+            target={item.target}
+            rel={item.target === "_blank" ? "noreferrer" : undefined}
             className="group flex min-w-0 items-center justify-start gap-3 text-left transition-colors hover:text-black"
         >
             {content}
