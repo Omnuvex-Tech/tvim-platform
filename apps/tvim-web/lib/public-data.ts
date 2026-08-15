@@ -143,12 +143,12 @@ async function getCachedHeaderCategories(incomingLocale: string) {
     });
 }
 
-async function getCachedMenuDetail<T>(slug: string, incomingLocale: string, dataSlug?: string, page?: number) {
+async function getCachedMenuDetail<T>(slug: string, incomingLocale: string, dataSlug?: string, page?: number, perPage?: number) {
     const locale = incomingLocale.trim().toLowerCase();
-    const cacheKey = `menu-detail:${locale}:${slug}:${dataSlug ?? ""}:${page ?? 1}`;
+    const cacheKey = `menu-detail:${locale}:${slug}:${dataSlug ?? ""}:${page ?? 1}:${perPage ?? ""}`;
     return await getFromNavigationMemoryCache(cacheKey, async () => {
         const locale = incomingLocale.trim().toLowerCase();
-        const response = await api.get<T>(config.endpoints.menus.detail(slug, dataSlug, page), {
+        const response = await api.get<T>(config.endpoints.menus.detail(slug, dataSlug, page, perPage), {
             params: { lang: locale },
             locale: resolveSettingsApiLocale(locale),
         });
@@ -173,6 +173,6 @@ export async function getPublicHeaderCategories(locale: string) {
     return await getCachedHeaderCategories(locale);
 }
 
-export async function getPublicMenuDetail<T>(slug: string, locale: string, dataSlug?: string, page?: number) {
-    return await getCachedMenuDetail<T>(slug, locale, dataSlug, page);
+export async function getPublicMenuDetail<T>(slug: string, locale: string, dataSlug?: string, page?: number, perPage?: number) {
+    return await getCachedMenuDetail<T>(slug, locale, dataSlug, page, perPage);
 }
