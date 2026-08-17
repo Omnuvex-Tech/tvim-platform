@@ -30,8 +30,8 @@ export const buildAddedToCartToast = (
         return { message: copy.addedToCartFallback, options: {} };
     }
 
-    // Adding to the cart also opens the cart modal, which would otherwise stay
-    // over whichever page the link leads to.
+    // A toast can still be on screen while the cart modal is open from the
+    // navbar, and the modal would otherwise cover whatever the link leads to.
     const onNavigate = () => closeCartModal();
 
     const links: NotifyLink[] = [];

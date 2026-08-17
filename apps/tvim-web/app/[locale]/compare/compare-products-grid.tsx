@@ -5,6 +5,8 @@ import Link from "next/link";
 import { RemoteImage, useNotify } from "@repo/ui";
 import type { CompareListItem } from "./page";
 import { addProductToCart } from "@/lib/cart/client";
+import { buildAddedToCartToast } from "@/lib/cart/toast";
+import { getTranslations } from "@/lib/i18n";
 import { toggleCompare } from "@/lib/compare/client";
 import { toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
@@ -32,6 +34,7 @@ const getUniqueSpecLabels = (items: CompareListItem[]) => Array.from(new Set(ite
 
 export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
     const notify = useNotify();
+    const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
     const [items, setItems] = useState<CompareListItem[]>(initialItems);
     const [showOnlyDifferent, setShowOnlyDifferent] = useState(false);
     const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
@@ -178,7 +181,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
         const variationId = item.product_variation_id;
 
         if (!variationId || !Number.isFinite(variationId)) {
-            notify.error(copy.removeCompareFailed);
+            notify.error(cartCopy.addToCartFailed);
             return;
         }
 
@@ -207,9 +210,13 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                 stock: null,
             });
 
-            notify.success(`${item.name} sebete əlavə edildi.`);
+            const toast = buildAddedToCartToast(cartCopy, locale, {
+                title: item.name,
+                href: item.slug ? `/${locale}/products/${String(item.slug).replace(/^\/+/, "")}` : undefined,
+            });
+            notify.success(toast.message, toast.options);
         } catch (error) {
-            const message = error instanceof Error ? error.message : copy.removeCompareFailed;
+            const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;
             notify.error(message);
         } finally {
             setPendingCartVariationIds((prev) => {

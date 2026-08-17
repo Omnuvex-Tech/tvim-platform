@@ -353,7 +353,6 @@ export const addProductToCart = async (product: CartProduct) => {
                 ...state,
                 isAdding: false,
                 addingProductTitle: "",
-                isCartModalOpen: true,
                 items: hasItem
                     ? state.items.map((item) =>
                           item.key === key || Number(item.product.productVariationId) === variationId
