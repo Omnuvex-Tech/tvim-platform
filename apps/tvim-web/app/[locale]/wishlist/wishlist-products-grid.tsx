@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { RemoteImage, useNotify } from "@repo/ui";
 import { addProductToCart } from "@/lib/cart/client";
+import { buildAddedToCartToast } from "@/lib/cart/toast";
+import { getTranslations } from "@/lib/i18n";
 import { toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
 
@@ -28,6 +30,7 @@ const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 
 export function WishlistProductsGrid({ locale, initialItems }: Props) {
     const notify = useNotify();
+    const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
     const [items, setItems] = useState<FavoriteListItem[]>(initialItems);
     const [pendingVariationIds, setPendingVariationIds] = useState<Set<number>>(new Set());
     const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
@@ -106,9 +109,13 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                 stock: null,
             });
 
-            notify.success(`${item.name} səbətə əlavə edildi.`);
+            const toast = buildAddedToCartToast(cartCopy, locale, {
+                title: item.name,
+                href: item.slug ? `/${locale}/products/${String(item.slug).replace(/^\/+/, "")}` : undefined,
+            });
+            notify.success(toast.message, toast.options);
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Səbətə əlavə edilərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;
             notify.error(message);
         } finally {
             setPendingCartVariationIds((prev) => {
