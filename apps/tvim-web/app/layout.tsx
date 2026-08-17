@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import { NotifyProvider, NotifyContainer } from "@repo/ui";
 import { QueryProvider } from "@/app/providers";
 import { DevelopmentPerformance } from "@/app/components/DevelopmentPerformance/development-performance";
@@ -40,8 +41,23 @@ export default function RootLayout({
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
                 />
+                <Script id="gtm" strategy="afterInteractive">
+                    {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                    })(window,document,'script','dataLayer','GTM-NRZ44CBC');`}
+                </Script>
             </head>
             <body className={inter.variable} suppressHydrationWarning>
+                <noscript>
+                    <iframe
+                        src="https://www.googletagmanager.com/ns.html?id=GTM-NRZ44CBC"
+                        height="0"
+                        width="0"
+                        style={{ display: "none", visibility: "hidden" }}
+                    />
+                </noscript>
                 <NavigationProgress />
                 <QueryProvider>
                     <NotifyProvider>
