@@ -380,11 +380,7 @@
 	padding: 4px 6px;
 }
 
-/* Opt-in for CMS pages whose content uses <hr> as a light separator. The HTML is
-   injected raw, so Tailwind's preflight leaves <hr> at 1px of currentColor with
-   no margin, which renders as a heavy black rule; this restores the hairline the
-   previous site used. Applied per page, not globally. */
-.prose-soft-hr hr {
+.prose hr {
 	border: 0;
 	border-top: 1px solid #eee;
 	margin: 10px 0;
