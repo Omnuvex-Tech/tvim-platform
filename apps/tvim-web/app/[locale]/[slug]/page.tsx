@@ -305,13 +305,6 @@ const getCanonicalPath = (canonical: unknown) => {
     }
 };
 
-/**
- * Menus whose CMS content uses <hr> as a light separator and needs the
- * `.prose-soft-hr` rule from globals.css. 347 = Geriqaytarma / Qaytarma və
- * dəyişmə.
- */
-const SOFT_HR_MENU_IDS = new Set([347]);
-
 const readSearchParamValue = (value: string | string[] | undefined) =>
     Array.isArray(value) ? value[0] : value;
 
@@ -598,14 +591,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
     const includedItemsSection = renderIncludedItems();
 
-    // The menu id is the same in every locale; the slug is not.
-    const contentProseClassName = SOFT_HR_MENU_IDS.has(Number(menu.id))
-        ? "prose prose-soft-hr max-w-none"
-        : "prose max-w-none";
-
     const pageContentBody = (
         <>
-            <div className={contentProseClassName}>
+            <div className="prose max-w-none">
                 {pageDescriptionHtml && (
                     <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
                 )}
