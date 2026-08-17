@@ -209,13 +209,6 @@ type ProductDetailData = {
     related?: ProductDetailRelatedItem[];
 };
 
-/**
- * The list the menu returns is one page of at most a dozen entries, so an
- * article further down was never in it. Asking for the item by slug hands back
- * that one entry whichever page it sits on. The api only matches the slug of
- * the language it is asked in, so a url carrying another language's slug is
- * looked up under that language and left for the caller to redirect.
- */
 async function getMenuItemDetail(slug: string, itemSlug: string, locale: string) {
     const decodedItemSlug = decodeSlugParam(itemSlug);
     const locales = [locale, ...SUPPORTED_LOCALES.filter((candidate) => candidate !== locale)];

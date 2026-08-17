@@ -38,10 +38,6 @@ const icons: Record<NotifyVariant, ReactNode> = {
     ),
 };
 
-/**
- * The product name and the cart word are linked inside the sentence, so the
- * message is split around every link label the toast was given.
- */
 const renderMessage = (item: NotifyItem, onNavigate: () => void): ReactNode => {
     const links = (item.links ?? []).filter((link) => link.label.trim() && link.href.trim());
     if (links.length === 0) return item.message;

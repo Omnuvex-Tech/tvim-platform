@@ -64,7 +64,6 @@ const NotifyProvider = ({ children }: { children: ReactNode }) => {
         [dismiss]
     );
 
-    // Hovering holds the toast open, so there is time to click the product name.
     const pause = useCallback((id: string) => {
         const timer = timers.current.get(id);
         if (!timer?.timeoutId) return;
