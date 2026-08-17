@@ -14,7 +14,7 @@ import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-l
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
-import { isSupportedLocale, type SiteLocale } from "@/lib/site-locales";
+import { isSupportedLocale, SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 import { getProductSlugsByLocale } from "@/lib/product-slugs";
 import { getTranslations } from "@/lib/i18n";
 import { resolveLegacyServicePath } from "@/lib/legacy-services";
@@ -47,7 +47,9 @@ type MenuDetailData = {
         seo?: any;
     };
     data: {
+        mode?: string;
         items?: GridItem[];
+        item?: GridItem;
     };
 };
 
@@ -207,8 +209,23 @@ type ProductDetailData = {
     related?: ProductDetailRelatedItem[];
 };
 
-async function getMenuDetail(slug: string, locale: string) {
-    return await getPublicMenuDetail<MenuDetailData>(slug, locale);
+/**
+ * The list the menu returns is one page of at most a dozen entries, so an
+ * article further down was never in it. Asking for the item by slug hands back
+ * that one entry whichever page it sits on. The api only matches the slug of
+ * the language it is asked in, so a url carrying another language's slug is
+ * looked up under that language and left for the caller to redirect.
+ */
+async function getMenuItemDetail(slug: string, itemSlug: string, locale: string) {
+    const decodedItemSlug = decodeSlugParam(itemSlug);
+    const locales = [locale, ...SUPPORTED_LOCALES.filter((candidate) => candidate !== locale)];
+
+    for (const candidate of locales) {
+        const detail = await getPublicMenuDetail<MenuDetailData>(slug, candidate, decodedItemSlug);
+        if (detail?.data.item) return detail;
+    }
+
+    return null;
 }
 
 const decodeSlugParam = (slug: string) => {
@@ -218,27 +235,6 @@ const decodeSlugParam = (slug: string) => {
         return slug;
     }
 };
-
-function resolveItemBySlug(items: GridItem[], itemSlug: string, locale: string) {
-    const normalizedTarget = decodeSlugParam(itemSlug).trim().toLowerCase();
-
-    const matchesLocale = items.find((item) => {
-        const localized = item.multi_slugs?.[locale] || item.slug || "";
-        return String(localized).trim().toLowerCase() === normalizedTarget;
-    });
-
-    if (matchesLocale) return matchesLocale;
-
-    // The item exists but was asked for under another language's slug. Finding
-    // it here lets the caller redirect to this locale's url rather than 404 on
-    // what is really the same page.
-    return items.find((item) => {
-        const candidates = [...Object.values(item.multi_slugs ?? {}), item.slug];
-        return candidates.some(
-            (candidate) => String(candidate ?? "").trim().toLowerCase() === normalizedTarget,
-        );
-    });
-}
 
 function stripHtml(input?: string | null) {
     if (!input) return "";
@@ -385,10 +381,10 @@ export async function generateMetadata({
         });
     }
 
-    const menuDetail = await getMenuDetail(slug, normalizedLocale);
+    const menuDetail = await getMenuItemDetail(slug, itemSlug, normalizedLocale);
     if (!menuDetail) return {};
 
-    const item = resolveItemBySlug(menuDetail.data.items || [], itemSlug, normalizedLocale);
+    const item = menuDetail.data.item;
     if (!item) return {};
 
     const fallbackDescription = stripHtml(item.content).slice(0, 170);
@@ -888,11 +884,10 @@ export default async function GridDetailPage({
         );
     }
 
-    const menuDetail = await getMenuDetail(slug, normalizedLocale);
+    const menuDetail = await getMenuItemDetail(slug, itemSlug, normalizedLocale);
     if (!menuDetail) notFound();
 
-    const items = menuDetail.data.items || [];
-    const item = resolveItemBySlug(items, itemSlug, normalizedLocale);
+    const item = menuDetail.data.item;
     if (!item) notFound();
 
     // Both segments are localized independently — the parent menu through
