@@ -9,7 +9,6 @@ export type NotifyLink = {
 
 export type NotifyOptions = {
     links?: NotifyLink[];
-    /** Runs when one of the links is followed, before the toast is dismissed. */
     onNavigate?: () => void;
 };
 

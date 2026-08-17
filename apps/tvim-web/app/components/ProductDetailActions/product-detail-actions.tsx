@@ -140,7 +140,6 @@ const ProductDetailActions = ({
 
             await addCartItem(productVariationId, quantity);
             await hydrateCart(true);
-            // Already on the product's own page, so only the cart word is a link.
             const toast = buildAddedToCartToast(cartCopy, locale, { title: productTitle });
             notify.success(toast.message, toast.options);
         } catch (error) {

@@ -13,11 +13,6 @@ type AddedToCartProduct = {
     href?: string | null;
 };
 
-/**
- * The toast reads as one sentence with the product name and the cart word
- * linked inside it, so the message and its links are built together here and
- * every add-to-cart entry point shares the result.
- */
 export const buildAddedToCartToast = (
     copy: AddedToCartCopy,
     locale: string,
@@ -30,8 +25,6 @@ export const buildAddedToCartToast = (
         return { message: copy.addedToCartFallback, options: {} };
     }
 
-    // A toast can still be on screen while the cart modal is open from the
-    // navbar, and the modal would otherwise cover whatever the link leads to.
     const onNavigate = () => closeCartModal();
 
     const links: NotifyLink[] = [];

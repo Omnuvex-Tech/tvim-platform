@@ -295,10 +295,6 @@ const NavbarWrapper = ({
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [closeCartModal, isCartModalOpen]);
 
-    // Adding to the cart opens the modal, so following the toast's product or
-    // cart link would otherwise land on the new page with the modal still over
-    // it. The open flag lives in a module store that outlives the navigation,
-    // and every page mounts its own shell, so each render starts it closed.
     useEffect(() => {
         closeCartModal();
     }, [closeCartModal, pathname]);
