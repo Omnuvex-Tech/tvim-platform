@@ -186,6 +186,9 @@ type TranslationDictionary = {
         termsPrefix: string;
         termsLink: string;
         termsSuffix: string;
+        termsTitle: string;
+        termsLoading: string;
+        termsError: string;
         noComments: string;
         addedToCart: string;
         removedFromCart: string;
@@ -356,6 +359,9 @@ type TranslationDictionary = {
         termsPrefix: string;
         termsLink: string;
         termsSuffix: string;
+        termsTitle: string;
+        termsLoading: string;
+        termsError: string;
         closeTerms: string;
         submit: string;
         haveAccountPrefix: string;
@@ -568,6 +574,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             termsPrefix: "Mən",
             termsLink: "istifadə şərtləri",
             termsSuffix: "-ni oxudum və razıyam",
+            termsTitle: "İstifadə şərtləri",
+            termsLoading: "Yüklənir...",
+            termsError: "İstifadə şərtlərini yükləmək mümkün olmadı.",
             noComments: "Bu məhsul üçün şərh yazılmayıb.",
             addedToCart: "Məhsul səbətə əlavə edildi.",
             removedFromCart: "Məhsul səbətdən silindi.",
@@ -736,6 +745,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             termsPrefix: "Mən",
             termsLink: "İstifadə şərtləri",
             termsSuffix: "-ni oxudum və razıyam",
+            termsTitle: "İstifadə şərtləri",
+            termsLoading: "Yüklənir...",
+            termsError: "İstifadə şərtlərini yükləmək mümkün olmadı.",
             closeTerms: "İstifadə şərtlərini bağla",
             submit: "Davam et",
             haveAccountPrefix: "Əgər artıq hesabınızı yaratmısınızsa,",
@@ -946,6 +958,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             termsPrefix: "I have read and agree to the",
             termsLink: "terms of use",
             termsSuffix: "",
+            termsTitle: "Terms of use",
+            termsLoading: "Loading...",
+            termsError: "The terms of use could not be loaded.",
             noComments: "No comments have been written for this product.",
             addedToCart: "Product added to cart.",
             removedFromCart: "Product removed from cart.",
@@ -1114,6 +1129,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             termsPrefix: "I have read and agree to the",
             termsLink: "Terms of use",
             termsSuffix: "",
+            termsTitle: "Terms of use",
+            termsLoading: "Loading...",
+            termsError: "The terms of use could not be loaded.",
             closeTerms: "Close the terms of use",
             submit: "Continue",
             haveAccountPrefix: "If you already have an account,",
@@ -1324,6 +1342,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             termsPrefix: "Я прочитал(а) и согласен(на) с",
             termsLink: "условиями использования",
             termsSuffix: "",
+            termsTitle: "Условия использования",
+            termsLoading: "Загрузка...",
+            termsError: "Не удалось загрузить условия использования.",
             noComments: "Для этого товара пока нет комментариев.",
             addedToCart: "Товар добавлен в корзину.",
             removedFromCart: "Товар удален из корзины.",
@@ -1492,6 +1513,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             termsPrefix: "Я прочитал(а) и согласен(на) с",
             termsLink: "условиями использования",
             termsSuffix: "",
+            termsTitle: "Условия использования",
+            termsLoading: "Загрузка...",
+            termsError: "Не удалось загрузить условия использования.",
             closeTerms: "Закрыть условия использования",
             submit: "Продолжить",
             haveAccountPrefix: "Если у вас уже есть аккаунт,",

@@ -613,7 +613,7 @@ const ProductDetailTabs = ({
                                     className="mt-[1px] size-[20px] cursor-pointer rounded-[2px] border-[#c7ccd5] accent-[#2050f5]"
                                 />
                                 <span>
-                                    Mən{" "}
+                                    {t.termsPrefix}{" "}
                                     <button
                                         type="button"
                                         onClick={(event) => {
@@ -623,9 +623,9 @@ const ProductDetailTabs = ({
                                         }}
                                         className="cursor-pointer border-0 bg-transparent p-0 font-bold text-[#111318] transition-colors hover:text-[#4a4a4a]"
                                     >
-                                        istifadə şərtləri
+                                        {t.termsLink}
                                     </button>
-                                    -ni oxudum və razıyam
+                                    {t.termsSuffix}
                                 </span>
                             </label>
 
