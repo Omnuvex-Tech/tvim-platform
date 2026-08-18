@@ -364,25 +364,6 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
     const recaptchaRef = useRef<HTMLDivElement | null>(null);
     const recaptchaWidgetIdRef = useRef<number | null>(null);
 
-    useEffect(() => {
-        if (!isTermsOpen) return;
-
-        const previousOverflow = document.body.style.overflow;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                setIsTermsOpen(false);
-            }
-        };
-
-        document.body.style.overflow = "hidden";
-        window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-            window.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [isTermsOpen]);
-
     const updateField = (field: RegisterField, value: string | number | null) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         setErrors((prev) => ({ ...prev, [field]: undefined }));
