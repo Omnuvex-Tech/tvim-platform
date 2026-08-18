@@ -45,7 +45,16 @@ export async function GET(request: Request) {
         configUrl: config.project.url,
     });
     const userAgents = normalizeUserAgents(resolveSettingsRobotsText(settings));
-    const lines = ["User-agent: *", "Allow: /"];
+    const lines = [
+        "User-agent: *",
+        "Allow: /",
+        // Filtrli URL-lər sonsuz kombinasiya yaradır (filters[19][]=... və s.).
+        // Onların SEO dəyəri yoxdur, amma hər biri ağır facet-count sorğusu tetikleyir,
+        // ona görə tarama kənarda saxlanılır.
+        "Disallow: /*filters",
+        // Next.js-in daxili RSC prefetch cavabları — səhifə deyil, tarama edilməməlidir.
+        "Disallow: /*_rsc=",
+    ];
 
     if (siteUrl) {
         lines.push(`Sitemap: ${new URL("/sitemap.xml", siteUrl).toString()}`);
