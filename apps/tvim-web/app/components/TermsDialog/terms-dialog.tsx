@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { getTranslations } from "@/lib/i18n";
@@ -77,24 +77,40 @@ export const TermsDialog = ({ open, onClose }: TermsDialogProps) => {
         };
     }, [locale, open]);
 
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
+
     useEffect(() => {
         if (!open) return;
 
-        const previousOverflow = document.body.style.overflow;
+        const { body } = document;
+        const previousOverflow = body.style.overflow;
+        const previousPaddingRight = body.style.paddingRight;
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+        body.style.overflow = "hidden";
+        if (scrollbarWidth > 0) {
+            body.style.paddingRight = `${scrollbarWidth}px`;
+        }
+
+        return () => {
+            body.style.overflow = previousOverflow;
+            body.style.paddingRight = previousPaddingRight;
+        };
+    }, [open]);
+
+    useEffect(() => {
+        if (!open) return;
+
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
-                onClose();
+                onCloseRef.current();
             }
         };
 
-        document.body.style.overflow = "hidden";
         window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-            window.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [onClose, open]);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [open]);
 
     if (!open) return null;
 
@@ -125,7 +141,7 @@ export const TermsDialog = ({ open, onClose }: TermsDialogProps) => {
                     </button>
                 </header>
 
-                <div className="prose max-w-none overflow-y-auto px-5 py-6 text-[16px] leading-[1.45] text-[#15171c] sm:px-6">
+                <div className="thin-scrollbar prose max-w-none overflow-y-auto px-5 py-6 text-[16px] leading-[1.45] text-[#15171c] sm:px-6">
                     {content ? (
                         <div dangerouslySetInnerHTML={{ __html: content.html }} />
                     ) : (
