@@ -18,6 +18,7 @@ type TranslationDictionary = {
         address: string;
         callUs: string;
         searchPlaceholder: string;
+        invalidMobile: string;
     };
     breadcrumb: {
         brands: string;
@@ -406,6 +407,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             address: "Ünvan",
             callUs: "Bizə zəng edin",
             searchPlaceholder: "Məhsul axtarışı",
+            invalidMobile: "Düzgün mobil nömrə daxil edin (010, 050, 051, 055, 060, 070, 077, 099).",
         },
         breadcrumb: {
             brands: "Brendlər",
@@ -790,6 +792,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             address: "Address",
             callUs: "Call us",
             searchPlaceholder: "Search products",
+            invalidMobile: "Enter a valid mobile number (010, 050, 051, 055, 060, 070, 077, 099).",
         },
         breadcrumb: {
             brands: "Brands",
@@ -1174,6 +1177,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             address: "Адрес",
             callUs: "Позвоните нам",
             searchPlaceholder: "Поиск товаров",
+            invalidMobile: "Введите корректный мобильный номер (010, 050, 051, 055, 060, 070, 077, 099).",
         },
         breadcrumb: {
             brands: "Бренды",

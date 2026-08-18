@@ -8,6 +8,7 @@ import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-c
 import { hydrateCart } from "@/lib/cart/client";
 import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
+import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 const toNumber = (value: unknown) => {
@@ -222,6 +223,7 @@ type Props = {
 
 const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onDeliveryPriceIdChange, authUser }: Props) => {
     const t = getTranslations(locale).checkout;
+    const common = getTranslations(locale).common;
     const notify = useNotify();
     const router = useRouter();
 
@@ -513,6 +515,10 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 notify.error(t.fillPhone);
                 return;
             }
+            if (!isCompleteAzMobile(phone)) {
+                notify.error(common.invalidMobile);
+                return;
+            }
             if (!addressLine1.trim()) {
                 notify.error(t.fillAddress);
                 return;
@@ -680,6 +686,8 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                 value={phone}
                                 onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)}
                                 onKeyDown={handlePhoneBackspace}
+                                onFocus={() => setPhone(azPhoneOnFocus(phone))}
+                                onBlur={() => setPhone(azPhoneOnBlur(phone))}
                                 disabled={Boolean(isLoading) || isSubmitting}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
                             />

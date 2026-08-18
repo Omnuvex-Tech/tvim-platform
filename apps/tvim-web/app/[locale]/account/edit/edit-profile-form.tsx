@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Mail, Phone, UserRound } from "lucide-react";
 import { Spinner, useNotify } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
+import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
 
 type EditProfileFormProps = {
     locale: string;
@@ -41,6 +42,7 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
     }, [locale]);
 
     const t = useMemo(() => getTranslations(effectiveLocale).account, [effectiveLocale]);
+    const common = useMemo(() => getTranslations(effectiveLocale).common, [effectiveLocale]);
 
     const placeholders = useMemo(
         () => ({
@@ -70,6 +72,7 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
         const next: Errors = {};
         if (!payload.name.trim()) next.name = t.form.requiredName;
         if (!payload.email.trim()) next.email = t.form.requiredEmail;
+        if (payload.phone.trim() && !isCompleteAzMobile(payload.phone)) next.phone = common.invalidMobile;
         return next;
     };
 
@@ -188,6 +191,8 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                                 autoComplete="tel"
                                 value={formData.phone}
                                 onChange={(e) => updateField("phone", e.target.value)}
+                                onFocus={() => updateField("phone", azPhoneOnFocus(formData.phone))}
+                                onBlur={() => updateField("phone", azPhoneOnBlur(formData.phone))}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                             />
                         </label>
