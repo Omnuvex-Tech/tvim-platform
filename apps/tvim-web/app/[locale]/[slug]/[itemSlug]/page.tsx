@@ -215,7 +215,7 @@ async function getMenuItemDetail(slug: string, itemSlug: string, locale: string)
 
     for (const candidate of locales) {
         const detail = await getPublicMenuDetail<MenuDetailData>(slug, candidate, decodedItemSlug);
-        if (detail?.data.item) return detail;
+        if (detail?.data?.item) return detail;
     }
 
     return null;
@@ -335,7 +335,7 @@ export async function generateMetadata({
         if (!productResult.ok) return {};
 
         const active = productResult.data.active_variation;
-        const product = productResult.data.product;
+        const product = productResult.data?.product;
         const title =
             String(active?.meta_title ?? "").trim() ||
             String(product?.meta_title ?? "").trim() ||
@@ -377,7 +377,7 @@ export async function generateMetadata({
     const menuDetail = await getMenuItemDetail(slug, itemSlug, normalizedLocale);
     if (!menuDetail) return {};
 
-    const item = menuDetail.data.item;
+    const item = menuDetail.data?.item;
     if (!item) return {};
 
     const fallbackDescription = stripHtml(item.content).slice(0, 170);
@@ -880,7 +880,7 @@ export default async function GridDetailPage({
     const menuDetail = await getMenuItemDetail(slug, itemSlug, normalizedLocale);
     if (!menuDetail) notFound();
 
-    const item = menuDetail.data.item;
+    const item = menuDetail.data?.item;
     if (!item) notFound();
 
     // Both segments are localized independently — the parent menu through
