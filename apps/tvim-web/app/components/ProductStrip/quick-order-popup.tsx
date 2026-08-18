@@ -5,6 +5,7 @@ import { cn, useNotify } from "@repo/ui";
 import { usePathname } from "next/navigation";
 import { submitPurchaseRequest } from "@/lib/purchase-request/client";
 import { getTranslations } from "@/lib/i18n";
+import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
 import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
 
 type QuickOrderPopupProps = {
@@ -293,7 +294,7 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
             return;
         }
 
-        if (!normalizedPhone) {
+        if (!normalizedPhone || !isCompleteAzMobile(normalizedPhone)) {
             notify.error(t.invalidPhone);
             return;
         }
@@ -401,6 +402,8 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                                 value={phone}
                                 onChange={(event) => handlePhoneChange(event.target.value, event.target.selectionStart)}
                                 onKeyDown={handlePhoneBackspace}
+                                onFocus={() => setPhone(azPhoneOnFocus(phone))}
+                                onBlur={() => setPhone(azPhoneOnBlur(phone))}
                                 placeholder={PHONE_PLACEHOLDER}
                                 className="h-full w-full min-w-0 bg-transparent pl-1.5 text-[14px] font-normal text-[#161922] outline-none placeholder:text-[#b3b9c4]"
                             />

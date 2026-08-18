@@ -1,5 +1,6 @@
 "use client";
 
+import { azPhoneOnBlur, azPhoneOnFocus } from "@repo/shared/utils";
 import React, { useRef, useState } from "react";
 import type { RequestFormData, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
 import { cn } from "../../lib/utils";
@@ -266,10 +267,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
         setSuccess(true);
       }
     } catch (error) {
-      const rawMessage = error instanceof Error ? error.message : "Server Error";
-      const match = rawMessage.match(/:\s(.+)$/);
-      const message = (match?.[1] ?? rawMessage).trim();
-      notify.error(message);
+      const message = error instanceof Error ? error.message.trim() : "";
+      if (message) notify.error(message);
     } finally {
       setLoading(false);
     }
@@ -290,7 +289,7 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
             </FormField>
 
             <FormField icon={<PhoneIcon />}>
-              <input suppressHydrationWarning ref={phoneInputRef} className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)} onKeyDown={handlePhoneBackspace} autoComplete="tel" />
+              <input suppressHydrationWarning ref={phoneInputRef} className="min-w-0 flex-1 border-none bg-transparent font-sans text-[17px] font-medium text-[#202329] outline-none placeholder:text-[#999]" type="tel" placeholder={phonePlaceholder} value={form.phone} onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)} onKeyDown={handlePhoneBackspace} onFocus={() => setForm((prev) => ({ ...prev, phone: azPhoneOnFocus(prev.phone) }))} onBlur={() => setForm((prev) => ({ ...prev, phone: azPhoneOnBlur(prev.phone) }))} autoComplete="tel" />
             </FormField>
 
             <FileUpload file={form.file} onChange={(file) => {

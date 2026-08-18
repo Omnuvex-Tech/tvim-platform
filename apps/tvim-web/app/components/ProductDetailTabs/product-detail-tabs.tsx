@@ -109,6 +109,10 @@ const ProductDetailTabs = ({
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
         return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale);
     }, [pathname]);
+    const recaptchaLocale = useMemo(() => {
+        const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
+        return isSupportedLocale(segment) ? segment : defaultLocale;
+    }, [pathname]);
     const t = useMemo(() => copy.product, [copy]);
     const reg = useMemo(() => copy.register, [copy]);
     const [activeTab, setActiveTab] = useState<TabKey>("about");
@@ -397,7 +401,7 @@ const ProductDetailTabs = ({
     return (
         <section className="mt-10 max-lg:mt-8">
             <Script
-                src="https://www.google.com/recaptcha/api.js?render=explicit"
+                src={`https://www.google.com/recaptcha/api.js?render=explicit&hl=${recaptchaLocale}`}
                 strategy="afterInteractive"
                 onLoad={() => setIsRecaptchaScriptReady(true)}
                 onError={() => setCaptchaError(reg.captchaScriptFailed)}

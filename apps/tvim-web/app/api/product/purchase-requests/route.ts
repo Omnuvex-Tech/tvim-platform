@@ -1,3 +1,4 @@
+import { isCompleteAzMobile } from "@repo/shared/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/config";
 import { cartNoStoreHeaders, parseJsonBody, proxyCartRequest } from "@/app/api/cart/helpers";
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
 
         if (
             fullname.length < 2 ||
-            !phone ||
+            !isCompleteAzMobile(phone) ||
             !Number.isFinite(productVariationId) ||
             productVariationId <= 0 ||
             !Number.isFinite(quantity) ||
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
                                   fullname: ["Full name is required."],
                               }
                             : {}),
-                        ...(!phone
+                        ...(!isCompleteAzMobile(phone)
                             ? {
                                   phone: ["Phone number must be a valid Azerbaijan phone number."],
                               }

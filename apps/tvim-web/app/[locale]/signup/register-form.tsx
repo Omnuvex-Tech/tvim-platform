@@ -10,6 +10,7 @@ import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
 import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
+import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
 import { TermsDialog } from "@/app/components/TermsDialog/terms-dialog";
 
 type RegisterFormProps = {
@@ -336,6 +337,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
         return "az";
     }, [locale, storedLocale]);
     const t = useMemo(() => getTranslations(effectiveLocale).register, [effectiveLocale]);
+    const common = useMemo(() => getTranslations(effectiveLocale).common, [effectiveLocale]);
 
     const [formData, setFormData] = useState<RegisterPayload>({
         name: "",
@@ -557,6 +559,12 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             nextErrors.name = t.required;
         }
 
+        if (!formData.phone.trim()) {
+            nextErrors.phone = t.required;
+        } else if (!isCompleteAzMobile(formData.phone)) {
+            nextErrors.phone = common.invalidMobile;
+        }
+
         if (!formData.email.trim()) {
             nextErrors.email = t.required;
         }
@@ -744,7 +752,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
     return (
         <>
             <Script
-                src="https://www.google.com/recaptcha/api.js?render=explicit"
+                src={`https://www.google.com/recaptcha/api.js?render=explicit&hl=${effectiveLocale}`}
                 strategy="afterInteractive"
                 onLoad={() => setIsRecaptchaScriptReady(true)}
                 onError={() => setCaptchaError(t.captchaScriptFailed)}
@@ -800,6 +808,8 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         value={formData.phone}
                         onChange={(e) => handlePhoneChange(e.target.value, e.target.selectionStart)}
                         onKeyDown={handlePhoneBackspace}
+                        onFocus={() => updateField("phone", azPhoneOnFocus(formData.phone))}
+                        onBlur={() => updateField("phone", azPhoneOnBlur(formData.phone))}
                         className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span

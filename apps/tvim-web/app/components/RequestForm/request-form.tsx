@@ -5,6 +5,7 @@ import type { RequestFormData, RequestFormField, RequestFormProps, RequestFormSu
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
+import { isCompleteAzMobile } from "@repo/shared/utils";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://admin.tvim.az/api/v1").replace(/\/+$/, "");
 
@@ -36,31 +37,6 @@ function resolveSubmitUrl(path: string) {
     const withLeadingSlash = normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
     return `${API_BASE_URL}${withLeadingSlash}`;
 }
-
-const extractFirstErrorMessage = (payload: unknown) => {
-    if (!payload || typeof payload !== "object") return "";
-
-    const errors = (payload as { errors?: unknown }).errors;
-    if (errors && typeof errors === "object" && !Array.isArray(errors)) {
-        const entries = Object.entries(errors as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
-        for (const [, value] of entries) {
-            if (Array.isArray(value) && value.length > 0) {
-                const first = value.find((item) => typeof item === "string" && item.trim());
-                if (typeof first === "string") return first.trim();
-            }
-            if (typeof value === "string" && value.trim()) {
-                return value.trim();
-            }
-        }
-    }
-
-    const message = (payload as { message?: unknown }).message;
-    if (typeof message === "string" && message.trim()) {
-        return message.trim();
-    }
-
-    return "";
-};
 
 function normalizeRequestFormFields(fields: RequestFormField[] | undefined) {
     if (!Array.isArray(fields)) return [] as RequestFormField[];
@@ -119,6 +95,14 @@ const requestFormCopy = {
         subheading: "Bir sorğu göndərin və ən qısa zamanda sizinlə əlaqə saxlayaq.",
         submitLabel: "Göndər",
         consentText: "“Göndər” düyməsini klikləməklə, şəxsi məlumatların emalına razılıq verirsiniz.",
+        errors: {
+            name: "Adınızı daxil edin.",
+            phone: "Telefon nömrənizi daxil edin.",
+            phoneInvalid: "Düzgün mobil nömrə daxil edin (010, 050, 051, 055, 060, 070, 077, 099).",
+            file: "Fayl seçin.",
+            description: "Layihəni təsvir edin.",
+            submitFailed: "Sorğu göndərilmədi. Bir az sonra yenidən cəhd edin.",
+        },
         placeholders: {
             name: "Adınız *",
             phone: "Telefon *",
@@ -131,6 +115,14 @@ const requestFormCopy = {
         subheading: "Send a request and we will contact you as soon as possible.",
         submitLabel: "Send",
         consentText: "By clicking the “Send” button, you consent to the processing of personal data.",
+        errors: {
+            name: "Please enter your name.",
+            phone: "Please enter your phone number.",
+            phoneInvalid: "Enter a valid mobile number (010, 050, 051, 055, 060, 070, 077, 099).",
+            file: "Please choose a file.",
+            description: "Please describe the project.",
+            submitFailed: "The request could not be sent. Please try again shortly.",
+        },
         placeholders: {
             name: "Your name *",
             phone: "Phone *",
@@ -143,6 +135,14 @@ const requestFormCopy = {
         subheading: "Отправьте запрос, и мы свяжемся с вами в кратчайшие сроки.",
         submitLabel: "Отправить",
         consentText: "Нажимая кнопку «Отправить», вы соглашаетесь на обработку персональных данных.",
+        errors: {
+            name: "Введите ваше имя.",
+            phone: "Введите ваш номер телефона.",
+            phoneInvalid: "Введите корректный мобильный номер (010, 050, 051, 055, 060, 070, 077, 099).",
+            file: "Выберите файл.",
+            description: "Опишите проект.",
+            submitFailed: "Запрос не отправлен. Повторите попытку чуть позже.",
+        },
         placeholders: {
             name: "Ваше имя *",
             phone: "Телефон *",
@@ -179,6 +179,55 @@ function placeholdersFromFields(fields: RequestFormField[] | undefined) {
     return Object.keys(resolved).length > 0 ? resolved : undefined;
 }
 
+type RequestFormErrorCopy = Record<"name" | "phone" | "phoneInvalid" | "file" | "description" | "submitFailed", string>;
+
+const FIELD_ERROR_KEYS: Record<string, "name" | "phone" | "file" | "description"> = {
+    textbox: "name",
+    text: "name",
+    phone_number: "phone",
+    phone: "phone",
+    file: "file",
+    textarea: "description",
+};
+
+
+function findFirstValidationError(
+    data: RequestFormData,
+    fields: RequestFormField[] | undefined,
+    errors: RequestFormErrorCopy,
+) {
+    const isBlank = (key: "name" | "phone" | "file" | "description") => {
+        const value = resolveValueForFieldType(
+            key === "name" ? "textbox" : key === "phone" ? "phone_number" : key === "file" ? "file" : "textarea",
+            data,
+        );
+        return value instanceof File ? false : !String(value ?? "").trim();
+    };
+
+    const required = new Set<"name" | "phone" | "file" | "description">();
+    const declared = Array.isArray(fields) ? fields : [];
+
+    for (const field of declared) {
+        const key = FIELD_ERROR_KEYS[String(field?.type ?? "").trim().toLowerCase()];
+        if (key && field?.is_required) required.add(key);
+    }
+
+    if (declared.length === 0) {
+        required.add("name");
+        required.add("phone");
+        required.add("description");
+    }
+
+    for (const key of ["name", "phone", "file", "description"] as const) {
+        if (required.has(key) && isBlank(key)) return errors[key];
+    }
+
+    const phone = String(data.phone ?? "").trim();
+    if (phone && !isCompleteAzMobile(phone)) return errors.phoneInvalid;
+
+    return "";
+}
+
 const RequestForm = (props: RequestFormProps) => {
     const pathname = usePathname();
     const locale = useMemo(() => {
@@ -199,6 +248,19 @@ const RequestForm = (props: RequestFormProps) => {
             ...data,
             phone: normalizedPhone,
         } satisfies RequestFormData;
+
+        const validationError = findFirstValidationError(normalizedData, props.fields, localizedCopy.errors);
+        if (validationError) {
+            throw new Error(validationError);
+        }
+
+        const send = async (url: string, init: RequestInit) => {
+            try {
+                return await fetch(url, init);
+            } catch {
+                throw new Error(localizedCopy.errors.submitFailed);
+            }
+        };
 
         const submitConfig = resolveRequestFormSubmitConfig(props.submitConfig);
 
@@ -230,7 +292,7 @@ const RequestForm = (props: RequestFormProps) => {
                     }
                 }
 
-                const response = await fetch(submitUrl, {
+                const response = await send(submitUrl, {
                     method,
                     body: hasFile ? formData : JSON.stringify({ answers }),
                     headers: {
@@ -240,17 +302,7 @@ const RequestForm = (props: RequestFormProps) => {
                 });
 
                 if (!response.ok) {
-                    let details = "";
-
-                    try {
-                        const payload = await response.json();
-                        const extracted = extractFirstErrorMessage(payload);
-                        details = extracted ? `: ${extracted}` : "";
-                    } catch {
-                        details = "";
-                    }
-
-                    throw new Error(`Request form submit failed (${response.status})${details}`);
+                    throw new Error(localizedCopy.errors.submitFailed);
                 }
 
                 try {
@@ -271,7 +323,7 @@ const RequestForm = (props: RequestFormProps) => {
                     formData.append("file", normalizedData.file);
                 }
 
-                const response = await fetch(submitUrl, {
+                const response = await send(submitUrl, {
                     method,
                     body: formData,
                     headers: {
@@ -280,17 +332,7 @@ const RequestForm = (props: RequestFormProps) => {
                 });
 
                 if (!response.ok) {
-                    let details = "";
-
-                    try {
-                        const payload = await response.json();
-                        const extracted = extractFirstErrorMessage(payload);
-                        details = extracted ? `: ${extracted}` : "";
-                    } catch {
-                        details = "";
-                    }
-
-                    throw new Error(`Request form submit failed (${response.status})${details}`);
+                    throw new Error(localizedCopy.errors.submitFailed);
                 }
 
                 try {
