@@ -258,14 +258,14 @@ const NavbarWrapper = ({
             return localeFromPath;
         }
 
-        const normalizedStored = storedLocale.trim().toLowerCase();
-        if (supportedLocales.has(normalizedStored)) {
-            return normalizedStored;
-        }
-
         const normalizedRoute = locale.trim().toLowerCase();
         if (supportedLocales.has(normalizedRoute)) {
             return normalizedRoute;
+        }
+
+        const normalizedStored = storedLocale.trim().toLowerCase();
+        if (supportedLocales.has(normalizedStored)) {
+            return normalizedStored;
         }
 
         const normalizedDefault = config.project.defLang.trim().toLowerCase();
@@ -277,10 +277,11 @@ const NavbarWrapper = ({
     }, [locale, localeFromPath, storedLocale, supportedLocales]);
 
     useEffect(() => {
-        if (!localeFromPath) return;
-        if (storedLocale.trim().toLowerCase() === localeFromPath) return;
-        setLocale(localeFromPath);
-    }, [localeFromPath, setLocale, storedLocale]);
+        const targetLocale = localeFromPath || locale;
+        if (!targetLocale) return;
+        if (storedLocale.trim().toLowerCase() === targetLocale.trim().toLowerCase()) return;
+        setLocale(targetLocale);
+    }, [localeFromPath, locale, setLocale, storedLocale]);
 
     useEffect(() => {
         if (!isCartModalOpen) return;

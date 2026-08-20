@@ -335,7 +335,7 @@ function normalizeSearchProducts(json: any, locale: string): NavbarSearchSection
             name: String(item.name ?? item.title ?? item.product_name ?? "Məhsul"),
             model: String(item.model ?? item.sku ?? item.code ?? ""),
             price: formatProductPrice(item.sale_price ?? item.price ?? item.final_price ?? item.special),
-            imageUrl: String(
+            imageUrl: resolveApiImageUrl(
                 item.image?.image_url ??
                 item.image_url ??
                 item.thumb ??
@@ -590,6 +590,18 @@ function isOfficeCategory(name: string) {
     );
 }
 
+function resolveApiImageUrl(value: string | null | undefined) {
+    const trimmed = String(value ?? "").trim().replace(/^`+|`+$/g, "").trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("data:")) return trimmed;
+    try {
+        const origin = new URL(API_BASE_URL).origin;
+        return trimmed.startsWith("/") ? `${origin}${trimmed}` : `${origin}/${trimmed.replace(/^storage\//, "storage/")}`;
+    } catch {
+        return trimmed;
+    }
+}
+
 function ParentCategoryIcon({
     category,
     className,
@@ -606,7 +618,7 @@ function ParentCategoryIcon({
         return <Briefcase className={cn("size-[15px] shrink-0 text-[#131722]", className)} strokeWidth={2.8} />;
     }
 
-    const iconImage = category?.icon?.image ?? category?.icon?.image_url ?? null;
+    const iconImage = resolveApiImageUrl(category?.icon?.image ?? category?.icon?.image_url);
 
     if (iconImage) {
         return (
