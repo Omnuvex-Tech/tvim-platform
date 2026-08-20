@@ -59,5 +59,30 @@ export const resolveHeaderMenuHref = (item: HeaderMenuItem, locale: string): str
     return `/${normalizedLocale}/${hrefPart}`;
 };
 
-export const resolveHeaderMenuLabel = (item: HeaderMenuItem): string =>
-    toTruthyString(item.name ?? item.title ?? item.link);
+export const resolveHeaderMenuLabel = (item: HeaderMenuItem, locale?: string): string => {
+    const normalizedLocale = (locale ?? "").trim().toLowerCase();
+
+    // Check locale-specific name fields the API may provide
+    if (normalizedLocale) {
+        // { translations: { az: { name: "..." }, en: { name: "..." } } }
+        if (isObjectRecord(item.translations)) {
+            const localeTranslation = item.translations[normalizedLocale];
+            if (isObjectRecord(localeTranslation)) {
+                const translated = toTruthyString(localeTranslation.name ?? localeTranslation.title);
+                if (translated) return translated;
+            }
+        }
+
+        // { multi_names: { az: "...", en: "..." } }
+        if (isObjectRecord(item.multi_names)) {
+            const translated = toTruthyString(item.multi_names[normalizedLocale]);
+            if (translated) return translated;
+        }
+
+        // { name_az: "...", name_en: "..." }
+        const localeSuffixedName = toTruthyString(item[`name_${normalizedLocale}`]);
+        if (localeSuffixedName) return localeSuffixedName;
+    }
+
+    return toTruthyString(item.name ?? item.title ?? item.link);
+};

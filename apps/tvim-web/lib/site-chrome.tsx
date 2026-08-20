@@ -48,7 +48,7 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
     const menuItems = headerItems
         .filter((item) => !isCategoriesMenuType(item))
         .map((item) => ({
-            label: resolveHeaderMenuLabel(item),
+            label: resolveHeaderMenuLabel(item, locale),
             href: resolveHeaderMenuHref(item, locale),
         }))
         .filter((item) => item.label);
