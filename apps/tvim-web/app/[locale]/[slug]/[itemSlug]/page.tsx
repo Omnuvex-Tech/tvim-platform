@@ -245,7 +245,9 @@ const resolveAssetUrl = (value: string | null | undefined) => {
     if (/^https?:\/\//i.test(cleaned)) return cleaned;
     if (cleaned.startsWith("/")) {
         try {
-            const origin = new URL(config.api.url).origin;
+            // Brauzer ucun asset URL-i: hemise ictimai host (config.api.url
+            // server terefde 127.0.0.1:8081-dir).
+            const origin = new URL(config.api.publicUrl).origin;
             return `${origin}${cleaned}`;
         } catch {
             return cleaned;

@@ -84,7 +84,9 @@ const toAbsoluteAssetUrl = (value: string) => {
     }
 
     try {
-        const apiOrigin = new URL(config.api.url).origin;
+        // Brauzer ucun asset URL-i: hemise ictimai host (config.api.url
+        // server terefde 127.0.0.1:8081-dir).
+        const apiOrigin = new URL(config.api.publicUrl).origin;
 
         if (trimmed.startsWith("//")) {
             return `https:${trimmed}`;

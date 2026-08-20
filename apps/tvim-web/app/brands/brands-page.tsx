@@ -95,7 +95,9 @@ const resolveBrandImageUrl = (value: string | null | undefined) => {
     }
 
     try {
-        const apiOrigin = new URL(config.api.url).origin;
+        // Asset URL-leri brauzer ucundur: burada hemise ictimai host isledilir.
+        // config.api.url server terefde INTERNAL_API_URL-e (127.0.0.1:8081) beraberdir.
+        const apiOrigin = new URL(config.api.publicUrl).origin;
 
         if (trimmed.startsWith("//")) {
             return `https:${trimmed}`;
