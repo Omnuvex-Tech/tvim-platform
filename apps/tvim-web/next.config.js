@@ -17,7 +17,7 @@ const nextConfig = {
             {
                 protocol: "https",
                 hostname: apiImageHost,
-                pathname: "/storage/**",
+                pathname: "/**",
             },
         ],
         // The source images are oversized rather than numerous, so a long cache
