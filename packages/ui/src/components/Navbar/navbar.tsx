@@ -1060,16 +1060,7 @@ function CatalogButton({ open = false, onClick, toggleRef, label }: { open?: boo
         <button
             type="button"
             ref={toggleRef}
-            onPointerDown={(e) => {
-                if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
-                    e.preventDefault();
-                    onClick?.();
-                }
-            }}
-            onClick={(e) => {
-                // Keep keyboard activation (Enter/Space), ignore pointer-generated click.
-                if (e.detail === 0) onClick?.();
-            }}
+            onClick={() => onClick?.()}
             aria-haspopup="true"
             aria-expanded={open}
             className="inline-flex cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-[20px] bg-[#ffd500] px-6 py-2.5 text-[15px] font-medium text-[#171717] lg:px-[38px] lg:py-[12px] lg:text-[16px]"
@@ -1770,7 +1761,7 @@ export function Navbar({
                                         type="button"
                                         aria-expanded={expanded}
                                         suppressHydrationWarning
-                                        onPointerDown={(e) => {
+                                        onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             toggleMobileExpanded(Number(item.id));
@@ -1894,15 +1885,7 @@ export function Navbar({
                             aria-label="Menyunu aç"
                             className="inline-flex size-8 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] bg-white text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
                             suppressHydrationWarning
-                            onPointerDown={(e) => {
-                                if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
-                                    e.preventDefault();
-                                    setIsMobileMenuOpen(true);
-                                }
-                            }}
-                            onClick={(e) => {
-                                if (e.detail === 0) setIsMobileMenuOpen(true);
-                            }}
+                            onClick={() => setIsMobileMenuOpen(true)}
                         >
                             <Menu className="size-5" />
                         </button>
@@ -2035,15 +2018,7 @@ export function Navbar({
                         type="button"
                         ref={mobileCatalogToggleRef}
                         suppressHydrationWarning
-                        onPointerDown={(e) => {
-                            if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
-                                e.preventDefault();
-                                toggleCatalog();
-                            }
-                        }}
-                        onClick={(e) => {
-                            if (e.detail === 0) toggleCatalog();
-                        }}
+                        onClick={() => toggleCatalog()}
                         aria-haspopup="true"
                         aria-expanded={isCatalogOpen}
                         className="inline-flex h-9 shrink-0 cursor-pointer touch-manipulation items-center gap-1 rounded-[10px] bg-[#ffd500] px-3 text-[13px] font-medium text-[#171717]"
@@ -2103,15 +2078,7 @@ export function Navbar({
                         aria-label="Menyunu bağla"
                         className="inline-flex size-9 cursor-pointer touch-manipulation items-center justify-center rounded-[10px] text-[#1d2230] transition-colors hover:bg-[#f3f4f6]"
                         suppressHydrationWarning
-                        onPointerDown={(e) => {
-                            if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
-                                e.preventDefault();
-                                setIsMobileMenuOpen(false);
-                            }
-                        }}
-                        onClick={(e) => {
-                            if (e.detail === 0) setIsMobileMenuOpen(false);
-                        }}
+                        onClick={() => setIsMobileMenuOpen(false)}
                     >
                         <X className="size-5 shrink-0" />
                     </button>
@@ -2223,15 +2190,7 @@ export function Navbar({
                         aria-label="Kataloqu bağla"
                         className="inline-flex h-full w-[40px] cursor-pointer touch-manipulation items-center justify-center bg-black/5 text-white shadow-[1px_0_7px_rgba(0,0,0,0.18)]"
                         suppressHydrationWarning
-                        onPointerDown={(e) => {
-                            if (e.pointerType === "mouse" || e.pointerType === "touch" || e.pointerType === "pen") {
-                                e.preventDefault();
-                                setIsCatalogOpen(false);
-                            }
-                        }}
-                        onClick={(e) => {
-                            if (e.detail === 0) setIsCatalogOpen(false);
-                        }}
+                        onClick={() => setIsCatalogOpen(false)}
                     >
                         <X className="size-[15px] shrink-0 text-white" strokeWidth={2.9} />
                     </button>
