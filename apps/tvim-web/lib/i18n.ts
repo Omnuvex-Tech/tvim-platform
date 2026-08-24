@@ -223,6 +223,10 @@ type TranslationDictionary = {
         enterName: string;
         enterComment: string;
         ratingRange: string;
+        galleryOpen: string;
+        galleryClose: string;
+        galleryPrevious: string;
+        galleryNext: string;
     };
     checkout: {
         loadFailed: string;
@@ -612,6 +616,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             enterName: "Adınızı daxil edin.",
             enterComment: "Şərh mətnini daxil edin.",
             ratingRange: "Reytinq 1-5 aralığında olmalıdır.",
+            galleryOpen: "Şəkli böyüt",
+            galleryClose: "Bağla",
+            galleryPrevious: "Əvvəlki şəkil",
+            galleryNext: "Növbəti şəkil",
         },
         quickOrder: {
             title: "Məhsulu sifariş etmək istəyirsiniz?",
@@ -997,6 +1005,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             enterName: "Enter your name.",
             enterComment: "Enter the comment text.",
             ratingRange: "The rating must be between 1 and 5.",
+            galleryOpen: "Enlarge image",
+            galleryClose: "Close",
+            galleryPrevious: "Previous image",
+            galleryNext: "Next image",
         },
         quickOrder: {
             title: "Would you like to order this product?",
@@ -1382,6 +1394,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             enterName: "Введите ваше имя.",
             enterComment: "Введите текст комментария.",
             ratingRange: "Оценка должна быть от 1 до 5.",
+            galleryOpen: "Увеличить изображение",
+            galleryClose: "Закрыть",
+            galleryPrevious: "Предыдущее изображение",
+            galleryNext: "Следующее изображение",
         },
         quickOrder: {
             title: "Хотите заказать товар?",

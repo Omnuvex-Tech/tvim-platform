@@ -19,19 +19,19 @@ const footerCopy = {
         tagline: "Tikinti və inşaat materialları",
         disclaimer:
             "Diqqət! Monitorun rəng göstərmə xüsusiyyətlərinə görə məhsulun öz rəngi saytdakı rəngindən fərqli ola bilər.",
-        rightsText: "Bütün hüquqlar qorunur © 2016—2025",
+        rightsText: "Bütün hüquqlar qorunur © 2026",
     },
     en: {
         tagline: "Construction and building materials",
         disclaimer:
             "Attention! Due to your monitor's color display settings, the actual color of the product may differ from the color shown on the website.",
-        rightsText: "All rights reserved © 2016—2025",
+        rightsText: "All rights reserved © 2026",
     },
     ru: {
         tagline: "Строительные и отделочные материалы",
         disclaimer:
             "Внимание! Из-за особенностей цветопередачи монитора реальный цвет товара может отличаться от цвета на сайте.",
-        rightsText: "Все права защищены © 2016—2025",
+        rightsText: "Все права защищены © 2026",
     },
 } as const;
 
