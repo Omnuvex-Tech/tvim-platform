@@ -29,14 +29,7 @@ import {
 import type { Language } from "@repo/types/types";
 import { LanguageSwitcher } from "../LanguageSwitcher";
 import { cn } from "../../lib/utils";
-import {
-    flattenCategoryTree,
-    matchCategories,
-    normalizeSearchText,
-    prepareSearchQuery,
-    sortBySearchRelevance,
-    type FlatCategoryEntry,
-} from "../../lib/search-ranking";
+import { prepareSearchQuery, sortBySearchRelevance } from "../../lib/search-ranking";
 import Spinner from "../Spinner/Spinner";
 import "../../styles/components/navbar.css";
 import { localizedHref, SEARCH_QUERY_PARAM } from "@repo/shared/routes";
@@ -355,82 +348,18 @@ function normalizeSearchProducts(json: any, locale: string): NavbarSearchSection
     ];
 }
 
-/** Stable default so the search effect is not re-run on every render. */
-const EMPTY_CATALOG_CATEGORIES: FlatCategoryEntry[] = [];
-/** How many locally matched categories may be injected above the API results. */
-const LOCAL_CATEGORY_SUGGESTION_LIMIT = 6;
-/** Upper bound for the merged categories section so products stay visible. */
-const MERGED_CATEGORY_LIMIT = 8;
-
-function searchItemDedupeKey(item: NavbarSearchProduct) {
-    return normalizeSearchText(item.name) || String(item.href ?? "").toLowerCase();
-}
-
 /**
- * Matches the query against the locally available category tree so a partially
- * typed name surfaces its category even before the API replies with one.
+ * Re-orders every API section by relevance so the closest name match is on top.
  */
-function buildLocalCategorySections(
-    categories: FlatCategoryEntry[],
-    query: string,
-    locale: string,
-    copy: { categoriesSection: string; categoryLabel: string }
-): NavbarSearchSection[] {
-    const matched = matchCategories(categories, query, LOCAL_CATEGORY_SUGGESTION_LIMIT);
-    if (matched.length === 0) return [];
-
-    return [
-        {
-            key: "categories",
-            name: copy.categoriesSection,
-            items: matched.map((category) => ({
-                id: category.id,
-                name: category.name,
-                subtitle: copy.categoryLabel,
-                imageUrl: category.imageUrl,
-                href: `/${locale}/${category.link}`,
-                type: "category" as const,
-            })),
-        },
-    ];
-}
-
-/**
- * Re-orders every API section by relevance and puts the locally matched
- * categories in front of the ones the API returned in catalog order.
- */
-function mergeSearchSections(
-    apiSections: NavbarSearchSection[],
-    localSections: NavbarSearchSection[],
-    query: string
-): NavbarSearchSection[] {
+function rankSearchSections(apiSections: NavbarSearchSection[], query: string): NavbarSearchSection[] {
     const prepared = prepareSearchQuery(query);
 
-    const rankedSections = apiSections
+    return apiSections
         .filter((section) => Array.isArray(section?.items) && section.items.length > 0)
         .map((section) => ({
             ...section,
             items: sortBySearchRelevance(section.items, prepared, (item) => [item.name, item.model, item.subtitle]),
         }));
-
-    const localCategories = localSections[0]?.items ?? [];
-    if (localCategories.length === 0) return rankedSections;
-
-    const categoriesIndex = rankedSections.findIndex((section) => section.key === "categories");
-    if (categoriesIndex === -1) {
-        return [...localSections, ...rankedSections];
-    }
-
-    const target = rankedSections[categoriesIndex]!;
-    const localKeys = new Set(localCategories.map(searchItemDedupeKey));
-    const mergedItems = [
-        ...localCategories,
-        ...target.items.filter((item) => !localKeys.has(searchItemDedupeKey(item))),
-    ].slice(0, MERGED_CATEGORY_LIMIT);
-
-    const merged = [...rankedSections];
-    merged[categoriesIndex] = { ...target, items: mergedItems };
-    return merged;
 }
 
 export interface NavbarMenuItem {
@@ -492,8 +421,6 @@ const navbarCopy = {
         noResults: "Nəticə tapılmadı",
         searching: "Axtarılır...",
         allResults: "Bütün axtarış nəticələri",
-        categoriesSection: "Kateqoriyalar",
-        categoryLabel: "Kateqoriya",
         noSubcategories: "Bu kateqoriya üçün alt bölmə yoxdur",
         catalogUnavailable: "Kataloq mövcud deyil",
     },
@@ -505,8 +432,6 @@ const navbarCopy = {
         noResults: "No results found",
         searching: "Searching...",
         allResults: "All search results",
-        categoriesSection: "Categories",
-        categoryLabel: "Category",
         noSubcategories: "There are no subcategories in this category",
         catalogUnavailable: "The catalog is unavailable",
     },
@@ -518,8 +443,6 @@ const navbarCopy = {
         noResults: "Ничего не найдено",
         searching: "Идёт поиск...",
         allResults: "Все результаты поиска",
-        categoriesSection: "Категории",
-        categoryLabel: "Категория",
         noSubcategories: "В этой категории нет подразделов",
         catalogUnavailable: "Каталог недоступен",
     },
@@ -698,13 +621,11 @@ function NavbarSearch({
     compact = false,
     locale = "az",
     onSearchProducts,
-    catalogCategories = EMPTY_CATALOG_CATEGORIES,
 }: {
     searchPlaceholder: string;
     compact?: boolean;
     locale?: string;
     onSearchProducts?: (query: string, locale: string) => Promise<NavbarSearchSection[]>;
-    catalogCategories?: FlatCategoryEntry[];
 }) {
     const [value, setValue] = useState("");
     const [results, setResults] = useState<NavbarSearchSection[]>([]);
@@ -734,16 +655,15 @@ function NavbarSearch({
 
         activeQueryRef.current = query;
 
-        // Show the categories we can match locally straight away, so a partially
-        // typed name surfaces its category without waiting for the API.
-        const localSections = buildLocalCategorySections(catalogCategories, query, localeCode, copy);
-        setResults(localSections);
+        // Köhnə sorğunun nəticələri dərhal təmizlənir və spinner debounce
+        // müddəti boyunca göstərilir — əks halda yazarkən başqa sorğuya aid
+        // məhsullar, yaxud qısa müddət "nəticə yoxdur" mesajı görünür.
+        setResults([]);
         setError(null);
+        setIsLoading(true);
         setIsOpen(true);
 
         const timer = window.setTimeout(async () => {
-            setIsLoading(true);
-
             try {
                 const mapped = onSearchProducts
                     ? await onSearchProducts(query, localeCode)
@@ -756,16 +676,12 @@ function NavbarSearch({
                     );
 
                 if (activeQueryRef.current !== query) return;
-                setResults(mergeSearchSections(mapped || [], localSections, query));
+                setResults(rankSearchSections(mapped || [], query));
                 setIsOpen(true);
             } catch (err: any) {
                 if (activeQueryRef.current !== query) return;
-                // Keep the local matches visible; only report the failure when
-                // there is nothing else to show.
-                if (localSections.length === 0) {
-                    setResults([]);
-                    setError(err?.message ?? "Axtarış xətası");
-                }
+                setResults([]);
+                setError(err?.message ?? "Axtarış xətası");
                 setIsOpen(true);
             } finally {
                 if (activeQueryRef.current === query) {
@@ -775,7 +691,7 @@ function NavbarSearch({
         }, 280);
 
         return () => window.clearTimeout(timer);
-    }, [value, localeCode, onSearchProducts, catalogCategories, copy]);
+    }, [value, localeCode, onSearchProducts]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -1610,11 +1526,6 @@ export function Navbar({
         };
     }, [isCatalogOpen]);
 
-    const catalogSearchCategories = useMemo(
-        () => flattenCategoryTree(catalogItems, locale || "az"),
-        [catalogItems, locale]
-    );
-
     const catalogTree = useMemo(() => buildTree(catalogItems), [buildTree, catalogItems]);
     const rootCategories = useMemo(() => catalogTree.filter((cat: any) => !cat.parent_id || Number(cat.parent_id) === 0), [catalogTree]);
 
@@ -1796,7 +1707,6 @@ export function Navbar({
                             searchPlaceholder={effectiveSearchPlaceholder}
                             locale={locale}
                             onSearchProducts={onSearchProducts}
-                            catalogCategories={catalogSearchCategories}
                         />
                     </div>
                     <div className="hidden lg:block">
@@ -2038,7 +1948,6 @@ export function Navbar({
                         compact
                         locale={locale}
                         onSearchProducts={onSearchProducts}
-                        catalogCategories={catalogSearchCategories}
                     />
                 </div>
             </div>
