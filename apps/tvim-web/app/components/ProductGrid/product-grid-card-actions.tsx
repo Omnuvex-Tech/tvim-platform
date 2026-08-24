@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { useNotify } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
 import { defaultLocale, isSupportedLocale } from "@/lib/site-locales";
-import { buildAddedToCartToast } from "@/lib/cart/toast";
 
 const FAVORITES_UPDATED_EVENT = "tvim:favorites-updated";
 const COMPARE_UPDATED_EVENT = "tvim:compare-updated";
@@ -252,8 +251,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 stock: product.stock,
             });
 
-            const toast = buildAddedToCartToast(cartCopy, locale, product);
-            notify.success(toast.message, toast.options);
+            cartClient.openCartModal();
         } catch (error) {
             notify.error(error instanceof Error ? error.message : cartCopy.addToCartFailed);
         } finally {

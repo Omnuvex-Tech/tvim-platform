@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { RemoteImage, useNotify } from "@repo/ui";
-import { addProductToCart } from "@/lib/cart/client";
-import { buildAddedToCartToast } from "@/lib/cart/toast";
+import { addProductToCart, openCartModal } from "@/lib/cart/client";
 import { getTranslations } from "@/lib/i18n";
 import { toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
@@ -109,11 +108,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                 stock: null,
             });
 
-            const toast = buildAddedToCartToast(cartCopy, locale, {
-                title: item.name,
-                href: item.slug ? `/${locale}/products/${String(item.slug).replace(/^\/+/, "")}` : undefined,
-            });
-            notify.success(toast.message, toast.options);
+            openCartModal();
         } catch (error) {
             const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;
             notify.error(message);

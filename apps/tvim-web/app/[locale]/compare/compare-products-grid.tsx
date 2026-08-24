@@ -4,8 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { RemoteImage, useNotify } from "@repo/ui";
 import type { CompareListItem } from "./page";
-import { addProductToCart } from "@/lib/cart/client";
-import { buildAddedToCartToast } from "@/lib/cart/toast";
+import { addProductToCart, openCartModal } from "@/lib/cart/client";
 import { getTranslations } from "@/lib/i18n";
 import { toggleCompare } from "@/lib/compare/client";
 import { toggleFavorite } from "@/lib/favorites/client";
@@ -210,11 +209,7 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                 stock: null,
             });
 
-            const toast = buildAddedToCartToast(cartCopy, locale, {
-                title: item.name,
-                href: item.slug ? `/${locale}/products/${String(item.slug).replace(/^\/+/, "")}` : undefined,
-            });
-            notify.success(toast.message, toast.options);
+            openCartModal();
         } catch (error) {
             const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;
             notify.error(message);

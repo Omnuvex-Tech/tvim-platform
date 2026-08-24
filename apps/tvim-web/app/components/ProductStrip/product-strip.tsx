@@ -10,7 +10,7 @@ import { usePathname, } from "next/navigation";
 
 import { RemoteImage, useNotify } from "@repo/ui";
 
-import { addProductToCart } from "@/lib/cart/client";
+import { addProductToCart, openCartModal } from "@/lib/cart/client";
 import { getTranslations } from "@/lib/i18n";
 
 import { listCompare, toggleCompare } from "@/lib/compare/client";
@@ -18,7 +18,6 @@ import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { listFavorites, toggleFavorite } from "@/lib/favorites/client";
 
 import { specialsHref } from "@/lib/routes";
-import { buildAddedToCartToast } from "@/lib/cart/toast";
 
 import { QuickOrderPopup } from "./quick-order-popup";
 
@@ -1244,14 +1243,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
             });
 
-
-
-            const toast = buildAddedToCartToast(cartCopy, localePrefix, product);
-
-
-
-
-            notify.success(toast.message, toast.options);
+            openCartModal();
 
         } catch (error) {
 
