@@ -340,7 +340,6 @@ type TranslationDictionary = {
         checkout: string;
         remove: string;
         addedToCart: string;
-        addedToCartLink: string;
         addedToCartFallback: string;
         addToCartFailed: string;
         favoriteFailed: string;
@@ -730,8 +729,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Alış-verişə davam et",
             checkout: "Sifarişi rəsmiləşdir",
             remove: "Səbətdən sil",
-            addedToCart: "Siz {product} {cart} müvəffəqiyyətlə əlavə etdiniz!",
-            addedToCartLink: "səbətinizə",
+            addedToCart: "Siz {product} səbətinizə müvəffəqiyyətlə əlavə etdiniz!",
             addedToCartFallback: "Siz məhsulu səbətinizə müvəffəqiyyətlə əlavə etdiniz!",
             addToCartFailed: "Səbətə əlavə edərkən xəta baş verdi.",
             favoriteFailed: "Bu məhsul favorilərə əlavə edilə bilmədi.",
@@ -1119,8 +1117,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Continue shopping",
             checkout: "Place the order",
             remove: "Remove from cart",
-            addedToCart: "You have added {product} to your {cart}!",
-            addedToCartLink: "shopping cart",
+            addedToCart: "You have added {product} to your shopping cart!",
             addedToCartFallback: "You have added the product to your shopping cart!",
             addToCartFailed: "An error occurred while adding to the cart.",
             favoriteFailed: "This product could not be added to favourites.",
@@ -1508,8 +1505,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Продолжить покупки",
             checkout: "Оформить заказ",
             remove: "Удалить из корзины",
-            addedToCart: "Вы успешно добавили {product} в {cart}!",
-            addedToCartLink: "вашу корзину",
+            addedToCart: "Вы успешно добавили {product} в вашу корзину!",
             addedToCartFallback: "Вы успешно добавили товар в вашу корзину!",
             addToCartFailed: "Произошла ошибка при добавлении в корзину.",
             favoriteFailed: "Этот товар не удалось добавить в избранное.",

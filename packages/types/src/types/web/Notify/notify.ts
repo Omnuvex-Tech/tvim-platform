@@ -1,23 +1,15 @@
 export type NotifyVariant = "success" | "error";
 
-export type NotifyLink = {
-    label: string;
-    href: string;
-    /** The product name is set apart from the rest of the sentence in bold. */
-    isBold?: boolean;
-};
-
 export type NotifyOptions = {
-    links?: NotifyLink[];
-    onNavigate?: () => void;
+    /** Makes the whole toast clickable; clicking it also dismisses the toast. */
+    onClick?: () => void;
 };
 
 export type NotifyItem = {
     id: string;
     variant: NotifyVariant;
     message: string;
-    links?: NotifyLink[];
-    onNavigate?: () => void;
+    onClick?: () => void;
     isEntering?: boolean;
     isLeaving?: boolean;
 };

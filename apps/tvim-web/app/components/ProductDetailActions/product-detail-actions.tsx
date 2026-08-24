@@ -140,7 +140,7 @@ const ProductDetailActions = ({
 
             await addCartItem(productVariationId, quantity);
             await hydrateCart(true);
-            const toast = buildAddedToCartToast(cartCopy, locale, { title: productTitle });
+            const toast = buildAddedToCartToast(cartCopy, { title: productTitle });
             notify.success(toast.message, toast.options);
         } catch (error) {
             const message = error instanceof Error ? error.message : t.cartAddFailed;
