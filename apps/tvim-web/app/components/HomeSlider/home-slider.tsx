@@ -123,7 +123,14 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         clickHrefRef.current = currentLink || null;
         clickHrefExternalRef.current = currentLink ? isExternalHref(currentLink) : false;
 
-        event.currentTarget.setPointerCapture(event.pointerId);
+        // A touch pointer is already implicitly captured by the slide's overlay
+        // link, and its events bubble up here regardless. Taking the capture
+        // would move it off that link, and the lostpointercapture the browser
+        // fires bubbles straight back into the handler below and cancels the
+        // swipe before it starts. Only a mouse needs the capture.
+        if (event.pointerType !== "touch") {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        }
         dragPointerIdRef.current = event.pointerId;
         setIsDragging(false);
         dragStartXRef.current = event.clientX;
@@ -227,6 +234,10 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
     };
 
     const handleLostPointerCapture = (event: React.PointerEvent<HTMLDivElement>) => {
+        // The same event bubbles up from the overlay link; only the viewport
+        // losing its own capture means the gesture is over.
+        if (event.target !== event.currentTarget) return;
+
         if (dragPointerIdRef.current === event.pointerId) {
             resetInteractionState();
         }

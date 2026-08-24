@@ -227,10 +227,17 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
       draggingRef.current = true;
       setIsDragging(true);
       setIsAnimating(false);
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {
-        // capture is best effort; the drag still works without it
+      // A touch pointer is already implicitly captured by the logo link the
+      // finger landed on, and its events bubble up here anyway. Grabbing the
+      // capture would move it off that link and make the browser fire a
+      // lostpointercapture that bubbles straight back into the handler below,
+      // ending the drag on its second pixel. Only a mouse needs the capture.
+      if (e.pointerType !== "touch") {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          // capture is best effort; the drag still works without it
+        }
       }
     }
 
@@ -352,7 +359,11 @@ export const CompanyCarousel: React.FC<Props> = ({ companies }) => {
           onPointerMove={onPointerMove}
           onPointerUp={(e) => endPointer(e, true)}
           onPointerCancel={(e) => endPointer(e, false)}
-          onLostPointerCapture={(e) => endPointer(e, false)}
+          onLostPointerCapture={(e) => {
+            // Only the viewport losing its own capture ends the drag; the same
+            // event bubbling up from a logo link does not.
+            if (e.target === e.currentTarget) endPointer(e, false);
+          }}
           onClickCapture={onClickCapture}
           onDragStart={(e) => e.preventDefault()}
         >
