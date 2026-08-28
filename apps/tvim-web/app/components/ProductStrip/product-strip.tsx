@@ -1244,12 +1244,7 @@ const effectiveViewAllHref = viewAllHref ?? specialsHref(localePrefix);
 
             });
 
-
-
-            const toast = buildAddedToCartToast(cartCopy, localePrefix, product);
-
-
-
+            const toast = buildAddedToCartToast(cartCopy, product);
 
             notify.success(toast.message, toast.options);
 

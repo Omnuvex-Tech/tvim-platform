@@ -155,9 +155,9 @@ const getBrandsMenuLabel = (locale: string) => {
 };
 
 const searchCopy = {
-    az: { categories: "Kateqoriyalar", products: "Məhsullar", category: "Kateqoriya", model: "Model" },
-    en: { categories: "Categories", products: "Products", category: "Category", model: "Model" },
-    ru: { categories: "Категории", products: "Товары", category: "Категория", model: "Модель" },
+    az: { products: "Məhsullar", model: "Model" },
+    en: { products: "Products", model: "Model" },
+    ru: { products: "Товары", model: "Модель" },
 } as const;
 
 const getSearchCopy = (locale: string) => {
@@ -468,6 +468,8 @@ const localizedMenuItems = useMemo(() => {
         const trimmedQuery = query.trim();
         if (!trimmedQuery) return [];
 
+        // Sayt hansı dildədirsə, sorğu da o dildə gedir: api-client `locale`-i
+        // `Content-Language` başlığına çevirir, backend tərcümələri ona görə seçir.
         const response = await api.get<LiveSearchResponseData>("/product/live-search", {
             params: { q: trimmedQuery },
             locale: localeCode,
@@ -503,51 +505,32 @@ const localizedMenuItems = useMemo(() => {
 
         const copy = getSearchCopy(localeCode);
 
-        const mapSectionItems = (items: unknown, type: "category" | "product") => {
-            if (!Array.isArray(items)) return [];
+        // Dropdown yalnız məhsul göstərir; API-nin `brands` və `categories`
+        // bölmələri qəsdən oxunmur.
+        const rawItems = Array.isArray(payload.products?.items) ? payload.products.items : [];
 
-            return items
-                .filter((item) => !!item && typeof item === "object")
-                .map((item) => {
-                    const typedItem = item as LiveSearchEntry;
-                    const modelText = String(typedItem.model ?? typedItem.sku ?? "").trim();
-                    const subtitle =
-                        type === "category"
-                            ? copy.category
-                            : modelText
-                                ? `${copy.model}: ${modelText}`
-                                : "";
+        const items = rawItems
+            .filter((item) => !!item && typeof item === "object")
+            .map((item) => {
+                const typedItem = item as LiveSearchEntry;
+                const modelText = String(typedItem.model ?? typedItem.sku ?? "").trim();
 
-                    return {
-                        id: typedItem.id ?? typedItem.product_id ?? typedItem.slug ?? typedItem.link ?? typedItem.name ?? `${type}-item`,
-                        name: String(typedItem.name ?? ""),
-                        subtitle,
-                        model: modelText,
-                        price: type === "product"
-                            ? formatSearchPrice(typedItem.discount_price ?? typedItem.price ?? typedItem.old_price)
-                            : "",
-                        imageUrl: String(typedItem.image ?? ""),
-                        href: toLocalizedHref(typedItem.link),
-                        type,
-                    };
-                })
-                .filter((item) => item.name);
-        };
+                return {
+                    id: typedItem.id ?? typedItem.product_id ?? typedItem.slug ?? typedItem.link ?? typedItem.name ?? "product-item",
+                    name: String(typedItem.name ?? ""),
+                    subtitle: modelText ? `${copy.model}: ${modelText}` : "",
+                    model: modelText,
+                    price: formatSearchPrice(typedItem.discount_price ?? typedItem.price ?? typedItem.old_price),
+                    imageUrl: String(typedItem.image ?? ""),
+                    href: toLocalizedHref(typedItem.link),
+                    type: "product" as const,
+                };
+            })
+            .filter((item) => item.name);
 
-        const sections: NavbarSearchSection[] = [
-            {
-                key: "categories",
-                name: copy.categories,
-                items: mapSectionItems(payload.categories?.items, "category"),
-            },
-            {
-                key: "products",
-                name: copy.products,
-                items: mapSectionItems(payload.products?.items, "product"),
-            },
-        ];
+        if (items.length === 0) return [];
 
-        return sections.filter((section) => section.items.length > 0);
+        return [{ key: "products", name: copy.products, items }];
     }, [supportedLocales]);
 
     return (

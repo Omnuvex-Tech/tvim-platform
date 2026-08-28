@@ -11,6 +11,7 @@ import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { ProductDetailTabs } from "@/app/components/ProductDetailTabs/product-detail-tabs";
 import { ProductDetailActions } from "@/app/components/ProductDetailActions/product-detail-actions";
 import { ProductSpecLink } from "@/app/components/ProductSpecLink/product-spec-link";
+import { ProductGallery } from "@/app/components/ProductGallery/product-gallery";
 import type { ProductComment } from "@/lib/product-comments/client";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
@@ -245,7 +246,9 @@ const resolveAssetUrl = (value: string | null | undefined) => {
     if (/^https?:\/\//i.test(cleaned)) return cleaned;
     if (cleaned.startsWith("/")) {
         try {
-            const origin = new URL(config.api.url).origin;
+            // Brauzer ucun asset URL-i: hemise ictimai host (config.api.url
+            // server terefde 127.0.0.1:8081-dir).
+            const origin = new URL(config.api.publicUrl).origin;
             return `${origin}${cleaned}`;
         } catch {
             return cleaned;
@@ -702,39 +705,7 @@ export default async function GridDetailPage({
 
                     <section className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,520px)_1fr] lg:gap-16">
                         <div className="w-full">
-                            <div className="relative flex min-h-[300px] items-center justify-center lg:min-h-[540px]">
-                                {typeof discountPercent === "number" ? (
-                                    <span className="absolute top-3 right-3 z-10 inline-flex h-[64px] w-[64px] items-center justify-center rounded-full bg-[#ff2e43] text-[16px] font-bold leading-none text-white lg:top-5 lg:right-5 lg:h-[84px] lg:w-[84px] lg:text-[18px]">
-                                        <span className="-translate-y-[1px]">-{discountPercent}%</span>
-                                    </span>
-                                ) : null}
-                                {images[0] ? (
-                                    <RemoteImage
-                                        src={images[0]}
-                                        alt={resolvedName}
-                                        width={1000}
-                                        height={1000}
-                                        sizes="(max-width: 1024px) 100vw, 520px"
-                                        priority
-                                        className="max-h-[320px] w-full object-contain lg:max-h-[500px]"
-                                    />
-                                ) : (
-                                    <div className="h-[300px] w-full lg:h-[420px]" />
-                                )}
-                            </div>
-
-                            {images.length > 1 ? (
-                                <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
-                                    {images.slice(0, 12).map((src, idx) => (
-                                        <div
-                                            key={`${src}-${idx}`}
-                                            className="overflow-hidden rounded-[10px] border border-[#e2e6ef] bg-white"
-                                        >
-                                            <RemoteImage src={src} alt={resolvedName} width={132} height={132} className="h-[66px] w-full object-contain" />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : null}
+                            <ProductGallery images={images} alt={resolvedName} discountPercent={discountPercent} />
                         </div>
 
                         <div className="w-full pt-0 lg:pt-2 lg:pl-6">

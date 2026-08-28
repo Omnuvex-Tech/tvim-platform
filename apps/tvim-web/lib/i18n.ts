@@ -224,6 +224,10 @@ type TranslationDictionary = {
         enterName: string;
         enterComment: string;
         ratingRange: string;
+        galleryOpen: string;
+        galleryClose: string;
+        galleryPrevious: string;
+        galleryNext: string;
     };
     checkout: {
         loadFailed: string;
@@ -337,7 +341,6 @@ type TranslationDictionary = {
         checkout: string;
         remove: string;
         addedToCart: string;
-        addedToCartLink: string;
         addedToCartFallback: string;
         addToCartFailed: string;
         favoriteFailed: string;
@@ -614,6 +617,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             enterName: "Adınızı daxil edin.",
             enterComment: "Şərh mətnini daxil edin.",
             ratingRange: "Reytinq 1-5 aralığında olmalıdır.",
+            galleryOpen: "Şəkli böyüt",
+            galleryClose: "Bağla",
+            galleryPrevious: "Əvvəlki şəkil",
+            galleryNext: "Növbəti şəkil",
         },
         quickOrder: {
             title: "Məhsulu sifariş etmək istəyirsiniz?",
@@ -724,8 +731,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Alış-verişə davam et",
             checkout: "Sifarişi rəsmiləşdir",
             remove: "Səbətdən sil",
-            addedToCart: "Siz {product} {cart} müvəffəqiyyətlə əlavə etdiniz!",
-            addedToCartLink: "səbətinizə",
+            addedToCart: "Siz {product} səbətinizə müvəffəqiyyətlə əlavə etdiniz!",
             addedToCartFallback: "Siz məhsulu səbətinizə müvəffəqiyyətlə əlavə etdiniz!",
             addToCartFailed: "Səbətə əlavə edərkən xəta baş verdi.",
             favoriteFailed: "Bu məhsul favorilərə əlavə edilə bilmədi.",
@@ -1000,6 +1006,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             enterName: "Enter your name.",
             enterComment: "Enter the comment text.",
             ratingRange: "The rating must be between 1 and 5.",
+            galleryOpen: "Enlarge image",
+            galleryClose: "Close",
+            galleryPrevious: "Previous image",
+            galleryNext: "Next image",
         },
         quickOrder: {
             title: "Would you like to order this product?",
@@ -1110,8 +1120,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Continue shopping",
             checkout: "Place the order",
             remove: "Remove from cart",
-            addedToCart: "You have added {product} to your {cart}!",
-            addedToCartLink: "shopping cart",
+            addedToCart: "You have added {product} to your shopping cart!",
             addedToCartFallback: "You have added the product to your shopping cart!",
             addToCartFailed: "An error occurred while adding to the cart.",
             favoriteFailed: "This product could not be added to favourites.",
@@ -1386,6 +1395,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             enterName: "Введите ваше имя.",
             enterComment: "Введите текст комментария.",
             ratingRange: "Оценка должна быть от 1 до 5.",
+            galleryOpen: "Увеличить изображение",
+            galleryClose: "Закрыть",
+            galleryPrevious: "Предыдущее изображение",
+            galleryNext: "Следующее изображение",
         },
         quickOrder: {
             title: "Хотите заказать товар?",
@@ -1496,8 +1509,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             continueShopping: "Продолжить покупки",
             checkout: "Оформить заказ",
             remove: "Удалить из корзины",
-            addedToCart: "Вы успешно добавили {product} в {cart}!",
-            addedToCartLink: "вашу корзину",
+            addedToCart: "Вы успешно добавили {product} в вашу корзину!",
             addedToCartFallback: "Вы успешно добавили товар в вашу корзину!",
             addToCartFailed: "Произошла ошибка при добавлении в корзину.",
             favoriteFailed: "Этот товар не удалось добавить в избранное.",

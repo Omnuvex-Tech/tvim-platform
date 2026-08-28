@@ -68,7 +68,7 @@ const toAbsoluteAssetUrl = (value: string) => {
     }
 
     try {
-        const apiOrigin = new URL(config.api.url).origin;
+        const apiOrigin = new URL(config.api.publicUrl).origin;
 
         if (trimmed.startsWith("//")) {
             return `https:${trimmed}`;

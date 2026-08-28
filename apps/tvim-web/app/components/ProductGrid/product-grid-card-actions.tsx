@@ -258,7 +258,7 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
                 stock: product.stock,
             });
 
-            const toast = buildAddedToCartToast(cartCopy, locale, product);
+            const toast = buildAddedToCartToast(cartCopy, product);
             notify.success(toast.message, toast.options);
         } catch (error) {
             notify.error(error instanceof Error ? error.message : cartCopy.addToCartFailed);

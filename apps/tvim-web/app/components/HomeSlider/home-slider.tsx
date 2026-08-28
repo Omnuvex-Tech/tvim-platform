@@ -34,7 +34,9 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
     const viewportRef = useRef<HTMLDivElement | null>(null);
     const dragStartXRef = useRef<number | null>(null);
+    const dragStartYRef = useRef<number | null>(null);
     const dragOffsetRef = useRef(0);
+    const dragOffsetYRef = useRef(0);
     const dragPointerIdRef = useRef<number | null>(null);
     const suppressClickRef = useRef(false);
     const clickHrefRef = useRef<string | null>(null);
@@ -57,7 +59,9 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         }
 
         dragStartXRef.current = null;
+        dragStartYRef.current = null;
         dragOffsetRef.current = 0;
+        dragOffsetYRef.current = 0;
         dragPointerIdRef.current = null;
         suppressClickRef.current = false;
         clickHrefRef.current = null;
@@ -119,12 +123,21 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         clickHrefRef.current = currentLink || null;
         clickHrefExternalRef.current = currentLink ? isExternalHref(currentLink) : false;
 
-        event.currentTarget.setPointerCapture(event.pointerId);
+        // A touch pointer is already implicitly captured by the slide's overlay
+        // link, and its events bubble up here regardless. Taking the capture
+        // would move it off that link, and the lostpointercapture the browser
+        // fires bubbles straight back into the handler below and cancels the
+        // swipe before it starts. Only a mouse needs the capture.
+        if (event.pointerType !== "touch") {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        }
         dragPointerIdRef.current = event.pointerId;
         setIsDragging(false);
         dragStartXRef.current = event.clientX;
+        dragStartYRef.current = event.clientY;
         suppressClickRef.current = false;
         dragOffsetRef.current = 0;
+        dragOffsetYRef.current = 0;
         setDragOffset(0);
     };
 
@@ -135,6 +148,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
         const nextOffset = event.clientX - dragStartXRef.current;
         dragOffsetRef.current = nextOffset;
+        dragOffsetYRef.current = event.clientY - (dragStartYRef.current ?? event.clientY);
 
         const dragStartThreshold = 10;
         if (!isDragging && Math.abs(nextOffset) >= dragStartThreshold) {
@@ -156,8 +170,14 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
         const viewportWidth = viewportRef.current?.clientWidth ?? 0;
         const threshold = Math.max(60, viewportWidth * 0.15);
         const hasSwipe = Math.abs(dragOffsetRef.current) > threshold;
-        const clickSlop = 8;
-        const isClick = Math.abs(dragOffsetRef.current) < clickSlop;
+        // Same 10px the drag detection uses, so a gesture is read the same way at
+        // both ends: under it the finger never really moved, at or over it it did.
+        const clickSlop = 10;
+        // Measured on both axes: a finger that started on the slider and then
+        // scrolled the page down barely moves sideways, so an x-only check read
+        // that whole gesture as a tap and followed the slide's link.
+        const travelled = Math.hypot(dragOffsetRef.current, dragOffsetYRef.current);
+        const isClick = travelled < clickSlop;
 
         if (dragOffsetRef.current < -threshold) {
             goTo(index + 1);
@@ -184,12 +204,40 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
 
         setIsDragging(false);
         dragStartXRef.current = null;
+        dragStartYRef.current = null;
         dragPointerIdRef.current = null;
         dragOffsetRef.current = 0;
+        dragOffsetYRef.current = 0;
+        setDragOffset(0);
+    };
+
+    // The browser fires this when it takes the gesture over for itself, which on
+    // a phone is almost always the page scrolling under a finger that happened to
+    // land on the slider. That was never a tap, so it must not follow the link.
+    const handlePointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (dragStartXRef.current === null) {
+            return;
+        }
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+
+        suppressClickRef.current = true;
+        setIsDragging(false);
+        dragStartXRef.current = null;
+        dragStartYRef.current = null;
+        dragPointerIdRef.current = null;
+        dragOffsetRef.current = 0;
+        dragOffsetYRef.current = 0;
         setDragOffset(0);
     };
 
     const handleLostPointerCapture = (event: React.PointerEvent<HTMLDivElement>) => {
+        // The same event bubbles up from the overlay link; only the viewport
+        // losing its own capture means the gesture is over.
+        if (event.target !== event.currentTarget) return;
+
         if (dragPointerIdRef.current === event.pointerId) {
             resetInteractionState();
         }
@@ -218,7 +266,7 @@ export const HomeSlider = ({ slides, className = "" }: HomeSliderProps) => {
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerEnd}
-                    onPointerCancel={handlePointerEnd}
+                    onPointerCancel={handlePointerCancel}
                     onLostPointerCapture={handleLostPointerCapture}
                     onClickCapture={handleClickCapture}
                     onDragStart={(event) => event.preventDefault()}

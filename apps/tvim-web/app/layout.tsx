@@ -8,6 +8,7 @@ import { DevelopmentPerformance } from "@/app/components/DevelopmentPerformance/
 import { MobileBottomTabs } from "@/app/components/MobileBottomTabs/mobile-bottom-tabs";
 import { NavigationProgress } from "@/app/components/NavigationProgress/navigation-progress";
 import { LocalizedLinksProvider } from "@/app/components/SiteChrome/localized-links";
+import { VexvonBubbleOffset } from "@/app/components/VexvonBubble/vexvon-bubble-offset";
 import { config } from "@/config";
 import "./globals.css";
 
@@ -65,6 +66,7 @@ export default function RootLayout({
                             <main className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">{children}</main>
                         </LocalizedLinksProvider>
                         <MobileBottomTabs />
+                        <VexvonBubbleOffset />
                         <NotifyContainer />
                         <DevelopmentPerformance />
                     </NotifyProvider>

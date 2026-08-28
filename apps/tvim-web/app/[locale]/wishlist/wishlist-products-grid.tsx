@@ -163,10 +163,7 @@ export function WishlistProductsGrid({ locale, initialItems, columns = 5 }: Prop
                 stock: null,
             });
 
-            const toast = buildAddedToCartToast(cartCopy, locale, {
-                title: item.name,
-                href: item.slug ? `/${locale}/products/${String(item.slug).replace(/^\/+/, "")}` : undefined,
-            });
+            const toast = buildAddedToCartToast(cartCopy, { title: item.name });
             notify.success(toast.message, toast.options);
         } catch (error) {
             const message = error instanceof Error ? error.message : cartCopy.addToCartFailed;

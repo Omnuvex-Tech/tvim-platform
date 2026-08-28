@@ -70,8 +70,14 @@ export const MobileBottomTabs = () => {
 
     useEffect(() => {
         let isMounted = true;
+        let latestRequestId = 0;
 
         const loadFavoritesCount = async () => {
+            // Every toggle fires another request, so a slow earlier one must not
+            // land after a newer one and put a stale number back on the badge.
+            const requestId = (latestRequestId += 1);
+            const isStale = () => !isMounted || requestId !== latestRequestId;
+
             try {
                 const response = await fetch("/api/favorites?page=1&per_page=1", {
                     method: "GET",
@@ -83,16 +89,16 @@ export const MobileBottomTabs = () => {
                 });
 
                 if (!response.ok) {
-                    if (isMounted) setFavoritesCount(0);
+                    if (!isStale()) setFavoritesCount(0);
                     return;
                 }
 
                 const payload = await response.json();
-                if (isMounted) {
+                if (!isStale()) {
                     setFavoritesCount(extractFavoritesCount(payload));
                 }
             } catch {
-                if (isMounted) setFavoritesCount(0);
+                if (!isStale()) setFavoritesCount(0);
             }
         };
 
@@ -159,7 +165,7 @@ export const MobileBottomTabs = () => {
                 active: pathname?.startsWith(localizedHref("signin", locale)) ?? false,
             },
         ],
-        [locale, pathname]
+        [cartCount, favoritesCount, locale, pathname]
     );
 
     return (
