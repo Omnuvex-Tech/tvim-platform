@@ -1527,7 +1527,18 @@ export function Navbar({
     }, [isCatalogOpen]);
 
     const catalogTree = useMemo(() => buildTree(catalogItems), [buildTree, catalogItems]);
-    const rootCategories = useMemo(() => catalogTree.filter((cat: any) => !cat.parent_id || Number(cat.parent_id) === 0), [catalogTree]);
+    // Only top-level categories that actually have subcategories belong in the
+    // catalog sidebar — a leaf parent would open an empty panel.
+    const rootCategories = useMemo(
+        () =>
+            catalogTree.filter(
+                (cat: any) =>
+                    (!cat.parent_id || Number(cat.parent_id) === 0) &&
+                    Array.isArray(cat.children) &&
+                    cat.children.length > 0
+            ),
+        [catalogTree]
+    );
 
     useEffect(() => {
         if (rootCategories.length === 0) {
