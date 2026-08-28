@@ -41,7 +41,7 @@ export const accountNavItems: AccountNavItem[] = [
     { labelKey: "editAccount", href: "/account/edit", icon: UserRound },
     { labelKey: "password", href: "/account/password", icon: Lock },
     { labelKey: "addressBook", href: "/account/address", icon: MapPin },
-    { labelKey: "favorites", href: "/wishlist", icon: Heart },
+    { labelKey: "favorites", href: "/account/wishlist", icon: Heart },
     { labelKey: "returns", href: "/account/returns", icon: FontAwesomeReplyIcon },
 ];
 
