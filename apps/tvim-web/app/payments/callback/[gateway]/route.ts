@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/config";
 import { localizedHref } from "@/lib/routes";
 import { normalizeLocale } from "@/lib/site-locales";
+import { redirectToPath } from "@/lib/http-redirect";
 
 const noStoreHeaders = {
     "Cache-Control": "no-store",
@@ -38,10 +39,10 @@ const isAllowedGateway = (gateway: string) => {
     return normalized === "kapitalbank" || normalized === "payriff";
 };
 
-const resolveCartUrl = (request: NextRequest) => {
+const resolveCartPath = (request: NextRequest) => {
     const cookieLocale = request.cookies.get("preferred-locale")?.value ?? "";
     const locale = normalizeLocale(cookieLocale || config.project.defLang);
-    return new URL(localizedHref("checkout", locale), request.url);
+    return localizedHref("checkout", locale);
 };
 
 const isBrowserNavigation = (request: NextRequest) =>
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
         const payload = await parseApiPayload(upstream);
 
         if (isBrowserNavigation(request)) {
-            return NextResponse.redirect(resolveCartUrl(request), 303);
+            return redirectToPath(resolveCartPath(request), 303);
         }
 
         return NextResponse.json(
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
         );
     } catch {
         if (isBrowserNavigation(request)) {
-            return NextResponse.redirect(resolveCartUrl(request), 303);
+            return redirectToPath(resolveCartPath(request), 303);
         }
 
         return NextResponse.json(
@@ -137,5 +138,5 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
 // The bank returns the shopper's browser here after payment. Only POST existed,
 // so that navigation answered 405 and the page failed to load.
 export async function GET(request: NextRequest) {
-    return NextResponse.redirect(resolveCartUrl(request), 303);
+    return redirectToPath(resolveCartPath(request), 303);
 }

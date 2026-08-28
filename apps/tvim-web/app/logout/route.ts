@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { config } from "@/config";
 import {
     AUTH_SESSION_TOKEN_COOKIE,
@@ -7,6 +7,7 @@ import {
     decodeTokenFromCookie,
 } from "@/lib/auth/session";
 import { GUEST_TOKEN_COOKIE, guestCookieOptions } from "@/lib/guest/session";
+import { pathWithParams, redirectToPath } from "@/lib/http-redirect";
 
 const normalizeApiUrl = (baseUrl: string, endpoint: string) => {
     const cleanBase = baseUrl.replace(/\/+$/, "");
@@ -64,10 +65,11 @@ export async function POST(request: NextRequest) {
     }
 
     const targetLocale = resolveLocale(request.cookies.get("preferred-locale")?.value);
-    const redirectUrl = new URL(`/${targetLocale}`, request.url);
-    redirectUrl.searchParams.set("logout_message", logoutMessage);
     // 303 so the browser follows with GET instead of re-posting.
-    const response = NextResponse.redirect(redirectUrl, 303);
+    const response = redirectToPath(
+        pathWithParams(`/${targetLocale}`, { logout_message: logoutMessage }),
+        303
+    );
 
     response.cookies.set({
         name: AUTH_SESSION_TOKEN_COOKIE,
