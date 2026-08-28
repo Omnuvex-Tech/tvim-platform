@@ -25,11 +25,17 @@ type FavoriteListItem = {
 type Props = {
     locale: string;
     initialItems: FavoriteListItem[];
+    columns?: 4 | 5;
+};
+
+const GRID_COLUMNS: Record<4 | 5, string> = {
+    4: "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+    5: "sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
 };
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 
-export function WishlistProductsGrid({ locale, initialItems }: Props) {
+export function WishlistProductsGrid({ locale, initialItems, columns = 5 }: Props) {
     const notify = useNotify();
     const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
     const productCopy = useMemo(() => getTranslations(locale).product, [locale]);
@@ -218,7 +224,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
 
     return (
         <div className="product-carousel">
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+            <ul className={`grid grid-cols-1 gap-3 sm:gap-4 ${GRID_COLUMNS[columns]}`}>
                 {items.map((item) => {
                     const itemKey = `${item.id}-${item.product_variation_id ?? "no-variation"}`;
                     const href = item.slug
