@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/config";
+import { localizedHref } from "@/lib/routes";
+import { normalizeLocale } from "@/lib/site-locales";
 
 const noStoreHeaders = {
     "Cache-Control": "no-store",
@@ -35,6 +37,15 @@ const isAllowedGateway = (gateway: string) => {
     const normalized = gateway.trim().toLowerCase();
     return normalized === "kapitalbank" || normalized === "payriff";
 };
+
+const resolveCartUrl = (request: NextRequest) => {
+    const cookieLocale = request.cookies.get("preferred-locale")?.value ?? "";
+    const locale = normalizeLocale(cookieLocale || config.project.defLang);
+    return new URL(localizedHref("checkout", locale), request.url);
+};
+
+const isBrowserNavigation = (request: NextRequest) =>
+    (request.headers.get("accept") || "").toLowerCase().includes("text/html");
 
 const buildUpstreamHeaders = (request: NextRequest) => {
     const headers = new Headers();
@@ -89,6 +100,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
 
         const payload = await parseApiPayload(upstream);
 
+        if (isBrowserNavigation(request)) {
+            return NextResponse.redirect(resolveCartUrl(request), 303);
+        }
+
         return NextResponse.json(
             payload ?? {
                 success: false,
@@ -101,6 +116,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
             }
         );
     } catch {
+        if (isBrowserNavigation(request)) {
+            return NextResponse.redirect(resolveCartUrl(request), 303);
+        }
+
         return NextResponse.json(
             {
                 success: false,
@@ -115,3 +134,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
     }
 }
 
+// The bank returns the shopper's browser here after payment. Only POST existed,
+// so that navigation answered 405 and the page failed to load.
+export async function GET(request: NextRequest) {
+    return NextResponse.redirect(resolveCartUrl(request), 303);
+}

@@ -319,7 +319,7 @@ const normalizeCompareItem = (item: unknown, locale: LocaleCode): CompareListIte
     const price = readNumber(nestedSources, ["sale_price", "final_price", "special", "price"]) ?? 0;
     const oldPrice = readNumber(nestedSources, ["old_price", "compare_price", "regular_price"]);
     const stock = readNumber(nestedSources, ["stock", "quantity", "qty"]);
-    const slug = readString(nestedSources, ["slug", "uuid"]);
+    const slug = readString(nestedSources, ["slug"]);
     const image = readImage(nestedSources);
     const isFavorite = readBooleanFlag(nestedSources, [
         "is_favorite",

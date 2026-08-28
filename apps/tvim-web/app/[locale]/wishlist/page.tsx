@@ -196,7 +196,7 @@ const normalizeFavoriteItem = (item: unknown): FavoriteListItem | null => {
 
     const oldPrice = readNumber(nestedSources, ["old_price", "compare_price", "regular_price"]);
     const stock = readNumber(nestedSources, ["stock", "quantity", "qty"]);
-    const slug = readString(nestedSources, ["slug", "uuid"]);
+    const slug = readString(nestedSources, ["slug"]);
     const image = readImage(nestedSources);
 
     return {
