@@ -69,32 +69,38 @@ export function ProductGridCardActionsProvider({ children }: ProductGridCardActi
         let alive = true;
 
         const load = async () => {
-            const [favoritesClient, compareClient] = await Promise.all([
-                loadFavoritesClient(),
-                loadCompareClient(),
-            ]);
+            try {
+                const [favoritesClient, compareClient] = await Promise.all([
+                    loadFavoritesClient(),
+                    loadCompareClient(),
+                ]);
 
-            const [favoritesResponse, compareResponse] = await Promise.all([
-                favoritesClient.listFavorites(),
-                compareClient.listCompare(),
-            ]);
+                const [favoritesResponse, compareResponse] = await Promise.all([
+                    favoritesClient.listFavorites(),
+                    compareClient.listCompare(),
+                ]);
 
-            if (!alive) return;
+                if (!alive) return;
 
-            setFavoriteIds(
-                new Set(
-                    (favoritesResponse.data.items ?? [])
-                        .map((item) => Number(item.product_variation_id))
-                        .filter((value) => Number.isFinite(value) && value > 0)
-                )
-            );
-            setCompareIds(
-                new Set(
-                    (compareResponse.data.items ?? [])
-                        .map((item) => Number(item.product_variation_id))
-                        .filter((value) => Number.isFinite(value) && value > 0)
-                )
-            );
+                setFavoriteIds(
+                    new Set(
+                        (favoritesResponse.data?.items ?? [])
+                            .map((item) => Number(item.product_variation_id))
+                            .filter((value) => Number.isFinite(value) && value > 0)
+                    )
+                );
+                setCompareIds(
+                    new Set(
+                        (compareResponse.data?.items ?? [])
+                            .map((item) => Number(item.product_variation_id))
+                            .filter((value) => Number.isFinite(value) && value > 0)
+                    )
+                );
+            } catch {
+                if (!alive) return;
+                setFavoriteIds(new Set());
+                setCompareIds(new Set());
+            }
         };
 
         void load();

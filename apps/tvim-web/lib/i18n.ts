@@ -204,6 +204,7 @@ type TranslationDictionary = {
         decrease: string;
         favorites: string;
         compareLabel: string;
+        emptyWishlist: string;
         favoriteAdded: string;
         favoriteRemoved: string;
         compareAdded: string;
@@ -596,6 +597,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             decrease: "Azalt",
             favorites: "Seçilmişlər",
             compareLabel: "Müqayisə",
+            emptyWishlist: "Sizin bəyənilənlər siyahınız boşdur.",
             favoriteAdded: "Məhsul seçilmişlərə əlavə edildi.",
             favoriteRemoved: "Məhsul seçilmişlərdən silindi.",
             compareAdded: "Məhsul müqayisəyə əlavə edildi.",
@@ -984,6 +986,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             decrease: "Decrease",
             favorites: "Favourites",
             compareLabel: "Compare",
+            emptyWishlist: "Your wishlist is empty.",
             favoriteAdded: "The product has been added to favourites.",
             favoriteRemoved: "The product has been removed from favourites.",
             compareAdded: "The product has been added to comparison.",
@@ -1372,6 +1375,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             decrease: "Уменьшить",
             favorites: "Избранное",
             compareLabel: "Сравнение",
+            emptyWishlist: "Ваш список избранного пуст.",
             favoriteAdded: "Товар добавлен в избранное.",
             favoriteRemoved: "Товар удалён из избранного.",
             compareAdded: "Товар добавлен к сравнению.",

@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { RemoteImage, useNotify } from "@repo/ui";
 import { addProductToCart } from "@/lib/cart/client";
 import { buildAddedToCartToast } from "@/lib/cart/toast";
 import { getTranslations } from "@/lib/i18n";
+import { listCompare, toggleCompare } from "@/lib/compare/client";
 import { toggleFavorite } from "@/lib/favorites/client";
 import { QuickOrderPopup } from "@/app/components/ProductStrip/quick-order-popup";
 
@@ -31,16 +32,63 @@ const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 export function WishlistProductsGrid({ locale, initialItems }: Props) {
     const notify = useNotify();
     const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
+    const productCopy = useMemo(() => getTranslations(locale).product, [locale]);
     const [items, setItems] = useState<FavoriteListItem[]>(initialItems);
     const [pendingVariationIds, setPendingVariationIds] = useState<Set<number>>(new Set());
     const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
+    const [comparedVariationIds, setComparedVariationIds] = useState<Set<number>>(new Set());
+    const [pendingCompareVariationIds, setPendingCompareVariationIds] = useState<Set<number>>(new Set());
     const [quickOrderItem, setQuickOrderItem] = useState<FavoriteListItem | null>(null);
+
+
+    useEffect(() => {
+        let alive = true;
+
+        const load = async () => {
+            try {
+                const response = await listCompare();
+                if (!alive) return;
+
+                setComparedVariationIds(
+                    new Set(
+                        (response.data?.items ?? [])
+                            .map((entry) => Number(entry.product_variation_id))
+                            .filter((value) => Number.isFinite(value) && value > 0)
+                    )
+                );
+            } catch {
+                if (alive) setComparedVariationIds(new Set());
+            }
+        };
+
+        void load();
+
+        const onCompareUpdated = (event: Event) => {
+            const detail = (event as CustomEvent<{ action?: "created" | "deleted"; productVariationId?: number }>).detail;
+            const variationId = Number(detail?.productVariationId);
+            if (!Number.isFinite(variationId) || variationId <= 0) return;
+
+            setComparedVariationIds((prev) => {
+                const next = new Set(prev);
+                if (detail?.action === "deleted") next.delete(variationId);
+                else next.add(variationId);
+                return next;
+            });
+        };
+
+        window.addEventListener("tvim:compare-updated", onCompareUpdated as EventListener);
+
+        return () => {
+            alive = false;
+            window.removeEventListener("tvim:compare-updated", onCompareUpdated as EventListener);
+        };
+    }, []);
 
     const handleRemoveFromFavorites = async (item: FavoriteListItem) => {
         const variationId = item.product_variation_id;
 
         if (!variationId || !Number.isFinite(variationId)) {
-            notify.error("Bu məhsul favorilərdən silinə bilmədi.");
+            notify.error(cartCopy.favoriteFailed);
             return;
         }
 
@@ -61,11 +109,11 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                 setItems((prev) => prev.filter((entry) => entry.product_variation_id !== variationId));
             }
 
-            if (response.message) {
-                notify.success(response.message);
-            }
+            notify.success(
+                response.data.action === "deleted" ? productCopy.favoriteRemoved : productCopy.favoriteAdded,
+            );
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Favorilər yenilənərkən xəta baş verdi.";
+            const message = error instanceof Error ? error.message : productCopy.favoriteUpdateFailed;
             notify.error(message);
         } finally {
             setPendingVariationIds((prev) => {
@@ -80,7 +128,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
         const variationId = item.product_variation_id;
 
         if (!variationId || !Number.isFinite(variationId)) {
-            notify.error("Bu məhsul səbətə əlavə edilə bilmədi.");
+            notify.error(cartCopy.addToCartFailed);
             return;
         }
 
@@ -123,10 +171,44 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
         }
     };
 
+
+    const handleToggleCompare = async (item: FavoriteListItem) => {
+        const variationId = item.product_variation_id;
+
+        if (!variationId || !Number.isFinite(variationId)) {
+            notify.error(cartCopy.compareFailed);
+            return;
+        }
+        if (pendingCompareVariationIds.has(variationId)) return;
+
+        setPendingCompareVariationIds((prev) => new Set(prev).add(variationId));
+
+        try {
+            const response = await toggleCompare(variationId);
+            const isCreated = response.data.action === "created";
+            setComparedVariationIds((prev) => {
+                const next = new Set(prev);
+                if (isCreated) next.add(variationId);
+                else next.delete(variationId);
+                return next;
+            });
+            notify.success(isCreated ? productCopy.compareAdded : productCopy.compareRemoved);
+        } catch (error) {
+            notify.error(error instanceof Error ? error.message : cartCopy.compareError);
+        } finally {
+            setPendingCompareVariationIds((prev) => {
+                const next = new Set(prev);
+                next.delete(variationId);
+                return next;
+            });
+        }
+
+    };
+
     if (items.length === 0) {
         return (
             <div className="rounded-[24px] bg-[#f7f7f7] px-7 py-4 text-left text-[16px] leading-normal font-normal text-black">
-                Sizin bəyənilənlər boşdur.
+                {productCopy.emptyWishlist}
             </div>
         );
     }
@@ -142,6 +224,8 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                     const variationId = item.product_variation_id;
                     const isFavoritePending = typeof variationId === "number" && pendingVariationIds.has(variationId);
                     const isCartPending = typeof variationId === "number" && pendingCartVariationIds.has(variationId);
+                    const isComparePending = typeof variationId === "number" && pendingCompareVariationIds.has(variationId);
+                    const isCompared = typeof variationId === "number" && comparedVariationIds.has(variationId);
                     const isOutOfStock = typeof item.stock === "number" && item.stock <= 0;
 
                     const discountPercent = typeof item.old_price === "number" && item.old_price > item.price
@@ -174,7 +258,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                                 ? "border-[#0f57d6] bg-[#0f57d6] text-white cursor-not-allowed opacity-70"
                                                 : "border-[#0f57d6] bg-[#0f57d6] text-white cursor-pointer"
                                         }`}
-                                        aria-label="Seçilmişlərdən sil"
+                                        aria-label={productCopy.favorites}
                                     >
                                         <i className="fa-solid fa-heart text-[14px] leading-none" aria-hidden="true" />
                                     </button>
@@ -184,10 +268,15 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                         onClick={(event) => {
                                             event.preventDefault();
                                             event.stopPropagation();
-                                            notify.success("Müqayisə funksiyası tezliklə əlavə ediləcək.");
+                                            void handleToggleCompare(item);
                                         }}
-                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e0e5ee] bg-white text-[#7b8596] transition-colors duration-150 hover:bg-[#0f57d6] hover:text-white cursor-pointer"
-                                        aria-label="Müqayisə"
+                                        disabled={isComparePending}
+                                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                                            isCompared
+                                                ? "border-[#0f57d6] bg-[#0f57d6] text-white"
+                                                : "border-[#e0e5ee] bg-white text-[#7b8596] hover:bg-[#0f57d6] hover:text-white"
+                                        } ${isComparePending ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                                        aria-label={productCopy.compareLabel}
                                     >
                                         <i className="fa-solid fa-code-compare text-[14px] leading-none" aria-hidden="true" />
                                     </button>
@@ -252,7 +341,7 @@ export function WishlistProductsGrid({ locale, initialItems }: Props) {
                                         className={`relative z-[2] mt-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none active:outline-none hover:shadow-none active:shadow-none ${
                                             isOutOfStock ? "bg-[#ffd500] text-[#1b212e]" : "bg-[#0f57d6] text-white"
                                         } ${isCartPending || !variationId ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                                        aria-label={isOutOfStock ? "Məhsul stokda yoxdur" : "Səbətə əlavə et"}
+                                        aria-label={isOutOfStock ? productCopy.outOfStock : productCopy.addToCart}
                                     >
                                         {isOutOfStock ? (
                                             <svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
