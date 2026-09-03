@@ -1,6 +1,6 @@
 "use client";
 
-import { azPhoneOnBlur, azPhoneOnFocus } from "@repo/shared/utils";
+import { AZ_PHONE_PREFIX, azPhoneOnBlur, azPhoneOnFocus, sanitizeNameInput } from "@repo/shared/utils";
 import React, { useRef, useState } from "react";
 import type { RequestFormData, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
 import { cn } from "../../lib/utils";
@@ -199,7 +199,8 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
 
   const set = (field: keyof Omit<RequestFormData, "file">) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setSuccess(false);
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const nextValue = field === "name" ? sanitizeNameInput(e.target.value) : e.target.value;
+    setForm((prev) => ({ ...prev, [field]: nextValue }));
   };
 
   const handlePhoneChange = (value: string, cursorPosition: number | null) => {
@@ -207,13 +208,18 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
     const formattedPhone = formatAzerbaijanPhone(value);
 
     setSuccess(false);
-    setForm((prev) => ({ ...prev, phone: formattedPhone }));
+    // The field is focused while typing, so never fall back to an empty value.
+    const nextPhoneValue = formattedPhone || AZ_PHONE_PREFIX;
+
+    setForm((prev) => ({ ...prev, phone: nextPhoneValue }));
 
     requestAnimationFrame(() => {
       const input = phoneInputRef.current;
       if (!input) return;
 
-      const nextCursor = getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor);
+      const nextCursor = formattedPhone
+        ? getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor)
+        : nextPhoneValue.length;
       input.setSelectionRange(nextCursor, nextCursor);
     });
   };
@@ -246,13 +252,17 @@ export const RequestForm: React.FC<RequestFormProps> = ({ heading = "Təmir və 
     const nextFormattedPhone = formatAzerbaijanPhone(nextLocalDigits);
 
     setSuccess(false);
-    setForm((prev) => ({ ...prev, phone: nextFormattedPhone }));
+    const nextPhoneValue = nextFormattedPhone || AZ_PHONE_PREFIX;
+
+    setForm((prev) => ({ ...prev, phone: nextPhoneValue }));
 
     requestAnimationFrame(() => {
       const target = phoneInputRef.current;
       if (!target) return;
 
-      const nextCursor = getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex);
+      const nextCursor = nextFormattedPhone
+        ? getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex)
+        : nextPhoneValue.length;
       target.setSelectionRange(nextCursor, nextCursor);
     });
   };

@@ -36,7 +36,28 @@ export const toAzMobileE164 = (value: string) => {
     return localDigits.length === AZ_LOCAL_PHONE_LENGTH ? `+${AZ_COUNTRY_CODE}${localDigits}` : "";
 };
 
-export const AZ_PHONE_PREFIX = "+994 ";
+export const AZ_PHONE_PREFIX = "+994 (";
+
+/** Renders local digits as "+994 (50) 123 45 67", closing each group as it fills. */
+export const formatAzPhone = (value: string) => {
+    const localDigits = extractAzLocalDigits(value);
+    if (!localDigits) return "";
+
+    const operator = localDigits.slice(0, 2);
+    const groups = [localDigits.slice(2, 5), localDigits.slice(5, 7), localDigits.slice(7, 9)];
+
+    let formatted = `${AZ_PHONE_PREFIX}${operator}`;
+    if (operator.length === 2) {
+        formatted += ")";
+    }
+
+    for (const group of groups) {
+        if (!group) break;
+        formatted += ` ${group}`;
+    }
+
+    return formatted;
+};
 
 export const azPhoneOnFocus = (value: string) =>
     extractAzLocalDigits(value) ? value : AZ_PHONE_PREFIX;

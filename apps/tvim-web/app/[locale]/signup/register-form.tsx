@@ -10,7 +10,7 @@ import { config } from "@/config";
 import { useLanguageStore } from "@/stores";
 import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
-import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
+import { AZ_PHONE_PREFIX, azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile, sanitizeNameInput } from "@repo/shared/utils";
 import { TermsDialog } from "@/app/components/TermsDialog/terms-dialog";
 
 type RegisterFormProps = {
@@ -373,13 +373,18 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
         const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(value, cursorPosition ?? value.length);
         const formattedPhone = formatAzerbaijanPhone(value);
 
-        updateField("phone", formattedPhone);
+        // The field is focused while typing, so never fall back to an empty value.
+        const nextPhoneValue = formattedPhone || AZ_PHONE_PREFIX;
+
+        updateField("phone", nextPhoneValue);
 
         requestAnimationFrame(() => {
             const input = phoneInputRef.current;
             if (!input) return;
 
-            const nextCursor = getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor);
+            const nextCursor = formattedPhone
+                ? getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor)
+                : nextPhoneValue.length;
             input.setSelectionRange(nextCursor, nextCursor);
         });
     };
@@ -412,13 +417,17 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
             localDigits.slice(0, deleteLocalIndex) + localDigits.slice(deleteLocalIndex + 1);
         const nextFormattedPhone = formatAzerbaijanPhone(nextLocalDigits);
 
-        updateField("phone", nextFormattedPhone);
+        const nextPhoneValue = nextFormattedPhone || AZ_PHONE_PREFIX;
+
+        updateField("phone", nextPhoneValue);
 
         requestAnimationFrame(() => {
             const target = phoneInputRef.current;
             if (!target) return;
 
-            const nextCursor = getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex);
+            const nextCursor = nextFormattedPhone
+                ? getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex)
+                : nextPhoneValue.length;
             target.setSelectionRange(nextCursor, nextCursor);
         });
     };
@@ -748,7 +757,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         aria-label={t.name}
                         autoComplete="given-name"
                         value={formData.name}
-                        onChange={(e) => updateField("name", e.target.value)}
+                        onChange={(e) => updateField("name", sanitizeNameInput(e.target.value))}
                         className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span
@@ -767,7 +776,7 @@ const RegisterForm = ({ locale }: RegisterFormProps) => {
                         aria-label={t.surname}
                         autoComplete="family-name"
                         value={formData.surname}
-                        onChange={(e) => updateField("surname", e.target.value)}
+                        onChange={(e) => updateField("surname", sanitizeNameInput(e.target.value))}
                         className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                     />
                     <span

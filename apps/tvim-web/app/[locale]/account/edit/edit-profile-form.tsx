@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { Mail, Phone, UserRound } from "lucide-react";
 import { Spinner, useNotify } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
-import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
+import {
+    AZ_PHONE_PREFIX,
+    azPhoneOnBlur,
+    azPhoneOnFocus,
+    extractAzLocalDigits,
+    formatAzPhone,
+    isCompleteAzMobile,
+    sanitizeNameInput,
+} from "@repo/shared/utils";
 
 type EditProfileFormProps = {
     locale: string;
@@ -66,6 +74,20 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
     const updateField = (field: Field, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+    };
+
+    const handlePhoneChange = (rawValue: string) => {
+        const previousDigits = extractAzLocalDigits(formData.phone);
+        let nextValue = rawValue;
+
+        // Deleting a bracket or space leaves the digits untouched, so remove the
+        // last digit instead — otherwise the auto-inserted ")" cannot be passed.
+        if (previousDigits && rawValue.length < formData.phone.length && extractAzLocalDigits(rawValue) === previousDigits) {
+            nextValue = rawValue.replace(/\d(?=\D*$)/, "");
+        }
+
+        // The field is focused while typing, so never fall back to an empty value.
+        updateField("phone", formatAzPhone(nextValue) || AZ_PHONE_PREFIX);
     };
 
     const validate = (payload: Payload): Errors => {
@@ -137,7 +159,7 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                                 aria-label={t.form.name}
                                 autoComplete="given-name"
                                 value={formData.name}
-                                onChange={(e) => updateField("name", e.target.value)}
+                                onChange={(e) => updateField("name", sanitizeNameInput(e.target.value))}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                             />
                         </label>
@@ -154,7 +176,7 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                                 aria-label={t.form.surname}
                                 autoComplete="family-name"
                                 value={formData.surname}
-                                onChange={(e) => updateField("surname", e.target.value)}
+                                onChange={(e) => updateField("surname", sanitizeNameInput(e.target.value))}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"
                             />
                         </label>
@@ -190,7 +212,7 @@ export function EditProfileForm({ locale, initialValues }: EditProfileFormProps)
                                 aria-label={t.form.phone}
                                 autoComplete="tel"
                                 value={formData.phone}
-                                onChange={(e) => updateField("phone", e.target.value)}
+                                onChange={(e) => handlePhoneChange(e.target.value)}
                                 onFocus={() => updateField("phone", azPhoneOnFocus(formData.phone))}
                                 onBlur={() => updateField("phone", azPhoneOnBlur(formData.phone))}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none"

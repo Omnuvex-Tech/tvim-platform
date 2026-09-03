@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, MapPin, Pencil, Phone, Trash2, UserRound } from "lucide-react";
 import { Spinner, useNotify } from "@repo/ui";
+import { sanitizeNameInput } from "@repo/shared/utils";
 import { getTranslations } from "@/lib/i18n";
 
 type Address = {
@@ -736,7 +737,7 @@ export function AddressClient({
                                         <input
                                             type="text"
                                             value={formData.name}
-                                            onChange={(e) => updateField("name", e.target.value)}
+                                            onChange={(e) => updateField("name", sanitizeNameInput(e.target.value))}
                                             placeholder={t.form.name}
                                             className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                         />
@@ -748,7 +749,7 @@ export function AddressClient({
                                         <input
                                             type="text"
                                             value={formData.surname}
-                                            onChange={(e) => updateField("surname", e.target.value)}
+                                            onChange={(e) => updateField("surname", sanitizeNameInput(e.target.value))}
                                             placeholder={t.form.surname}
                                             className="h-[64px] w-full rounded-[18px] border border-[#d8dde6] bg-transparent px-4 text-[15px] text-[#161922] outline-none"
                                         />

@@ -2,6 +2,7 @@ export { normalizer } from "./normalizer";
 export { isPlainObject } from "./guards";
 export { toHref } from "./url";
 export { htmlToText } from "./html";
+export { sanitizeNameInput } from "./name";
 export {
     AZ_MOBILE_PREFIXES,
     extractAzLocalDigits,
@@ -10,6 +11,7 @@ export {
     isCompleteAzMobile,
     toAzMobileE164,
     AZ_PHONE_PREFIX,
+    formatAzPhone,
     azPhoneOnFocus,
     azPhoneOnBlur,
 } from "./phone";

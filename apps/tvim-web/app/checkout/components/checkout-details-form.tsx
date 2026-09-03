@@ -8,7 +8,7 @@ import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-c
 import { hydrateCart } from "@/lib/cart/client";
 import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
-import { azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile } from "@repo/shared/utils";
+import { AZ_PHONE_PREFIX, azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile, sanitizeNameInput } from "@repo/shared/utils";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
 const toNumber = (value: unknown) => {
@@ -279,13 +279,18 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
         const localDigitsBeforeCursor = countLocalDigitsBeforeCursor(value, cursorPosition ?? value.length);
         const formattedPhone = formatAzerbaijanPhone(value);
 
-        setPhone(formattedPhone);
+        // The field is focused while typing, so never fall back to an empty value.
+        const nextPhoneValue = formattedPhone || AZ_PHONE_PREFIX;
+
+        setPhone(nextPhoneValue);
 
         requestAnimationFrame(() => {
             const input = phoneInputRef.current;
             if (!input) return;
 
-            const nextCursor = getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor);
+            const nextCursor = formattedPhone
+                ? getCursorPositionFromLocalDigits(formattedPhone, localDigitsBeforeCursor)
+                : nextPhoneValue.length;
             input.setSelectionRange(nextCursor, nextCursor);
         });
     };
@@ -317,13 +322,17 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
         const nextLocalDigits = localDigits.slice(0, deleteLocalIndex) + localDigits.slice(deleteLocalIndex + 1);
         const nextFormattedPhone = formatAzerbaijanPhone(nextLocalDigits);
 
-        setPhone(nextFormattedPhone);
+        const nextPhoneValue = nextFormattedPhone || AZ_PHONE_PREFIX;
+
+        setPhone(nextPhoneValue);
 
         requestAnimationFrame(() => {
             const target = phoneInputRef.current;
             if (!target) return;
 
-            const nextCursor = getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex);
+            const nextCursor = nextFormattedPhone
+                ? getCursorPositionFromLocalDigits(nextFormattedPhone, deleteLocalIndex)
+                : nextPhoneValue.length;
             target.setSelectionRange(nextCursor, nextCursor);
         });
     };
@@ -661,7 +670,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                 type="text"
                                 placeholder={t.namePlaceholder}
                                 value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
+                                onChange={(e) => setFirstName(sanitizeNameInput(e.target.value))}
                                 disabled={Boolean(isLoading) || isSubmitting}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
                             />
@@ -672,7 +681,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                                 type="text"
                                 placeholder={t.surnamePlaceholder}
                                 value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
+                                onChange={(e) => setLastName(sanitizeNameInput(e.target.value))}
                                 disabled={Boolean(isLoading) || isSubmitting}
                                 className="h-full w-full bg-transparent pr-5 text-[15px] leading-none font-normal text-[#161922] outline-none placeholder:text-[#9aa3b2]"
                             />
