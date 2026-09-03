@@ -312,18 +312,17 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
         setIsSubmitting(true);
 
         try {
-            const response = await submitPurchaseRequest({
+            await submitPurchaseRequest({
                 fullname: cleanedName,
                 phone: normalizedPhone,
                 product_variation_id: variationId,
                 quantity: parsedQuantity,
             });
 
-            notify.success(response.message || t.success);
+            notify.success(t.success);
             onClose();
-        } catch (error) {
-            const message = error instanceof Error ? error.message : t.failed;
-            notify.error(message);
+        } catch {
+            notify.error(t.failed);
         } finally {
             setIsSubmitting(false);
         }

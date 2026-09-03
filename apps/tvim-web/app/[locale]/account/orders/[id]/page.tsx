@@ -13,6 +13,7 @@ import { normalizeLocale } from "@/lib/site-locales";
 import { AccountNavigation } from "../../account-navigation";
 import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
+import { statusLabel } from "@/lib/order-status";
 
 type OrderStatus = {
     code?: string | null;
@@ -279,7 +280,7 @@ export default async function OrderDetailPage({
                 <section className="mx-auto w-full max-w-[1280px] px-1 pt-5 pb-12 lg:px-2 lg:pt-6 lg:pb-14">
                     <div className="rounded-[20px] bg-[#fff5f5] p-6 text-[#7f1d1d]">
                         <p className="text-[18px] font-semibold">
-                            {orderLoadError?.status === 500 ? "Server Error" : orderLoadError?.message || t.loadFailed}
+                            {t.loadFailed}
                         </p>
                         <p className="mt-2 text-[14px]">
                             {t.statusCode}: {orderLoadError?.status ?? 500}
@@ -295,6 +296,8 @@ export default async function OrderDetailPage({
     const history = Array.isArray(order.status_histories) ? order.status_histories : [];
     const payments = Array.isArray(order.payments) ? order.payments : [];
     const firstPayment = payments[0] ?? null;
+    const orderStatusText = statusLabel(order.status, t.orderStatuses);
+    const paymentStatusText = statusLabel(order.payment_status, t.paymentStatuses);
     const selectedInstallment = order.payment_method?.selected_installment ?? firstPayment?.payment_installment ?? null;
     const promoDiscount = Number(order.totals?.promo_discount ?? order.promo?.discount ?? 0);
     const hourDiscount = Number(order.totals?.discount_hour_discount ?? 0);
@@ -331,14 +334,14 @@ export default async function OrderDetailPage({
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    {order.status?.text ? (
+                                    {orderStatusText ? (
                                         <span className="rounded-full bg-[#eaf0ff] px-3 py-1 text-[13px] font-semibold text-[#0d47ff]">
-                                            {order.status.text}
+                                            {orderStatusText}
                                         </span>
                                     ) : null}
-                                    {order.payment_status?.text ? (
+                                    {paymentStatusText ? (
                                         <span className="rounded-full bg-[#f2f5fa] px-3 py-1 text-[13px] font-semibold text-[#364152]">
-                                            {order.payment_status.text}
+                                            {paymentStatusText}
                                         </span>
                                     ) : null}
                                 </div>
@@ -423,7 +426,7 @@ export default async function OrderDetailPage({
                                 {firstPayment ? (
                                     <>
                                         <p><span className="font-medium text-[#111826]">{t.firstPayment}:</span> {formatAmount(firstPayment.amount)} {firstPayment.currency || "AZN"}</p>
-                                        <p><span className="font-medium text-[#111826]">{t.paymentStatus}:</span> {firstPayment.status?.text || "-"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.paymentStatus}:</span> {statusLabel(firstPayment.status, t.paymentStatuses) || "-"}</p>
                                         <p><span className="font-medium text-[#111826]">{t.gateway}:</span> {firstPayment.provider_reference || firstPayment.provider_payment_id || "-"}</p>
                                     </>
                                 ) : null}
@@ -467,7 +470,7 @@ export default async function OrderDetailPage({
                                         <div key={payment.id ?? payment.provider_payment_id ?? payment.provider_reference} className="rounded-[14px] bg-[#f7f8fb] p-4">
                                             <div className="flex items-start justify-between gap-4">
                                                 <div>
-                                                    <p className="text-[14px] font-semibold text-[#111826]">{payment.status?.text || payment.method_code || "-"}</p>
+                                                    <p className="text-[14px] font-semibold text-[#111826]">{statusLabel(payment.status, t.paymentStatuses) || payment.method_code || "-"}</p>
                                                     <p className="mt-1 text-[13px] text-[#667085]">{payment.method_code || "-"}</p>
                                                 </div>
                                                 <div className="text-right text-[14px] text-[#344054]">
@@ -503,15 +506,20 @@ export default async function OrderDetailPage({
                             <div className="rounded-[20px] bg-white px-0 py-5 sm:p-5">
                                 <h3 className="text-[18px] font-semibold text-[#111826]">{t.statusHistory}</h3>
                                 <div className="mt-4 space-y-3">
-                                    {history.map((entry, index) => (
+                                    {history.map((entry, index) => {
+                                        const toStatusText = statusLabel(entry.to_status, t.orderStatuses);
+                                        const fromStatusText = statusLabel(entry.from_status, t.orderStatuses);
+
+                                        return (
                                         <div key={entry.id ?? index} className="rounded-[14px] bg-[#f7f8fb] p-4">
-                                            <p className="text-[14px] font-semibold text-[#111826]">{entry.to_status?.text || "-"}</p>
-                                            {entry.from_status?.text ? <p className="mt-1 text-[13px] text-[#667085]">{t.changedFrom}: {entry.from_status.text} → {entry.to_status?.text || "-"}</p> : null}
+                                            <p className="text-[14px] font-semibold text-[#111826]">{toStatusText || "-"}</p>
+                                            {fromStatusText ? <p className="mt-1 text-[13px] text-[#667085]">{t.changedFrom}: {fromStatusText} → {toStatusText || "-"}</p> : null}
                                             {entry.changed_by?.name ? <p className="mt-1 text-[13px] text-[#667085]">{t.changedBy}: {entry.changed_by.name}</p> : null}
                                             {entry.note ? <p className="mt-1 text-[13px] text-[#667085]">{entry.note}</p> : null}
                                             {entry.created_at ? <p className="mt-2 text-[12px] text-[#98a2b3]">{formatDateTime(entry.created_at, locale)}</p> : null}
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ) : null}

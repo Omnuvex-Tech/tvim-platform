@@ -374,14 +374,14 @@ const ProductDetailTabs = ({
 
         setIsSubmittingComment(true);
         try {
-            const response = await createProductComment({
+            await createProductComment({
                 productVariationId,
                 fullname,
                 rating: commentRating,
                 comment,
             });
 
-            notify.success(response.message || t.commentSent);
+            notify.success(t.commentSent);
             setCommentName("");
             setCommentText("");
             setCommentRating(0);
@@ -584,7 +584,7 @@ const ProductDetailTabs = ({
 
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
                                 <span className="text-[16px] font-normal text-[#1b202b]">
-                                    <span className="mr-0 text-[#e01010]">*</span> <span className="-ml-[2px]">Reytinq</span>
+                                    <span className="mr-0 text-[#e01010]">*</span> <span className="-ml-[2px]">{t.rating}</span>
                                 </span>
                                 <div className="flex items-center gap-1 text-[20px] leading-none">
                                     {Array.from({ length: 5 }).map((_, idx) => {

@@ -12,6 +12,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { AccountNavigation } from "../account-navigation";
 import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
+import { statusLabel } from "@/lib/order-status";
 
 type OrderStatus = {
     code?: string | null;
@@ -271,7 +272,7 @@ export default async function OrdersPage({
                         <div className="mt-8 space-y-6 sm:mt-10 sm:space-y-8">
                             {!ordersResponse.success ? (
                                 <div className="rounded-[18px] bg-[#f7f8fb] p-5 text-[14px] font-medium text-[#b42318]">
-                                    {ordersResponse.message || t.orders.loadFailed}
+                                    {t.orders.loadFailed}
                                 </div>
                             ) : orders.length === 0 ? (
                                 <div className="rounded-[18px] bg-[#f7f8fb] p-5 text-[14px] font-medium text-[#202938]">
@@ -282,8 +283,8 @@ export default async function OrdersPage({
                                     const detail = detailMap.get(order.uuid || String(order.id)) || null;
                                     const orderData = detail ?? order;
                                     const items = Array.isArray(orderData.items) ? orderData.items : [];
-                                    const statusText = (orderData.status?.text ?? order.status?.text ?? "").toString();
-                                    const paymentStatusText = (orderData.payment_status?.text ?? order.payment_status?.text ?? "").toString();
+                                    const statusText = statusLabel(orderData.status ?? order.status, t.orderStatuses);
+                                    const paymentStatusText = statusLabel(orderData.payment_status ?? order.payment_status, t.paymentStatuses);
                                     const orderNumber = orderData.number || order.number || `#${order.id}`;
                                     const placedAt = formatDate(orderData.placed_at || order.placed_at, locale);
                                     const currency = (orderData.currency || order.currency || "AZN").toString();
