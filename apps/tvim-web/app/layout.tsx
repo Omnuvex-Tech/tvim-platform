@@ -26,6 +26,11 @@ export const metadata: Metadata = {
     title: config.project.projectName,
     description: config.project.projectDescription,
     keywords: [...config.project.keywords],
+    // Renders <meta name="google-site-verification" ...> into every page's
+    // head; child metadata inherits it, so Search Console can verify any URL.
+    verification: {
+        google: "eWe-tmi3JBc_oLpVnUBgfOvJLeXW2XKKqb8vmLzW0vU",
+    },
 };
 
 export default function RootLayout({
