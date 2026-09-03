@@ -207,7 +207,8 @@ export default async function OrderDetailPage({
 }) {
     const { locale: routeLocale, id } = await params;
     const locale = normalizeLocale(routeLocale);
-    const t = getTranslations(locale).account.orderDetail;
+    const account = getTranslations(locale).account;
+    const t = account.orderDetail;
     const homePageMeta = config.pages.home[locale];
     const orderHistoryPageMeta = config.pages.orderHistory[locale];
     const orderDetailPageMeta = config.pages.orderDetail[locale];
@@ -296,8 +297,8 @@ export default async function OrderDetailPage({
     const history = Array.isArray(order.status_histories) ? order.status_histories : [];
     const payments = Array.isArray(order.payments) ? order.payments : [];
     const firstPayment = payments[0] ?? null;
-    const orderStatusText = statusLabel(order.status, t.orderStatuses);
-    const paymentStatusText = statusLabel(order.payment_status, t.paymentStatuses);
+    const orderStatusText = statusLabel(order.status, account.orderStatuses);
+    const paymentStatusText = statusLabel(order.payment_status, account.paymentStatuses);
     const selectedInstallment = order.payment_method?.selected_installment ?? firstPayment?.payment_installment ?? null;
     const promoDiscount = Number(order.totals?.promo_discount ?? order.promo?.discount ?? 0);
     const hourDiscount = Number(order.totals?.discount_hour_discount ?? 0);
@@ -426,7 +427,7 @@ export default async function OrderDetailPage({
                                 {firstPayment ? (
                                     <>
                                         <p><span className="font-medium text-[#111826]">{t.firstPayment}:</span> {formatAmount(firstPayment.amount)} {firstPayment.currency || "AZN"}</p>
-                                        <p><span className="font-medium text-[#111826]">{t.paymentStatus}:</span> {statusLabel(firstPayment.status, t.paymentStatuses) || "-"}</p>
+                                        <p><span className="font-medium text-[#111826]">{t.paymentStatus}:</span> {statusLabel(firstPayment.status, account.paymentStatuses) || "-"}</p>
                                         <p><span className="font-medium text-[#111826]">{t.gateway}:</span> {firstPayment.provider_reference || firstPayment.provider_payment_id || "-"}</p>
                                     </>
                                 ) : null}
@@ -470,7 +471,7 @@ export default async function OrderDetailPage({
                                         <div key={payment.id ?? payment.provider_payment_id ?? payment.provider_reference} className="rounded-[14px] bg-[#f7f8fb] p-4">
                                             <div className="flex items-start justify-between gap-4">
                                                 <div>
-                                                    <p className="text-[14px] font-semibold text-[#111826]">{statusLabel(payment.status, t.paymentStatuses) || payment.method_code || "-"}</p>
+                                                    <p className="text-[14px] font-semibold text-[#111826]">{statusLabel(payment.status, account.paymentStatuses) || payment.method_code || "-"}</p>
                                                     <p className="mt-1 text-[13px] text-[#667085]">{payment.method_code || "-"}</p>
                                                 </div>
                                                 <div className="text-right text-[14px] text-[#344054]">
@@ -507,8 +508,8 @@ export default async function OrderDetailPage({
                                 <h3 className="text-[18px] font-semibold text-[#111826]">{t.statusHistory}</h3>
                                 <div className="mt-4 space-y-3">
                                     {history.map((entry, index) => {
-                                        const toStatusText = statusLabel(entry.to_status, t.orderStatuses);
-                                        const fromStatusText = statusLabel(entry.from_status, t.orderStatuses);
+                                        const toStatusText = statusLabel(entry.to_status, account.orderStatuses);
+                                        const fromStatusText = statusLabel(entry.from_status, account.orderStatuses);
 
                                         return (
                                         <div key={entry.id ?? index} className="rounded-[14px] bg-[#f7f8fb] p-4">
