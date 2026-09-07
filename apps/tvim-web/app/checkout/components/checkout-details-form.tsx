@@ -537,6 +537,9 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
         const effectiveLocale = ["az", "ru", "en"].includes(locale.trim().toLowerCase()) ? locale.trim().toLowerCase() : "az";
         const body: any = {
             payment_method: paymentMethodKey,
+            // The form has always asked for an email but never sent it, so guest
+            // orders arrived with no way to reach the buyer back.
+            ...(email.trim() ? { email: email.trim() } : {}),
             ...(installments.length > 0 && selectedInstallmentId ? { payment_installment_id: selectedInstallmentId } : {}),
             ...(comment.trim() ? { comment: comment.trim() } : {}),
         };
