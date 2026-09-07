@@ -1,8 +1,5 @@
-import { notFound } from "next/navigation";
-import {
-    generateBrandNewsMetadata,
-    renderBrandNewsSlugPage,
-} from "@/app/brands/news/[slug]/page";
+import { notFound, permanentRedirect } from "next/navigation";
+import { resolveBrandNewsHostLink } from "@/app/brands/news/[slug]/page";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandNewsLocaleRouteParams = {
@@ -10,11 +7,11 @@ type BrandNewsLocaleRouteParams = {
     slug: string;
 };
 
-// Rendered on demand and revalidated; the menu list payload carries no items,
-// so a generateStaticParams here only ever produced an empty list.
-export const revalidate = 300;
-export const dynamicParams = true;
-
+/**
+ * /{locale}/brands/news/{slug} is retired. Brand news articles are served from
+ * their parent menu's own link, like every other menu-driven page, so this path
+ * only forwards the traffic that is already indexed against it.
+ */
 export default async function LocalizedBrandNewsSlugPage({
     params,
 }: {
@@ -27,26 +24,11 @@ export default async function LocalizedBrandNewsSlugPage({
         notFound();
     }
 
-    return renderBrandNewsSlugPage({
-        slug,
-        locale: normalizedLocale,
-    });
-}
+    const menuLink = await resolveBrandNewsHostLink(normalizedLocale);
 
-export async function generateMetadata({
-    params,
-}: {
-    params: Promise<BrandNewsLocaleRouteParams>;
-}) {
-    const { locale, slug } = await params;
-    const normalizedLocale = locale.trim().toLowerCase();
-
-    if (!isSupportedLocale(normalizedLocale)) {
-        return {};
+    if (!menuLink) {
+        notFound();
     }
 
-    return generateBrandNewsMetadata({
-        slug,
-        locale: normalizedLocale,
-    });
+    permanentRedirect(`/${normalizedLocale}/${menuLink}/${encodeURIComponent(slug)}`);
 }

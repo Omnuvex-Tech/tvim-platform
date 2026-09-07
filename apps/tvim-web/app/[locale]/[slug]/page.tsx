@@ -478,10 +478,10 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 id: String(v?.value_id ?? v?.id ?? `company-${i}`),
                 name: v?.name ?? v?.title ?? "",
                 logo: v?.image ?? v?.image_url ?? v?.logo ?? null,
+                // Menu-driven, like every other item link: the segment is this
+                // menu's own slug, never a path fixed in the code.
                 url: v?.slug
-                    ? (isGridView
-                        ? `/${normalizedLocale}/${slug}/${String(v.slug)}`
-                        : `/${normalizedLocale}/brands/news/${String(v.slug)}`)
+                    ? `/${normalizedLocale}/${slug}/${String(v.slug)}`
                     : (v?.url ?? v?.link ?? v?.website ?? "").toString().trim() || undefined,
             }))
             .filter((c) => Boolean(c.name));
@@ -552,14 +552,16 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                             datetime1?: string | null;
                         }>;
 
-                        const includedMenuLink = resolveIncludedMenuLink(inc.menu);
-
+                        // The article opens under THIS page's link, not under the
+                        // included menu's own one: brand news is reached through the
+                        // page that shows it, so /corporate/{article}, never
+                        // /brand-news/{article}.
                         const companies: Company[] = items
                             .map((item, itemIndex) => {
                                 const localizedSlug = item.multi_slugs?.[normalizedLocale] || item.slug || "";
                                 const cleanSlug = String(localizedSlug).trim().replace(/^\/+|\/+$/g, "");
-                                const href = cleanSlug && includedMenuLink
-                                    ? `/${normalizedLocale}/${includedMenuLink}/${cleanSlug}`
+                                const href = cleanSlug
+                                    ? `/${normalizedLocale}/${slug}/${cleanSlug}`
                                     : "#";
                                 const logo = item.main_photo || item.banner || null;
                                 return {

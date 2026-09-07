@@ -17,6 +17,12 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
 import { isSupportedLocale, SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 import { getProductSlugsByLocale } from "@/lib/product-slugs";
+import {
+    BRAND_NEWS_VIEW_TYPE,
+    generateBrandNewsMetadata,
+    renderBrandNewsSlugPage,
+    resolveBrandNewsHostLink,
+} from "@/app/brands/news/[slug]/page";
 import { getTranslations } from "@/lib/i18n";
 import { resolveLegacyServicePath } from "@/lib/legacy-services";
 
@@ -314,6 +320,67 @@ function resolveBreadcrumbHref(crumb: ProductDetailBreadcrumb, locale: string) {
     return nameSlug ? `/${locale}/${nameSlug}` : undefined;
 }
 
+/**
+ * Whether this two-segment path belongs to the brand-news menu.
+ *
+ * Matched on the menu's view type, never on its link: the link is editable in
+ * the admin, and hardcoding it was what pinned these articles to a fixed
+ * /brands/news path in the first place.
+ */
+type BrandNewsRole = "none" | "self" | "host";
+
+/**
+ * How this two-segment path relates to brand news: the menu may BE the
+ * brand-news menu ("self"), or be a page that includes it ("host") — Corporate
+ * does. Articles belong to the host, so "self" only ever redirects.
+ *
+ * Matched on view type, never on the link: links are editable in the admin, and
+ * hardcoding one is what pinned these articles to /brands/news before.
+ */
+async function resolveBrandNewsRole(menuLink: string, locale: string): Promise<BrandNewsRole> {
+    const cleanLink = String(menuLink ?? "").trim().replace(/^\/+|\/+$/g, "");
+    if (!cleanLink) return "none";
+
+    const isBrandNewsViewType = (value: unknown) =>
+        String(value ?? "").trim().toLowerCase() === BRAND_NEWS_VIEW_TYPE;
+
+    try {
+        const detail = await getPublicMenuDetail<any>(cleanLink, locale);
+
+        if (isBrandNewsViewType(detail?.menu?.view_type ?? detail?.data?.menu?.view_type)) {
+            return "self";
+        }
+
+        const includedItems = detail?.included_items ?? detail?.data?.included_items;
+
+        if (Array.isArray(includedItems) && includedItems.some((inc: any) => isBrandNewsViewType(inc?.menu?.view_type))) {
+            return "host";
+        }
+
+        return "none";
+    } catch {
+        return "none";
+    }
+}
+
+/** The host page's path for an article, when it is not already being served there. */
+async function brandNewsRedirectTarget(
+    role: BrandNewsRole,
+    menuLink: string,
+    itemSlug: string,
+    locale: string,
+): Promise<string | null> {
+    if (role !== "self") return null;
+
+    const hostLink = await resolveBrandNewsHostLink(locale);
+    const cleanLink = String(menuLink ?? "").trim().replace(/^\/+|\/+$/g, "").toLowerCase();
+
+    if (!hostLink || hostLink.toLowerCase() === cleanLink) return null;
+
+    return `/${locale}/${hostLink}/${encodeURIComponent(itemSlug)}`;
+}
+
+
 export async function generateMetadata({
     params,
 }: {
@@ -329,8 +396,14 @@ export async function generateMetadata({
     if (slug.trim().toLowerCase() === "services") {
         return {};
     }
-    if (slug.trim().toLowerCase() === "brand-news") {
-        return {};
+    const brandNewsMetaRole = await resolveBrandNewsRole(slug, normalizedLocale);
+
+    if (brandNewsMetaRole !== "none") {
+        // The redirecting path publishes nothing of its own.
+        if (await brandNewsRedirectTarget(brandNewsMetaRole, slug, itemSlug, normalizedLocale)) {
+            return {};
+        }
+        return generateBrandNewsMetadata({ menuLink: slug, slug: itemSlug, locale: normalizedLocale });
     }
 
     if (isProductSlug(slug)) {
@@ -429,8 +502,17 @@ export default async function GridDetailPage({
     const sourceParamRaw = resolvedSearchParams?.source;
     const sourceParam = Array.isArray(sourceParamRaw) ? sourceParamRaw[0] : sourceParamRaw;
     const isDiscountSource = String(sourceParam ?? "").trim().toLowerCase() === "discount";
-    if (slug.trim().toLowerCase() === "brand-news") {
-        redirect(`/${normalizedLocale}/brands/news/${itemSlug}`);
+    // Brand-news articles keep their own layout and render here, under the page
+    // that shows them. Reaching one through the brand-news menu's own link is
+    // sent on to that page so the article has a single address.
+    const brandNewsRole = await resolveBrandNewsRole(slug, normalizedLocale);
+
+    if (brandNewsRole !== "none") {
+        const target = await brandNewsRedirectTarget(brandNewsRole, slug, itemSlug, normalizedLocale);
+        if (target) {
+            permanentRedirect(target);
+        }
+        return renderBrandNewsSlugPage({ menuLink: slug, slug: itemSlug, locale: normalizedLocale });
     }
 
     const chrome = await getSiteChromeData(normalizedLocale);

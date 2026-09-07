@@ -175,7 +175,6 @@ const collectMenuPaths = (
     const record = node as Record<string, unknown>;
     const ownPath = readLocalizedLink(record, locale);
     const currentPath = ownPath || parentPath;
-    const viewType = String(record.view_type ?? "").trim().toLowerCase();
 
     if (ownPath) {
         paths.set(`${locale}/${ownPath}`, toIsoDate(record.updated_at ?? record.created_at));
@@ -196,11 +195,10 @@ const collectMenuPaths = (
         const slug = normalizePath(typeof localizedSlug === "string" ? localizedSlug : String(item.slug ?? ""));
         if (!slug) return;
 
-        const itemPath = viewType === "brand-news"
-            ? `${locale}/brands/news/${slug}`
-            : currentPath
-                ? `${locale}/${currentPath}/${slug}`
-                : `${locale}/${slug}`;
+        // Every menu item, brand news included, sits under its own menu's link.
+        const itemPath = currentPath
+            ? `${locale}/${currentPath}/${slug}`
+            : `${locale}/${slug}`;
 
         paths.set(itemPath, toIsoDate(item.updated_at ?? item.datetime1 ?? item.created_at));
     });

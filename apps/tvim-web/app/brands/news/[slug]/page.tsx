@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Breadcrumb, RemoteImage } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
@@ -54,13 +54,80 @@ type MenuDetailData = {
     };
 };
 
-const BRAND_NEWS_MENU_LINK = "brand-news";
+// The article lives under whatever link its parent menu carries in the admin,
+// so nothing here may assume a fixed path. The menu is recognised by its view
+// type, which is a separate column and does not change when the link is renamed.
+export const BRAND_NEWS_VIEW_TYPE = "brand-news";
+
+/** The parent menu's link for one locale, falling back to the one in the URL. */
+const resolveMenuLinkForLocale = (detail: MenuDetailData | null, localeCode: string, fallback: string) => {
+    const multi = (detail?.menu as any)?.multi_links;
+    const value = multi && typeof multi === "object" && !Array.isArray(multi)
+        ? (multi as Record<string, unknown>)[localeCode]
+        : null;
+    const clean = String(value ?? "").trim().replace(/^\/+|\/+$/g, "");
+    return clean || fallback;
+};
+
+/**
+ * Where brand-news articles actually live.
+ *
+ * The articles are reached through the page that displays them — Corporate
+ * includes the brand-news menu as a block — so the URL segment is that host
+ * page's link, not the brand-news menu's own. Falls back to the brand-news
+ * menu's link when no page includes it.
+ */
+export async function resolveBrandNewsHostLink(locale: string): Promise<string | null> {
+    const readLink = (entry: Record<string, any>) => {
+        const link = entry?.multi_links?.[locale] || entry?.link || "";
+        return String(link).trim().replace(/^\/+|\/+$/g, "") || null;
+    };
+
+    try {
+        const menuList = await getPublicMenuList(locale);
+        let hostLink: string | null = null;
+        let ownLink: string | null = null;
+
+        const walk = (node: unknown): void => {
+            if (hostLink || !node || typeof node !== "object") return;
+            if (Array.isArray(node)) {
+                node.forEach(walk);
+                return;
+            }
+            const entry = node as Record<string, any>;
+
+            if (Array.isArray(entry.included_items)) {
+                const hostsBrandNews = entry.included_items.some(
+                    (inc: any) => String(inc?.menu?.view_type ?? "").trim().toLowerCase() === BRAND_NEWS_VIEW_TYPE,
+                );
+                if (hostsBrandNews) {
+                    const link = readLink(entry);
+                    if (link) {
+                        hostLink = link;
+                        return;
+                    }
+                }
+            }
+
+            if (!ownLink && String(entry.view_type ?? "").trim().toLowerCase() === BRAND_NEWS_VIEW_TYPE) {
+                ownLink = readLink(entry);
+            }
+
+            Object.values(entry).forEach(walk);
+        };
+
+        walk(menuList);
+        return hostLink ?? ownLink;
+    } catch {
+        return null;
+    }
+}
 
 const normalizeSlug = (value: string) => decodeURIComponent(String(value ?? "")).trim().toLowerCase().replace(/^\/+|\/+$/g, "");
 
 const normalizeSlugText = (value: string) => decodeURIComponent(String(value ?? "")).trim().replace(/[-_]+/g, " ").trim();
 
-async function getMenuDetail(slug: string, locale: string) {
+async function getMenuDetail(menuLink: string, slug: string, locale: string) {
     const normalizedSlug = normalizeSlug(slug);
 
     const tryResolveFromPayload = (payload: any): MenuDetailData | null => {
@@ -123,10 +190,29 @@ async function getMenuDetail(slug: string, locale: string) {
     };
 
     try {
-        const responseDetail = await getPublicMenuDetail<any>(BRAND_NEWS_MENU_LINK, locale, normalizedSlug);
+        const responseDetail = await getPublicMenuDetail<any>(menuLink, locale, normalizedSlug);
         if (responseDetail) {
             const fromDetail = tryResolveFromPayload(responseDetail);
-            if (fromDetail) return fromDetail;
+
+            if (fromDetail) {
+                // On a page that only *includes* the brand-news menu, the article
+                // sits inside an included block rather than in the menu's own
+                // items, so the payload shape alone resolves to the menu and the
+                // page would render "Corporate" for every article. Keep that menu
+                // — breadcrumbs and language links need it — and attach the
+                // article the URL actually asks for.
+                if (!fromDetail.data?.item) {
+                    const nestedItem = tryDeepFindItem(responseDetail);
+                    if (nestedItem) {
+                        return {
+                            ...fromDetail,
+                            data: { ...fromDetail.data, item: nestedItem },
+                        } as MenuDetailData;
+                    }
+                }
+
+                return fromDetail;
+            }
 
             const deepItem = tryDeepFindItem(responseDetail);
             if (deepItem) {
@@ -177,17 +263,21 @@ const resolveMainItem = (detail: MenuDetailData, slug: string, locale: string): 
 };
 
 type BrandNewsPageProps = {
+    /** The parent menu's link as it appears in the URL for this locale. */
+    menuLink: string;
     slug: string;
     locale: string;
 };
 
 export async function generateBrandNewsMetadata({
+    menuLink,
     slug,
     locale: incomingLocale,
 }: BrandNewsPageProps): Promise<Metadata> {
     const normalizedSlug = normalizeSlug(slug);
+    const normalizedMenuLink = normalizeSlug(menuLink);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
-    const menuDetail = await getMenuDetail(normalizedSlug, locale);
+    const menuDetail = await getMenuDetail(normalizedMenuLink, normalizedSlug, locale);
 
     if (!menuDetail?.menu) {
         return {};
@@ -207,7 +297,7 @@ export async function generateBrandNewsMetadata({
     const alternatePathByLocale = Object.entries(mainItem?.multi_slugs ?? {}).reduce<Record<string, string>>(
         (acc, [localeCode, localeSlug]) => {
             const cleanSlug = String(localeSlug ?? "").trim().replace(/^\/+|\/+$/g, "");
-            if (cleanSlug) acc[localeCode] = `${localeCode}/brands/news/${cleanSlug}`;
+            if (cleanSlug) acc[localeCode] = `${localeCode}/${resolveMenuLinkForLocale(menuDetail, localeCode, normalizedMenuLink)}/${cleanSlug}`;
             return acc;
         },
         {},
@@ -219,7 +309,7 @@ export async function generateBrandNewsMetadata({
         description: pageDescription || `${pageTitle} haqqinda yenilikleri TVIM daxilinde oxuyun.`,
         keywords: [pageTitle, "brand news", "tvim"],
         locale,
-        canonicalPath: `${locale}/brands/news/${normalizedSlug}`,
+        canonicalPath: `${locale}/${normalizedMenuLink}/${normalizedSlug}`,
         siteUrl: config.project.siteUrl,
         ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
         image: bannerImage || undefined,
@@ -228,15 +318,17 @@ export async function generateBrandNewsMetadata({
 }
 
 export async function renderBrandNewsSlugPage({
+    menuLink,
     slug,
     locale: incomingLocale,
 }: BrandNewsPageProps) {
     const normalizedSlug = normalizeSlug(slug);
+    const normalizedMenuLink = normalizeSlug(menuLink);
     const locale = normalizeLocale(incomingLocale || config.project.defLang);
     const t = getTranslations(locale);
 
     const [menuDetail, chrome] = await Promise.all([
-        getMenuDetail(normalizedSlug, locale),
+        getMenuDetail(normalizedMenuLink, normalizedSlug, locale),
         getSiteChromeData(locale),
     ]);
 
@@ -261,7 +353,7 @@ export async function renderBrandNewsSlugPage({
     const localizedLinks = Object.entries(mainItem?.multi_slugs ?? {}).reduce<Record<string, string>>(
         (acc, [localeCode, localeSlug]) => {
             const cleanSlug = String(localeSlug ?? "").trim().replace(/^\/+|\/+$/g, "");
-            if (cleanSlug) acc[localeCode] = `brands/news/${cleanSlug}`;
+            if (cleanSlug) acc[localeCode] = `${resolveMenuLinkForLocale(menuDetail, localeCode, normalizedMenuLink)}/${cleanSlug}`;
             return acc;
         },
         {},
@@ -342,6 +434,11 @@ export async function renderBrandNewsSlugPage({
     );
 }
 
+/**
+ * /brands/news/{slug} is retired — the article is served from the parent menu's
+ * own link now. These paths are indexed, so they redirect permanently instead
+ * of 404ing.
+ */
 export default async function BrandNewsSlugPage({
     params,
 }: {
@@ -350,5 +447,11 @@ export default async function BrandNewsSlugPage({
     const { slug } = await params;
     const cookieStore = await cookies();
     const locale = normalizeLocale(cookieStore.get("preferred-locale")?.value ?? config.project.defLang);
-    redirect(`/${locale}/brands/news/${encodeURIComponent(slug)}`);
+    const menuLink = await resolveBrandNewsHostLink(locale);
+
+    if (!menuLink) {
+        notFound();
+    }
+
+    permanentRedirect(`/${locale}/${menuLink}/${encodeURIComponent(slug)}`);
 }
