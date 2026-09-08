@@ -31,7 +31,7 @@ export function ThankYouWrapper({ locale }: { locale: SiteLocale }) {
       subtitle={copy.subtitle}
       buttonLabel={copy.button}
       buttonHref={`/${locale}`}
-      imageSrc="/images/thank-you.png"
+      imageSrc="/images/thank-you.webp"
     />
   );
 }
