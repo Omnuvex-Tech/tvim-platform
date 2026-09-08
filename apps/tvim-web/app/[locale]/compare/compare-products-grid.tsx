@@ -35,6 +35,7 @@ const getUniqueSpecLabels = (items: CompareListItem[]) => Array.from(new Set(ite
 export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
     const notify = useNotify();
     const cartCopy = useMemo(() => getTranslations(locale).cart, [locale]);
+    const productCopy = useMemo(() => getTranslations(locale).product, [locale]);
     const [items, setItems] = useState<CompareListItem[]>(initialItems);
     const [showOnlyDifferent, setShowOnlyDifferent] = useState(false);
     const [pendingCartVariationIds, setPendingCartVariationIds] = useState<Set<number>>(new Set());
@@ -110,9 +111,9 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                 setItems((prev) => prev.filter((entry) => entry.product_variation_id !== variationId));
             }
 
-            if (response.message) {
-                notify.success(response.message);
-            }
+            notify.success(
+                response.data.action === "created" ? productCopy.compareAdded : productCopy.compareRemoved
+            );
         } catch (error) {
             const message = error instanceof Error ? error.message : copy.removeCompareFailed;
             notify.error(message);
@@ -162,9 +163,9 @@ export function CompareProductsGrid({ locale, initialItems, copy }: Props) {
                 return entry;
             }));
 
-            if (response.message) {
-                notify.success(response.message);
-            }
+            notify.success(
+                response.data.action === "created" ? productCopy.favoriteAdded : productCopy.favoriteRemoved
+            );
         } catch (error) {
             const message = error instanceof Error ? error.message : copy.favoriteToggleFailed;
             notify.error(message);
