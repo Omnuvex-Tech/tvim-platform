@@ -70,8 +70,8 @@ export default function RootLayout({
                         <LocalizedLinksProvider>
                             <main className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">{children}</main>
                         </LocalizedLinksProvider>
-                        <MobileBottomTabs />
-                        <VexvonBubbleOffset />
+                        <MobileBottomTabs /> 
+                         <VexvonBubbleOffset />
                         <NotifyContainer />
                         <DevelopmentPerformance />
                     </NotifyProvider>
