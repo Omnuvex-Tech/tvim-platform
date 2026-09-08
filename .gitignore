@@ -23,9 +23,16 @@ coverage
 
 # Build Outputs
 .next/
+.next.bak*/
+.next-*/
 out/
 build
 dist
+
+# Local backups
+*.bak
+*.bak-*/
+*.backup
 
 
 # Debug
