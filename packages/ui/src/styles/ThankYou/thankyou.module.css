@@ -14,9 +14,14 @@
     margin-right: -50vw;
 }
 
-/* next/image renders with fill, so it is absolutely positioned inside the
-   wrapper; it only needs the cover behaviour the background-size gave it. */
+/* Stands in for what next/image's `fill` used to apply: the img is a plain
+   one now, so it positions itself over the wrapper and keeps the cover
+   behaviour the original background-size gave it. */
 .image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     z-index: 0;
 }

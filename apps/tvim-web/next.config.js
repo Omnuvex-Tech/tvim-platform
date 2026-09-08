@@ -37,6 +37,26 @@ const nextConfig = {
         // the optimizer cache, which hid the breakage.
         dangerouslyAllowLocalIP: true,
     },
+    // Files under public/ are served with `max-age=0`, which was fine while the
+    // thank-you backdrop went through /_next/image and inherited that route's
+    // 30-day cache. It is a static build artefact now, so it has to ask for the
+    // cache itself or every repeat visitor revalidates the page's largest
+    // paint. The variants are rewritten only by scripts/build-thank-you-image.mjs,
+    // so this is not marked immutable.
+    async headers() {
+        return [
+            {
+                source: "/images/thank-you/:file",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=2592000",
+                    },
+                ],
+            },
+        ];
+    },
+
     // The brand list used to live under /product/brands; it is served from
     // /brands now, so the old paths are kept alive as permanent redirects.
     async redirects() {
