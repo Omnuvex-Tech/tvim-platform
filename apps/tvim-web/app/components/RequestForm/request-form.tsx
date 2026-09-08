@@ -2,8 +2,8 @@
 
 import { RequestForm as RequestFormUI } from "@repo/ui";
 import type { RequestFormData, RequestFormField, RequestFormProps, RequestFormSubmitResult } from "@repo/types/types";
-import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { resolveRequestFormSubmitConfig } from "@/lib/request-form";
 import { isCompleteAzMobile } from "@repo/shared/utils";
 
@@ -230,11 +230,19 @@ function findFirstValidationError(
 
 const RequestForm = (props: RequestFormProps) => {
     const pathname = usePathname();
+    const router = useRouter();
     const locale = useMemo(() => {
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0]?.toLowerCase() ?? "";
         return segment === "ru" || segment === "en" || segment === "az" ? segment : "az";
     }, [pathname]);
     const localizedCopy = useMemo(() => requestFormCopy[locale], [locale]);
+    const thankYouPath = `/${locale}/thank-you`;
+
+    // Warmed up ahead of time so the jump after a successful send is instant
+    // rather than a blank pause on an unvisited route.
+    useEffect(() => {
+        router.prefetch(thankYouPath);
+    }, [router, thankYouPath]);
     const fieldPlaceholders = useMemo(
         () => placeholdersFromFields(props.fields),
         [props.fields],
@@ -349,6 +357,13 @@ const RequestForm = (props: RequestFormProps) => {
         const extra = (await props.onSubmit?.(normalizedData)) as void | RequestFormSubmitResult;
         const message = typeof extra?.message === "string" && extra.message.trim() ? extra.message.trim() : successMessage;
         const mergedOk = typeof extra?.ok === "boolean" ? extra.ok : ok;
+
+        // Only a request that actually reached the backend earns the thank-you
+        // page; a form rendered without a submit config never gets here.
+        if (mergedOk) {
+            router.push(thankYouPath);
+        }
+
         if (message || mergedOk) {
             return { message, ok: mergedOk } satisfies RequestFormSubmitResult;
         }
