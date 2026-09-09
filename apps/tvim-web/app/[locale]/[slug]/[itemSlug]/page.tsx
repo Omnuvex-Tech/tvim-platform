@@ -17,6 +17,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
 import { isSupportedLocale, SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 import { getProductSlugsByLocale } from "@/lib/product-slugs";
+import { productCacheOptions } from "@/lib/cache-tags";
 import {
     BRAND_NEWS_VIEW_TYPE,
     generateBrandNewsMetadata,
@@ -265,9 +266,14 @@ const resolveAssetUrl = (value: string | null | undefined) => {
 
 async function getProductDetailBySlug(slug: string, locale: string) {
     try {
+        // Əvvəl burada `cache: "force-cache"` vardı: Next cavabı `revalidate:
+        // 31536000` (1 il) ilə yazırdı, ona görə admin-də yüklənən yeni şəkil
+        // saytda heç vaxt görünmürdü (09.09.2026, məhsul 7351). Səhifədəki
+        // `export const revalidate = 300` yalnız HTML-i yenidən render edir —
+        // render isə hər dəfə eyni dondurulmuş cavabı oxuyurdu.
         const response = await api.get<ProductDetailData>(config.endpoints.products.detailBySlug(slug), {
             locale,
-            cache: "force-cache",
+            next: productCacheOptions(slug),
         });
         if (response.success && response.data) return { ok: true as const, data: response.data };
         return { ok: false as const, message: response.message };

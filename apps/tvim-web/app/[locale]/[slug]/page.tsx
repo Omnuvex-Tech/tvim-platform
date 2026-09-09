@@ -23,6 +23,7 @@ import { resolveLegacyFlatSlugTarget } from "@/lib/legacy-flat-urls";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { isSupportedLocale } from "@/lib/site-locales";
+import { PRODUCTS_TAG, PRODUCT_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { getTranslations } from "@/lib/i18n";
 import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
@@ -189,9 +190,16 @@ type ProductListApiResponse = {
 const getCachedProductListPayload = unstable_cache(
     async (requestUrl: string, locale: string) => {
         try {
+            // Xarici `unstable_cache` onsuz da 300 saniyəyə yenilənirdi, amma
+            // daxildəki `cache: "force-cache"` cavabı 1 il dondurduğu üçün funksiya
+            // yenidən işə düşəndə yenə köhnə cavabı oxuyurdu — bütün xarici TTL-ləri
+            // mənasız edən tələ məhz bu idi.
             const response = await fetch(requestUrl, {
                 method: "GET",
-                cache: "force-cache",
+                next: {
+                    revalidate: PRODUCT_REVALIDATE_SECONDS,
+                    tags: [PRODUCTS_TAG],
+                },
                 headers: {
                     Accept: "application/json",
                     "Content-Language": locale,
@@ -209,7 +217,9 @@ const getCachedProductListPayload = unstable_cache(
         }
     },
     ["public-product-list-payload"],
-    { revalidate: 300, tags: ["public-product-list-payload"] }
+    // PRODUCTS_TAG burada da verilir ki, admin bir dəfə `revalidateTag("products")`
+    // çağıranda həm bu unstable_cache qatı, həm də içindəki fetch qatı təmizlənsin.
+    { revalidate: 300, tags: ["public-product-list-payload", PRODUCTS_TAG] }
 );
 
 async function getMenuDetail(slug: string, locale: string, page?: number, perPage?: number) {

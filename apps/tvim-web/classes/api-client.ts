@@ -55,7 +55,15 @@ export class ApiClient {
             const cacheMode = typeof init.cache === "string" ? init.cache : "";
             const headers = normalizeHeaders(init.headers);
             const hasAuthHeader = typeof (headers as Record<string, unknown>)["Authorization"] === "string";
-            const canUseGetCache = method === "GET" && cacheMode !== "no-store" && !hasAuthHeader;
+
+            // Çağırış `next: { revalidate, tags }` verirsə, keşi Next-in Data Cache-i
+            // idarə edir. Bu Map onun qarşısında dayanır və `revalidateTag` çağırılsa
+            // belə 60 saniyə köhnə cavabı qaytarardı — ona görə bu halda söndürülür.
+            const usesNextCache =
+                typeof init.next === "object" && init.next !== null;
+
+            const canUseGetCache =
+                method === "GET" && cacheMode !== "no-store" && !hasAuthHeader && !usesNextCache;
 
             const cacheKey = canUseGetCache ? `${locale}|${url.toString()}` : "";
             const now = Date.now();
