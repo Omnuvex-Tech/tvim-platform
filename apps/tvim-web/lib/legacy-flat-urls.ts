@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { config } from "@/config";
+import { brandCacheOptions, productCacheOptions } from "@/lib/cache-tags";
 
 const BRAND_INDEX_SLUGS = new Set(["brendler", "brands", "brendy"]);
 
@@ -36,7 +37,7 @@ async function isProductSlug(slug: string, locale: string) {
     try {
         const response = await api.get(config.endpoints.products.detailBySlug(slug), {
             locale,
-            cache: "force-cache",
+            next: productCacheOptions(slug),
         });
 
         return Boolean(response.success && response.data);
@@ -49,7 +50,7 @@ async function findBrandSlug(slug: string, locale: string) {
     try {
         const response = await api.get<BrandListResponseData>("/product/brands", {
             locale,
-            cache: "force-cache",
+            next: brandCacheOptions(),
         });
 
         if (!response.success || !response.data) return null;

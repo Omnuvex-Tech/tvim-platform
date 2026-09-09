@@ -9,6 +9,7 @@ import { Pagination } from "@/app/components/Pagination/pagination";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { getSiteChromeData } from "@/lib/site-chrome";
+import { brandCacheOptions } from "@/lib/cache-tags";
 
 type ProductBrandsResponseData = {
     filter_id?: number;
@@ -151,7 +152,7 @@ export async function renderBrandsPage({
         getSiteChromeData(locale),
         api.get<ProductBrandsResponseData>("/product/brands", {
             locale,
-            cache: "force-cache",
+            next: brandCacheOptions(),
         }),
     ]);
 
