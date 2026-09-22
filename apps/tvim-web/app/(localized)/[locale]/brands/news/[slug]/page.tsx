@@ -1,5 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation";
-import { resolveBrandNewsHostLink } from "@/app/brands/news/[slug]/page";
+import { resolveBrandNewsHostLink } from "@/app/(main)/brands/news/[slug]/page";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandNewsLocaleRouteParams = {

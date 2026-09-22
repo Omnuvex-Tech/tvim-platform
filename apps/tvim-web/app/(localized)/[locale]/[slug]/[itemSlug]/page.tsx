@@ -23,7 +23,7 @@ import {
     generateBrandNewsMetadata,
     renderBrandNewsSlugPage,
     resolveBrandNewsHostLink,
-} from "@/app/brands/news/[slug]/page";
+} from "@/app/(main)/brands/news/[slug]/page";
 import { getTranslations } from "@/lib/i18n";
 import { resolveLegacyServicePath } from "@/lib/legacy-services";
 

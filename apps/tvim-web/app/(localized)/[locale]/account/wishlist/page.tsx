@@ -14,7 +14,7 @@ import { getTranslations } from "@/lib/i18n";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { localizedHref } from "@/lib/routes";
 import { AccountNavigation } from "../account-navigation";
-import { WishlistProductsGrid } from "@/app/[locale]/wishlist/wishlist-products-grid";
+import { WishlistProductsGrid } from "@/app/(localized)/[locale]/wishlist/wishlist-products-grid";
 
 export const metadata = buildNoIndexMetadata();
 

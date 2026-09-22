@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { getMainPageBlocks } from "@/lib/main-page";
 import {
     buildHomeMetadata,
@@ -7,36 +6,13 @@ import {
     resolveSiteUrlWithFallbacks,
 } from "@/lib/settings";
 import { config } from "@/config";
-import { normalizeLocale } from "@/lib/site-locales";
-import { MainPageBlocks } from "./components/MainPageBlocks/main-page-blocks";
-import { SitePageShell } from "./components/SiteChrome/site-page-shell";
-import { getPublicLanguages, getPublicProjectSettingsResponse } from "@/lib/public-data";
+import { resolveRootLocale } from "@/lib/root-locale";
+import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
+import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
+import { getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
 export const revalidate = 300;
-
-const resolveRootLocale = async () => {
-    const languages = await getPublicLanguages();
-    const siteDefaultLocale = normalizeLocale(
-        languages.find((language) => language.is_default_site)?.code ?? config.project.defLang
-    );
-
-    const cookieStore = await cookies();
-    const preferredLocale = normalizeLocale(
-        cookieStore.get("preferred-locale")?.value ?? "",
-        siteDefaultLocale
-    );
-
-    const hasPreferredLocale = languages.some(
-        (language) => language.code.trim().toLowerCase() === preferredLocale
-    );
-
-    return {
-        languages,
-        locale: hasPreferredLocale ? preferredLocale : siteDefaultLocale,
-        siteDefaultLocale,
-    };
-};
 
 export async function generateMetadata(): Promise<Metadata> {
     const { languages, siteDefaultLocale } = await resolveRootLocale();

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { RemoteImage } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
-import { RequestForm } from "../components/RequestForm/request-form";
+import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { CircleX, Minus, Plus } from "lucide-react";
 import { hydrateCart, removeCartItem, updateCartItemQuantity } from "@/lib/cart/client";
 import { CheckoutDetailsForm } from "./components/checkout-details-form";

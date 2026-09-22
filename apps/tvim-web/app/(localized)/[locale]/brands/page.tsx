@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import {
     generateBrandsMetadata,
     renderBrandsPage,
-} from "@/app/brands/brands-page";
+} from "@/app/(main)/brands/brands-page";
 import { getStaticLocaleCodes } from "@/lib/static-paths";
 import { isSupportedLocale } from "@/lib/site-locales";
 

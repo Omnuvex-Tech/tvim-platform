@@ -10,7 +10,8 @@ import { NavigationProgress } from "@/app/components/NavigationProgress/navigati
 import { LocalizedLinksProvider } from "@/app/components/SiteChrome/localized-links";
 import { VexvonBubbleOffset } from "@/app/components/VexvonBubble/vexvon-bubble-offset";
 import { config } from "@/config";
-import "./globals.css";
+import type { SiteLocale } from "@/lib/site-locales";
+import "@/app/globals.css";
 
 // Served as subsetted woff2 per unicode-range rather than the two raw variable
 // TTFs this used to ship (1.7MB on the wire, of which the italic face was never
@@ -22,7 +23,7 @@ const inter = Inter({
     display: "swap",
 });
 
-export const metadata: Metadata = {
+export const siteMetadata: Metadata = {
     title: config.project.projectName,
     description: config.project.projectDescription,
     keywords: [...config.project.keywords],
@@ -33,13 +34,26 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+/**
+ * The document every page is rendered into. It lives here rather than in a
+ * single root layout because `lang` has to name the language the page is
+ * actually written in: the site serves three, and a document that claims `az`
+ * on /ru mispronounces the whole page in a screen reader and tells crawlers
+ * and in-browser translators the wrong thing.
+ *
+ * Next only lets the segment that owns <html> read its own params, so the
+ * localized tree ((localized)/[locale]) and the unprefixed tree ((main)) each
+ * have their own root layout and both render this component.
+ */
+export function SiteDocument({
+    lang,
     children,
 }: Readonly<{
+    lang: SiteLocale;
     children: ReactNode;
 }>) {
     return (
-        <html lang="az" suppressHydrationWarning>
+        <html lang={lang} suppressHydrationWarning>
             <head>
                 <link
                     rel="stylesheet"

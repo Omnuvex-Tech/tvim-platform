@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import {
     generateBrandSlugMetadata,
     renderBrandSlugPage,
-} from "@/app/brands/brand-slug-page";
+} from "@/app/(main)/brands/brand-slug-page";
 import { isSupportedLocale } from "@/lib/site-locales";
 
 type BrandLocalePageSearchParams = {
