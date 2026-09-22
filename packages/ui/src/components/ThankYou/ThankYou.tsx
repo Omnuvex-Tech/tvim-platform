@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import styles from "../../styles/ThankYou/thankyou.module.css";
 
@@ -16,6 +17,8 @@ export interface ThankYouProps {
   /** Base path of the generated backdrop set, without the `-<width>.<ext>` suffix. */
   imageBase?: string;
   tone?: ThankYouTone;
+  /** Shown above the title. Carries the screen when there is no backdrop. */
+  icon?: ReactNode;
   /** Optional secondary action, rendered as a plain link under the button. */
   secondaryLabel?: string;
   secondaryHref?: string;
@@ -35,13 +38,14 @@ export function ThankYou({
   buttonHref,
   imageBase,
   tone = "success",
+  icon,
   secondaryLabel,
   secondaryHref,
 }: ThankYouProps) {
   const isError = tone === "error";
 
   return (
-    <section className={`${styles.wrapper} ${imageBase ? "" : styles.plain}`}>
+    <section className={`${styles.wrapper} ${imageBase ? "" : styles.compact}`}>
       {/* The backdrop is a plain <picture> rather than next/image because its
           variants are encoded at build time. It is a flat illustration, so
           avif is worth roughly 4 dB over webp at half the bytes here, but the
@@ -66,6 +70,7 @@ export function ThankYou({
       ) : null}
 
       <div className={styles.content}>
+        {icon ? <div className={styles.iconWrap}>{icon}</div> : null}
         <h1 className={`${styles.title} ${isError ? styles.titleError : ""}`}>{title}</h1>
         <p className={styles.subtitle}>{subtitle}</p>
         <Link

@@ -431,11 +431,10 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             corporate: "Korporativ",
         },
         paymentError: {
-            title: "Ödəniş alınmadı",
-            subtitle:
-                "Ödənişiniz tamamlanmadı və kartınızdan məbləğ çıxılmadı. Yenidən cəhd edə və ya başqa ödəniş üsulu seçə bilərsiniz.",
-            button: "Yenidən cəhd et",
-            secondary: "Ana səhifəyə qayıt",
+            title: "Ödəniş uğursuz",
+            subtitle: "Kartınızdan məbləğ çıxılmadı.",
+            button: "Ana səhifəyə qayıt",
+            secondary: "Yenidən cəhd et",
         },
         search: {
             title: "Axtarış",
@@ -863,10 +862,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         paymentError: {
             title: "Payment failed",
-            subtitle:
-                "Your payment did not go through and your card has not been charged. You can try again or choose another payment method.",
-            button: "Try again",
-            secondary: "Back to homepage",
+            subtitle: "Your card has not been charged.",
+            button: "Back to homepage",
+            secondary: "Try again",
         },
         search: {
             title: "Search",
@@ -1294,10 +1292,9 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         paymentError: {
             title: "Оплата не прошла",
-            subtitle:
-                "Платёж не был завершён, средства с карты не списаны. Вы можете повторить попытку или выбрать другой способ оплаты.",
-            button: "Повторить попытку",
-            secondary: "Вернуться на главную",
+            subtitle: "Средства с карты не списаны.",
+            button: "Вернуться на главную",
+            secondary: "Повторить попытку",
         },
         search: {
             title: "Поиск",
