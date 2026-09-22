@@ -8,6 +8,7 @@ import { buildNoIndexMetadata } from "@/lib/seo";
 import { getTranslations } from "@/lib/i18n";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { RegisterForm } from "./register-form";
+import { localizedHref } from "@/lib/routes";
 import { AUTH_SESSION_TOKEN_COOKIE, decodeTokenFromCookie } from "@/lib/auth/session";
 import { getSiteChromeData } from "@/lib/site-chrome";
 
@@ -26,8 +27,10 @@ export default async function RegisterPage({
   const cookieStore = await cookies();
   const authToken = decodeTokenFromCookie(cookieStore.get(AUTH_SESSION_TOKEN_COOKIE)?.value);
   const hasValidRouteLocale = ["az", "ru", "en"].includes(locale.toLowerCase());
+  // Sending a signed-in visitor to the home page read as the click doing
+  // nothing. Their account is what this page would have led to anyway.
   if (authToken && hasValidRouteLocale) {
-    redirect(`/${normalizedLocale}`);
+    redirect(localizedHref("account", normalizedLocale));
   }
 
   const langResponse = await api.get<Language[]>(config.endpoints.languages.list);
