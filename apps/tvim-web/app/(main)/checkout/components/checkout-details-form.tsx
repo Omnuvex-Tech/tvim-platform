@@ -6,7 +6,6 @@ import type { AuthSessionUser } from "@/lib/auth/session";
 import type { CheckoutData } from "../checkout-client";
 import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-client";
 import { hydrateCart } from "@/lib/cart/client";
-import { localizedHref } from "@/lib/routes";
 import { getTranslations } from "@/lib/i18n";
 import { AZ_PHONE_PREFIX, azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile, sanitizeNameInput } from "@repo/shared/utils";
 
@@ -607,11 +606,11 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                 return;
             }
 
-            if (isAuthenticated) {
-                router.push(localizedHref("orders", effectiveLocale));
-            } else {
-                router.push(`/${effectiveLocale}`);
-            }
+            // Nothing is redirected to for cash on delivery, so the order was
+            // placed the moment the call came back. Signed-in shoppers used to
+            // land on their order list and guests on the home page, neither of
+            // which confirmed anything had happened.
+            router.push(`/${effectiveLocale}/thank-you`);
             router.refresh();
         } finally {
             setIsSubmitting(false);

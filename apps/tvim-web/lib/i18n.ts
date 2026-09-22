@@ -24,6 +24,12 @@ type TranslationDictionary = {
         brands: string;
         corporate: string;
     };
+    paymentError: {
+        title: string;
+        subtitle: string;
+        button: string;
+        secondary: string;
+    };
     search: {
         title: string;
         emptyQuery: string;
@@ -423,6 +429,13 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Brendlər",
             corporate: "Korporativ",
+        },
+        paymentError: {
+            title: "Ödəniş alınmadı",
+            subtitle:
+                "Ödənişiniz tamamlanmadı və kartınızdan məbləğ çıxılmadı. Yenidən cəhd edə və ya başqa ödəniş üsulu seçə bilərsiniz.",
+            button: "Yenidən cəhd et",
+            secondary: "Ana səhifəyə qayıt",
         },
         search: {
             title: "Axtarış",
@@ -848,6 +861,13 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             brands: "Brands",
             corporate: "Corporate",
         },
+        paymentError: {
+            title: "Payment failed",
+            subtitle:
+                "Your payment did not go through and your card has not been charged. You can try again or choose another payment method.",
+            button: "Try again",
+            secondary: "Back to homepage",
+        },
         search: {
             title: "Search",
             emptyQuery: "Type something to search.",
@@ -1271,6 +1291,13 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         breadcrumb: {
             brands: "Бренды",
             corporate: "Корпоратив",
+        },
+        paymentError: {
+            title: "Оплата не прошла",
+            subtitle:
+                "Платёж не был завершён, средства с карты не списаны. Вы можете повторить попытку или выбрать другой способ оплаты.",
+            button: "Повторить попытку",
+            secondary: "Вернуться на главную",
         },
         search: {
             title: "Поиск",

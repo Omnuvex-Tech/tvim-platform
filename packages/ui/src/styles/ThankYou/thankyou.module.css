@@ -77,6 +77,40 @@
     background: #1743b0;
 }
 
+/* Without a backdrop there is nothing for a full viewport to hold, so the
+   screen is sized to its own text instead of leaving the message stranded in
+   the middle of an empty white field. */
+.plain {
+    min-height: 0;
+    padding: 72px 24px 88px;
+}
+
+/* Failure variant: the same layout in the palette the rest of the site uses
+   for errors, so a failed payment never reads as a confirmation. */
+.titleError {
+    color: #B91C1C;
+}
+
+.buttonError {
+    background: #B91C1C;
+}
+
+.buttonError:hover {
+    background: #991B1B;
+}
+
+.secondary {
+    margin-top: 16px;
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    color: #4B5563;
+    text-decoration: underline;
+}
+
+.secondary:hover {
+    color: #1D4ED8;
+}
+
 @media (max-width: 640px) {
     .title {
         font-size: 28px;
