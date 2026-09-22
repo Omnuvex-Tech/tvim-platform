@@ -73,6 +73,9 @@ type MenuDetailData = {
             banner?: string | null;
             main_photo?: string | null;
             datetime1?: string | null;
+            seo?: {
+                meta_description?: string | null;
+            };
         }>;
         meta_keywords?: any;
         meta?: {
@@ -235,6 +238,39 @@ const roboto = Roboto({
 const formatBlogDate = (value?: string | null) => {
     const matched = String(value ?? "").trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
     return matched ? `${matched[3]}/${matched[2]}/${matched[1]}` : "";
+};
+
+/**
+ * The blurb a blog card shows under its title. There is no short-description
+ * field in the admin, so the body is the only source; `meta_description` wins
+ * when someone has filled it in, because that one was written to be read on
+ * its own.
+ */
+const blogExcerpt = (
+    item: { name?: string; content?: string; seo?: { meta_description?: string | null } },
+    limit = 180,
+) => {
+    const meta = htmlToText(item?.seo?.meta_description ?? "");
+    const body = meta || htmlToText(item?.content ?? "");
+    if (!body) return "";
+
+    // These posts routinely open by repeating their own title. Left in, the
+    // card would print the same sentence twice, once clamped and once not.
+    const title = htmlToText(item?.name ?? "");
+    const trimmed =
+        !meta && title && body.toLowerCase().startsWith(title.toLowerCase())
+            ? body.slice(title.length).replace(/^[\s\u2013\u2014:.,-]+/, "").trim()
+            : "";
+
+    const text = trimmed || body;
+    if (text.length <= limit) return text;
+
+    // Cut on a word boundary, but only when one falls late enough that the
+    // blurb does not lose a third of its length to it.
+    const cut = text.slice(0, limit);
+    const lastSpace = cut.lastIndexOf(" ");
+    const kept = lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut;
+    return `${kept.replace(/[\s.,;:!?-]+$/, "")}\u2026`;
 };
 
 /** Undated posts sink to the bottom instead of being read as the oldest. */
@@ -1265,6 +1301,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                         // meant for thumbnails, so it wins when the item has both.
                                         const image = item.main_photo || item.banner || null;
                                         const postedOn = formatBlogDate(item.datetime1);
+                                        const excerpt = blogExcerpt(item);
 
                                         return (
                                             <div
@@ -1308,6 +1345,13 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                                                         <span className="mb-[10px] line-clamp-4 text-[16px] leading-[23px] font-medium text-black">
                                                             {item.name || menu.name}
                                                         </span>
+                                                        {/* Clamped tighter on phones: there the square thumb is
+                                                            short, so a third line would push the card past it. */}
+                                                        {excerpt ? (
+                                                            <span className="line-clamp-2 text-[13.5px] leading-[20px] text-[#6b7280] min-[992px]:line-clamp-3">
+                                                                {excerpt}
+                                                            </span>
+                                                        ) : null}
                                                     </div>
                                                 </Link>
                                             </div>
