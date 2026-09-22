@@ -77,6 +77,40 @@
     background: #1743b0;
 }
 
+/* A backdrop needs the full viewport to be worth showing; an icon and three
+   lines do not. This still reads as a full screen under the header without
+   centring the message in a tall empty field. */
+.compact {
+    min-height: 60vh;
+    padding: 48px 24px 56px;
+}
+
+/* Failure variant: the same layout in the palette the rest of the site uses
+   for errors, so a failed payment never reads as a confirmation. */
+.titleError {
+    color: #B91C1C;
+}
+
+.buttonError {
+    background: #B91C1C;
+}
+
+.buttonError:hover {
+    background: #991B1B;
+}
+
+.secondary {
+    margin-top: 16px;
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    color: #4B5563;
+    text-decoration: underline;
+}
+
+.secondary:hover {
+    color: #1D4ED8;
+}
+
 @media (max-width: 640px) {
     .title {
         font-size: 28px;

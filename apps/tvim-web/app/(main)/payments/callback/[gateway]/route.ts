@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/config";
-import { localizedHref } from "@/lib/routes";
 import { normalizeLocale } from "@/lib/site-locales";
 import { redirectToPath } from "@/lib/http-redirect";
+import { paymentResultPath, resolvePaymentOutcome, type PaymentOutcome } from "@/lib/payments/result";
 
 const noStoreHeaders = {
     "Cache-Control": "no-store",
@@ -39,10 +39,14 @@ const isAllowedGateway = (gateway: string) => {
     return normalized === "kapitalbank" || normalized === "payriff";
 };
 
-const resolveCartPath = (request: NextRequest) => {
+/**
+ * Where the returning shopper is sent. This used to be the cart for every
+ * outcome, which left a paid order looking exactly like a declined one.
+ */
+const resolveResultPath = (request: NextRequest, outcome: PaymentOutcome) => {
     const cookieLocale = request.cookies.get("preferred-locale")?.value ?? "";
     const locale = normalizeLocale(cookieLocale || config.project.defLang);
-    return localizedHref("checkout", locale);
+    return paymentResultPath(outcome, locale);
 };
 
 const isBrowserNavigation = (request: NextRequest) =>
@@ -102,7 +106,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
         const payload = await parseApiPayload(upstream);
 
         if (isBrowserNavigation(request)) {
-            return redirectToPath(resolveCartPath(request), 303);
+            const outcome = upstream.ok
+                ? resolvePaymentOutcome(new URL(request.url).searchParams, payload)
+                : "error";
+            return redirectToPath(resolveResultPath(request, outcome), 303);
         }
 
         return NextResponse.json(
@@ -118,7 +125,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
         );
     } catch {
         if (isBrowserNavigation(request)) {
-            return redirectToPath(resolveCartPath(request), 303);
+            return redirectToPath(resolveResultPath(request, "error"), 303);
         }
 
         return NextResponse.json(
@@ -137,6 +144,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ga
 
 // The bank returns the shopper's browser here after payment. Only POST existed,
 // so that navigation answered 405 and the page failed to load.
+//
+// The verdict rides in the query string on this leg; the webhook above is what
+// actually settles the order, so this only decides which screen to show.
 export async function GET(request: NextRequest) {
-    return redirectToPath(resolveCartPath(request), 303);
+    const outcome = resolvePaymentOutcome(new URL(request.url).searchParams, null);
+    return redirectToPath(resolveResultPath(request, outcome), 303);
 }

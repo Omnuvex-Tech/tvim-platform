@@ -1,5 +1,13 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import styles from "../../styles/ThankYou/thankyou.module.css";
+
+/**
+ * `error` recolours the title and button and is meant to be used without a
+ * backdrop — the illustration this screen was built around is celebratory, so
+ * it would contradict the message on a failed payment.
+ */
+export type ThankYouTone = "success" | "error";
 
 export interface ThankYouProps {
   title: string;
@@ -7,7 +15,13 @@ export interface ThankYouProps {
   buttonLabel: string;
   buttonHref: string;
   /** Base path of the generated backdrop set, without the `-<width>.<ext>` suffix. */
-  imageBase: string;
+  imageBase?: string;
+  tone?: ThankYouTone;
+  /** Shown above the title. Carries the screen when there is no backdrop. */
+  icon?: ReactNode;
+  /** Optional secondary action, rendered as a plain link under the button. */
+  secondaryLabel?: string;
+  secondaryHref?: string;
 }
 
 // Kept in step with apps/tvim-web/scripts/build-thank-you-image.mjs, which
@@ -23,9 +37,15 @@ export function ThankYou({
   buttonLabel,
   buttonHref,
   imageBase,
+  tone = "success",
+  icon,
+  secondaryLabel,
+  secondaryHref,
 }: ThankYouProps) {
+  const isError = tone === "error";
+
   return (
-    <section className={styles.wrapper}>
+    <section className={`${styles.wrapper} ${imageBase ? "" : styles.compact}`}>
       {/* The backdrop is a plain <picture> rather than next/image because its
           variants are encoded at build time. It is a flat illustration, so
           avif is worth roughly 4 dB over webp at half the bytes here, but the
@@ -35,24 +55,35 @@ export function ThankYou({
           avif bytes and takes the transcode off the request path entirely.
           The browser still picks a width, so this stays as responsive as the
           next/image version was. */}
-      <picture>
-        <source type="image/avif" srcSet={srcSet(imageBase, "avif")} sizes="100vw" />
-        <source type="image/webp" srcSet={srcSet(imageBase, "webp")} sizes="100vw" />
-        <img
-          src={`${imageBase}-1902.webp`}
-          alt=""
-          fetchPriority="high"
-          decoding="async"
-          className={styles.image}
-        />
-      </picture>
+      {imageBase ? (
+        <picture>
+          <source type="image/avif" srcSet={srcSet(imageBase, "avif")} sizes="100vw" />
+          <source type="image/webp" srcSet={srcSet(imageBase, "webp")} sizes="100vw" />
+          <img
+            src={`${imageBase}-1902.webp`}
+            alt=""
+            fetchPriority="high"
+            decoding="async"
+            className={styles.image}
+          />
+        </picture>
+      ) : null}
 
       <div className={styles.content}>
-        <h1 className={styles.title}>{title}</h1>
+        {icon ? <div className={styles.iconWrap}>{icon}</div> : null}
+        <h1 className={`${styles.title} ${isError ? styles.titleError : ""}`}>{title}</h1>
         <p className={styles.subtitle}>{subtitle}</p>
-        <Link href={buttonHref} className={styles.button}>
+        <Link
+          href={buttonHref}
+          className={`${styles.button} ${isError ? styles.buttonError : ""}`}
+        >
           {buttonLabel}
         </Link>
+        {secondaryLabel && secondaryHref ? (
+          <Link href={secondaryHref} className={styles.secondary}>
+            {secondaryLabel}
+          </Link>
+        ) : null}
       </div>
     </section>
   );

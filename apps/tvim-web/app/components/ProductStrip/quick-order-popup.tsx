@@ -2,7 +2,7 @@
 
 import React, { useEffect, useId, useRef, useState } from "react";
 import { cn, useNotify } from "@repo/ui";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { submitPurchaseRequest } from "@/lib/purchase-request/client";
 import { getTranslations } from "@/lib/i18n";
 import { isCompleteAzMobile, sanitizeNameInput } from "@repo/shared/utils";
@@ -120,11 +120,13 @@ const getCursorPositionFromLocalDigits = (formatted: string, localDigitsCount: n
 
 const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId, onClose }: QuickOrderPopupProps) => {
     const notify = useNotify();
+    const router = useRouter();
     const pathname = usePathname();
-    const t = React.useMemo(() => {
+    const locale = React.useMemo(() => {
         const segment = String(pathname ?? "").split("/").filter(Boolean)[0] ?? "";
-        return getTranslations(isSupportedLocale(segment) ? segment : defaultLocale).quickOrder;
+        return isSupportedLocale(segment) ? segment : defaultLocale;
     }, [pathname]);
+    const t = React.useMemo(() => getTranslations(locale).quickOrder, [locale]);
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [quantity, setQuantity] = useState("1");
@@ -331,8 +333,10 @@ const QuickOrderPopup = ({ isOpen, productTitle, productCode, productVariationId
                 quantity: parsedQuantity,
             });
 
-            notify.success(t.success);
+            // A sent request now ends on the same confirmation every other form
+            // ends on, rather than a toast over the page it was sent from.
             onClose();
+            router.push(`/${locale}/thank-you`);
         } catch {
             notify.error(t.failed);
         } finally {
