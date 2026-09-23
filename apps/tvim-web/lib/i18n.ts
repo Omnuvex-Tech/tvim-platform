@@ -28,7 +28,6 @@ type TranslationDictionary = {
         title: string;
         subtitle: string;
         button: string;
-        secondary: string;
     };
     paymentSuccess: {
         title: string;
@@ -36,11 +35,10 @@ type TranslationDictionary = {
         button: string;
         secondary: string;
     };
+    /** The title carries this screen on its own; see PaymentSuccessView. */
     orderReceived: {
         title: string;
-        subtitle: string;
         button: string;
-        secondary: string;
     };
     search: {
         title: string;
@@ -446,7 +444,6 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             title: "Ödəniş uğursuz",
             subtitle: "Kartınızdan məbləğ çıxılmadı.",
             button: "Ana səhifəyə qayıt",
-            secondary: "Yenidən cəhd et",
         },
         paymentSuccess: {
             title: "Ödəniş uğurlu oldu",
@@ -456,9 +453,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         orderReceived: {
             title: "Sifarişiniz qəbul edildi",
-            subtitle: "Sifarişiniz uğurla qeydə alındı. Məbləği çatdırılma zamanı ödəyəcəksiniz.",
             button: "Ana səhifəyə qayıt",
-            secondary: "Sifarişlərimə bax",
         },
         search: {
             title: "Axtarış",
@@ -888,7 +883,6 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             title: "Payment failed",
             subtitle: "Your card has not been charged.",
             button: "Back to homepage",
-            secondary: "Try again",
         },
         paymentSuccess: {
             title: "Payment successful",
@@ -898,9 +892,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         orderReceived: {
             title: "Order received",
-            subtitle: "Your order has been placed. You will pay for it on delivery.",
             button: "Back to homepage",
-            secondary: "View my orders",
         },
         search: {
             title: "Search",
@@ -1330,7 +1322,6 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             title: "Оплата не прошла",
             subtitle: "Средства с карты не списаны.",
             button: "Вернуться на главную",
-            secondary: "Повторить попытку",
         },
         paymentSuccess: {
             title: "Оплата прошла успешно",
@@ -1340,9 +1331,7 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         orderReceived: {
             title: "Заказ принят",
-            subtitle: "Ваш заказ оформлен. Оплата произойдёт при доставке.",
             button: "Вернуться на главную",
-            secondary: "Мои заказы",
         },
         search: {
             title: "Поиск",

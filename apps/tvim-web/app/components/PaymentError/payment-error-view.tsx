@@ -1,6 +1,5 @@
 import { ThankYou } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
-import { localizedHref } from "@/lib/routes";
 import type { SiteLocale } from "@/lib/site-locales";
 
 /**
@@ -49,12 +48,11 @@ export function PaymentErrorView({ locale }: { locale: SiteLocale }) {
       title={copy.title}
       subtitle={copy.subtitle}
       icon={<PaymentFailedMark />}
-      // Home is the primary action, as on the thank-you screen. Retry stays
-      // reachable underneath so a declined card is not a dead end.
+      // Home is the only action here. A retry link used to sit under it and
+      // led back to the checkout, which is not where a failed payment is
+      // resumed from — the order it belongs to has already been placed.
       buttonLabel={copy.button}
       buttonHref={`/${locale}`}
-      secondaryLabel={copy.secondary}
-      secondaryHref={localizedHref("checkout", locale)}
       tone="error"
     />
   );

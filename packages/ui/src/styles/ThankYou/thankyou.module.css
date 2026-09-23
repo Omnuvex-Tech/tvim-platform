@@ -49,6 +49,12 @@
     margin: 0 0 16px;
 }
 
+/* Without a subtitle under it, the title carries the gap the subtitle used to
+   leave above the button. */
+.titleAlone {
+    margin-bottom: 32px;
+}
+
 .subtitle {
     font-family: "Inter", sans-serif;
     font-weight: 400;

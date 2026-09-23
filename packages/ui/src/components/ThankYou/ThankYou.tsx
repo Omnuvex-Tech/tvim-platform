@@ -11,7 +11,8 @@ export type ThankYouTone = "success" | "error";
 
 export interface ThankYouProps {
   title: string;
-  subtitle: string;
+  /** Left out where the title says everything, as on a placed cash order. */
+  subtitle?: string;
   buttonLabel: string;
   buttonHref: string;
   /** Base path of the generated backdrop set, without the `-<width>.<ext>` suffix. */
@@ -71,8 +72,12 @@ export function ThankYou({
 
       <div className={styles.content}>
         {icon ? <div className={styles.iconWrap}>{icon}</div> : null}
-        <h1 className={`${styles.title} ${isError ? styles.titleError : ""}`}>{title}</h1>
-        <p className={styles.subtitle}>{subtitle}</p>
+        <h1
+          className={`${styles.title} ${isError ? styles.titleError : ""} ${subtitle ? "" : styles.titleAlone}`}
+        >
+          {title}
+        </h1>
+        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
         <Link
           href={buttonHref}
           className={`${styles.button} ${isError ? styles.buttonError : ""}`}
