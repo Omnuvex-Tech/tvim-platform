@@ -40,12 +40,23 @@ function PaymentPaidMark() {
 }
 
 /**
- * Where a paid order lands. It used to share the thank-you screen with every
+ * Where a placed order lands. It used to share the thank-you screen with every
  * other completed form, which told a shopper their message had been sent
- * rather than that their payment had gone through.
+ * rather than that their order had gone through.
+ *
+ * A cash order reaches the same screen but is worded as received rather than
+ * paid: the money changes hands at the door, so telling anyone their payment
+ * succeeded here would be a confirmation of something that has not happened.
  */
-export function PaymentSuccessView({ locale }: { locale: SiteLocale }) {
-  const copy = getTranslations(locale).paymentSuccess;
+export function PaymentSuccessView({
+  locale,
+  onDelivery = false,
+}: {
+  locale: SiteLocale;
+  onDelivery?: boolean;
+}) {
+  const translations = getTranslations(locale);
+  const copy = onDelivery ? translations.orderReceived : translations.paymentSuccess;
 
   return (
     <ThankYou

@@ -36,6 +36,12 @@ type TranslationDictionary = {
         button: string;
         secondary: string;
     };
+    orderReceived: {
+        title: string;
+        subtitle: string;
+        button: string;
+        secondary: string;
+    };
     search: {
         title: string;
         emptyQuery: string;
@@ -445,6 +451,12 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         paymentSuccess: {
             title: "Ödəniş uğurlu oldu",
             subtitle: "Sifarişiniz qəbul edildi. Təsdiq məlumatı qısa zamanda sizə göndəriləcək.",
+            button: "Ana səhifəyə qayıt",
+            secondary: "Sifarişlərimə bax",
+        },
+        orderReceived: {
+            title: "Sifarişiniz qəbul edildi",
+            subtitle: "Sifarişiniz uğurla qeydə alındı. Məbləği çatdırılma zamanı ödəyəcəksiniz.",
             button: "Ana səhifəyə qayıt",
             secondary: "Sifarişlərimə bax",
         },
@@ -884,6 +896,12 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             button: "Back to homepage",
             secondary: "View my orders",
         },
+        orderReceived: {
+            title: "Order received",
+            subtitle: "Your order has been placed. You will pay for it on delivery.",
+            button: "Back to homepage",
+            secondary: "View my orders",
+        },
         search: {
             title: "Search",
             emptyQuery: "Type something to search.",
@@ -1317,6 +1335,12 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         paymentSuccess: {
             title: "Оплата прошла успешно",
             subtitle: "Ваш заказ принят. Подтверждение придёт в ближайшее время.",
+            button: "Вернуться на главную",
+            secondary: "Мои заказы",
+        },
+        orderReceived: {
+            title: "Заказ принят",
+            subtitle: "Ваш заказ оформлен. Оплата произойдёт при доставке.",
             button: "Вернуться на главную",
             secondary: "Мои заказы",
         },
