@@ -47,6 +47,8 @@ function PaymentPaidMark() {
  * A cash order reaches the same screen but is worded as received rather than
  * paid: the money changes hands at the door, so telling anyone their payment
  * succeeded here would be a confirmation of something that has not happened.
+ * It is also left as the title alone — there is nothing to add to it that the
+ * shopper does not already know.
  */
 export function PaymentSuccessView({
   locale,
@@ -56,7 +58,20 @@ export function PaymentSuccessView({
   onDelivery?: boolean;
 }) {
   const translations = getTranslations(locale);
-  const copy = onDelivery ? translations.orderReceived : translations.paymentSuccess;
+
+  if (onDelivery) {
+    return (
+      <ThankYou
+        title={translations.orderReceived.title}
+        icon={<PaymentPaidMark />}
+        buttonLabel={translations.orderReceived.button}
+        buttonHref={`/${locale}`}
+        tone="success"
+      />
+    );
+  }
+
+  const copy = translations.paymentSuccess;
 
   return (
     <ThankYou
@@ -69,6 +84,7 @@ export function PaymentSuccessView({
       buttonHref={`/${locale}`}
       secondaryLabel={copy.secondary}
       secondaryHref={localizedHref("orders", locale)}
+      tone="success"
     />
   );
 }

@@ -3,15 +3,30 @@ import Link from "next/link";
 import styles from "../../styles/ThankYou/thankyou.module.css";
 
 /**
- * `error` recolours the title and button and is meant to be used without a
- * backdrop — the illustration this screen was built around is celebratory, so
- * it would contradict the message on a failed payment.
+ * `brand` is the screen this component was built as, in the site's blue and
+ * behind the celebratory backdrop. `success` and `error` recolour the title
+ * and button to match the mark above them, and are meant to be used without
+ * that backdrop: it would contradict the message on a failed payment, and on
+ * a confirmed one the mark is what the eye lands on.
  */
-export type ThankYouTone = "success" | "error";
+export type ThankYouTone = "brand" | "success" | "error";
+
+const TONE_TITLE = {
+  brand: "",
+  success: "titleSuccess",
+  error: "titleError",
+} as const;
+
+const TONE_BUTTON = {
+  brand: "",
+  success: "buttonSuccess",
+  error: "buttonError",
+} as const;
 
 export interface ThankYouProps {
   title: string;
-  subtitle: string;
+  /** Left out where the title says everything, as on a placed cash order. */
+  subtitle?: string;
   buttonLabel: string;
   buttonHref: string;
   /** Base path of the generated backdrop set, without the `-<width>.<ext>` suffix. */
@@ -37,12 +52,13 @@ export function ThankYou({
   buttonLabel,
   buttonHref,
   imageBase,
-  tone = "success",
+  tone = "brand",
   icon,
   secondaryLabel,
   secondaryHref,
 }: ThankYouProps) {
-  const isError = tone === "error";
+  const titleTone = styles[TONE_TITLE[tone]] ?? "";
+  const buttonTone = styles[TONE_BUTTON[tone]] ?? "";
 
   return (
     <section className={`${styles.wrapper} ${imageBase ? "" : styles.compact}`}>
@@ -71,12 +87,11 @@ export function ThankYou({
 
       <div className={styles.content}>
         {icon ? <div className={styles.iconWrap}>{icon}</div> : null}
-        <h1 className={`${styles.title} ${isError ? styles.titleError : ""}`}>{title}</h1>
-        <p className={styles.subtitle}>{subtitle}</p>
-        <Link
-          href={buttonHref}
-          className={`${styles.button} ${isError ? styles.buttonError : ""}`}
-        >
+        <h1 className={`${styles.title} ${titleTone} ${subtitle ? "" : styles.titleAlone}`}>
+          {title}
+        </h1>
+        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+        <Link href={buttonHref} className={`${styles.button} ${buttonTone}`}>
           {buttonLabel}
         </Link>
         {secondaryLabel && secondaryHref ? (

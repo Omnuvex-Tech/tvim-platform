@@ -49,6 +49,12 @@
     margin: 0 0 16px;
 }
 
+/* Without a subtitle under it, the title carries the gap the subtitle used to
+   leave above the button. */
+.titleAlone {
+    margin-bottom: 32px;
+}
+
 .subtitle {
     font-family: "Inter", sans-serif;
     font-weight: 400;
@@ -83,6 +89,21 @@
 .compact {
     min-height: 60vh;
     padding: 48px 24px 56px;
+}
+
+/* Confirmation variant: the title and button take the colour of the check
+   above them, so the screen reads as one mark rather than a green tick
+   announced in the site's blue. */
+.titleSuccess {
+    color: #15803D;
+}
+
+.buttonSuccess {
+    background: #16A34A;
+}
+
+.buttonSuccess:hover {
+    background: #15803D;
 }
 
 /* Failure variant: the same layout in the palette the rest of the site uses
