@@ -17,3 +17,9 @@ export const toSearchParams = (entries: RouteSearchParams) => {
 
     return params;
 };
+
+/** The same path with a page's query string put back on it, if it had one. */
+export const withQuery = (path: string, entries: RouteSearchParams) => {
+    const query = toSearchParams(entries).toString();
+    return query ? `${path}?${query}` : path;
+};

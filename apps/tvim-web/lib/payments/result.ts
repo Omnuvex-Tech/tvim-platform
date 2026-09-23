@@ -9,19 +9,20 @@ export type PaymentOutcome = "success" | "error";
  *
  * The unprefixed form is the one the admin stores. A gateway returns the
  * browser to a single fixed url, so the language cannot be baked into it — the
- * pages behind these read the visitor's own locale and forward.
+ * pages behind these read the visitor's own locale and forward to the language
+ * the shopper was shopping in.
  *
  * Both outcomes have a screen of their own. The shared thank-you screen stays
  * where every other completed form ends: it confirms that a submission was
  * sent, which is not what a shopper who just paid needs to read.
  */
 export const PAYMENT_RESULT_ENTRY: Record<PaymentOutcome, string> = {
-    success: "/payments/success",
-    error: "/payments/error",
+    success: "/payment/success",
+    error: "/payment/error",
 };
 
 export const paymentResultPath = (outcome: PaymentOutcome, locale: SiteLocale) =>
-    outcome === "success" ? `/${locale}/payments/success` : `/${locale}/payments/error`;
+    `/${locale}${PAYMENT_RESULT_ENTRY[outcome]}`;
 
 const normalize = (value: unknown) =>
     String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
@@ -187,10 +188,23 @@ export const readPaymentReturn = (
 ): PaymentOutcome | null => {
     if (!searchParams) return null;
 
-    const query = Object.fromEntries(searchParams.entries());
-    const outcome = readFromRecord(query);
-    if (outcome) return outcome;
+    const verdict = readPaymentVerdict(searchParams);
+    if (verdict) return verdict;
 
-    const present = new Set(Object.keys(query).map(normalize));
+    const present = new Set([...searchParams.keys()].map(normalize));
     return RETURN_MARKER_KEYS.some((key) => present.has(key)) ? "error" : null;
 };
+
+/**
+ * The verdict a return url states outright, and `null` when it states none.
+ *
+ * The success entry reads this before trusting its own address: a gateway that
+ * keeps one return url for both outcomes would otherwise confirm a declined
+ * payment. The failure entry does not, on purpose — a query string is
+ * whatever the shopper's browser was handed, so it may turn a payment down but
+ * never wave one through.
+ */
+export const readPaymentVerdict = (
+    searchParams: URLSearchParams | null
+): PaymentOutcome | null =>
+    searchParams ? readFromRecord(Object.fromEntries(searchParams.entries())) : null;
