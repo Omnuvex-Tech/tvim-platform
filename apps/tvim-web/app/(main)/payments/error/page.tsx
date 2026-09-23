@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
-import { resolveRootLocale } from "@/lib/root-locale";
-import { paymentResultPath } from "@/lib/payments/result";
+import { PAYMENT_RESULT_ENTRY } from "@/lib/payments/result";
 
-// The unprefixed address the admin's payment section hands to the gateway.
-// A gateway stores one return url, so the language cannot live in it — the
-// visitor's own locale is resolved here and they are forwarded to it.
+// The address this screen used to answer at; see the success entry beside it.
+// Nothing is carried across: the entry behind this one shows the failure
+// whatever the query string says.
 export const dynamic = "force-dynamic";
 
-export default async function PaymentErrorEntryPage() {
-    const { locale } = await resolveRootLocale();
-    redirect(paymentResultPath("error", locale));
+export default function LegacyPaymentErrorEntryPage() {
+    redirect(PAYMENT_RESULT_ENTRY.error);
 }
