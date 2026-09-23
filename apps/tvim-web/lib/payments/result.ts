@@ -11,16 +11,17 @@ export type PaymentOutcome = "success" | "error";
  * browser to a single fixed url, so the language cannot be baked into it — the
  * pages behind these read the visitor's own locale and forward.
  *
- * A paid order ends on the same thank-you screen every other completed form
- * ends on; only the failure has a screen of its own.
+ * Both outcomes have a screen of their own. The shared thank-you screen stays
+ * where every other completed form ends: it confirms that a submission was
+ * sent, which is not what a shopper who just paid needs to read.
  */
 export const PAYMENT_RESULT_ENTRY: Record<PaymentOutcome, string> = {
-    success: "/thank-you",
+    success: "/payments/success",
     error: "/payments/error",
 };
 
 export const paymentResultPath = (outcome: PaymentOutcome, locale: SiteLocale) =>
-    outcome === "success" ? `/${locale}/thank-you` : `/${locale}/payments/error`;
+    outcome === "success" ? `/${locale}/payments/success` : `/${locale}/payments/error`;
 
 const normalize = (value: unknown) =>
     String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
@@ -145,4 +146,51 @@ export const resolvePaymentOutcome = (
     }
 
     return "error";
+};
+
+/**
+ * Keys that only a payment gateway leaves on a return url. A form in this app
+ * sends the shopper to the thank-you screen with a bare path, so anything
+ * carrying one of these arrived from a bank rather than from a submitted form.
+ */
+const RETURN_MARKER_KEYS = [
+    ...STATUS_KEYS,
+    ...CODE_KEYS,
+    ...BOOLEAN_KEYS,
+    "id",
+    "orderid",
+    "order",
+    "orderno",
+    "ordernumber",
+    "paymentid",
+    "transactionid",
+    "sessionid",
+    "invoiceuuid",
+    "payload",
+];
+
+/**
+ * The verdict for a browser landing on a page that is not the payment callback
+ * — in practice the thank-you screen, which is where the gateway's stored
+ * return url still points for orders placed before that setting is changed.
+ *
+ * `null` means the request carries no trace of a payment at all: a plain form
+ * submission, which belongs on the thank-you screen and is left there.
+ *
+ * A return that is recognisably a payment but states no verdict is reported as
+ * a failure, the same way `resolvePaymentOutcome` treats an unreadable one: the
+ * webhook is what settles the order, and of the two possible mistakes only one
+ * tells a shopper their payment went through when nobody has confirmed it.
+ */
+export const readPaymentReturn = (
+    searchParams: URLSearchParams | null
+): PaymentOutcome | null => {
+    if (!searchParams) return null;
+
+    const query = Object.fromEntries(searchParams.entries());
+    const outcome = readFromRecord(query);
+    if (outcome) return outcome;
+
+    const present = new Set(Object.keys(query).map(normalize));
+    return RETURN_MARKER_KEYS.some((key) => present.has(key)) ? "error" : null;
 };

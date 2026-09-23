@@ -38,8 +38,8 @@ function PaymentFailedMark() {
 }
 
 /**
- * The only screen a payment gets of its own. A successful one ends on the
- * shared thank-you page, where every other completed form ends.
+ * Where a declined payment lands. Its counterpart is the payment success
+ * screen; the shared thank-you page is only for the other completed forms.
  */
 export function PaymentErrorView({ locale }: { locale: SiteLocale }) {
   const copy = getTranslations(locale).paymentError;
