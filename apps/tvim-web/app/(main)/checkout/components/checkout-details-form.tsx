@@ -7,7 +7,7 @@ import type { CheckoutData } from "../checkout-client";
 import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-client";
 import { hydrateCart } from "@/lib/cart/client";
 import { getTranslations } from "@/lib/i18n";
-import { paymentResultPath, readCheckoutPaymentVerdict } from "@/lib/payments/result";
+import { orderPlacedPath, paymentResultPath, readCheckoutPaymentVerdict } from "@/lib/payments/result";
 import { normalizeLocale } from "@/lib/site-locales";
 import { AZ_PHONE_PREFIX, azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile, sanitizeNameInput } from "@repo/shared/utils";
 
@@ -620,10 +620,11 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
             }
 
             // Nothing is redirected to for cash on delivery, so the order was
-            // placed the moment the call came back. Signed-in shoppers used to
-            // land on their order list and guests on the home page, neither of
-            // which confirmed anything had happened.
-            router.push(`/${effectiveLocale}/thank-you`);
+            // placed the moment the call came back. It goes to the same screen
+            // a paid order does, worded as received rather than paid — the
+            // thank-you screen it used to land on speaks of a sent form, and
+            // the money here changes hands at the door.
+            router.push(orderPlacedPath(effectiveLocale));
             router.refresh();
         } finally {
             setIsSubmitting(false);

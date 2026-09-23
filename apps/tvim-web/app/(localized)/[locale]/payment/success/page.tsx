@@ -5,6 +5,8 @@ import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { isSupportedLocale, normalizeLocale } from "@/lib/site-locales";
 import { PaymentSuccessView } from "@/app/components/PaymentSuccess/payment-success-view";
+import { isOnDeliveryOrder } from "@/lib/payments/result";
+import { toSearchParams, type RouteSearchParams } from "@/lib/search-params";
 
 export const metadata: Metadata = buildNoIndexMetadata();
 
@@ -14,8 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function PaymentSuccessPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<RouteSearchParams>;
 }) {
   const { locale: routeLocale } = await params;
 
@@ -24,11 +28,11 @@ export default async function PaymentSuccessPage({
   }
 
   const locale = normalizeLocale(routeLocale);
-  const chrome = await getSiteChromeData(locale);
+  const [chrome, query] = await Promise.all([getSiteChromeData(locale), searchParams]);
 
   return (
     <SitePageShell chrome={chrome}>
-      <PaymentSuccessView locale={locale} />
+      <PaymentSuccessView locale={locale} onDelivery={isOnDeliveryOrder(toSearchParams(query))} />
     </SitePageShell>
   );
 }

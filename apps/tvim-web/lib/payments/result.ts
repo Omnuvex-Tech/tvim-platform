@@ -24,6 +24,20 @@ export const PAYMENT_RESULT_ENTRY: Record<PaymentOutcome, string> = {
 export const paymentResultPath = (outcome: PaymentOutcome, locale: SiteLocale) =>
     `/${locale}${PAYMENT_RESULT_ENTRY[outcome]}`;
 
+/**
+ * The success screen doubles as the confirmation for a cash order, which is
+ * placed but not paid and so must not be told its payment went through. The
+ * flag rides in the url because the checkout reaches the screen by a plain
+ * navigation; it only picks the wording, so nothing rests on it being right.
+ */
+export const ON_DELIVERY_FLAG = "on-delivery";
+
+export const orderPlacedPath = (locale: SiteLocale) =>
+    `${paymentResultPath("success", locale)}?${ON_DELIVERY_FLAG}=1`;
+
+export const isOnDeliveryOrder = (searchParams: URLSearchParams | null) =>
+    searchParams?.get(ON_DELIVERY_FLAG) === "1";
+
 const normalize = (value: unknown) =>
     String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 
