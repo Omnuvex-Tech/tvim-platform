@@ -7,6 +7,8 @@ import type { CheckoutData } from "../checkout-client";
 import { CHECKOUT_SUBMIT_DONE_EVENT, CHECKOUT_SUBMIT_EVENT } from "../checkout-client";
 import { hydrateCart } from "@/lib/cart/client";
 import { getTranslations } from "@/lib/i18n";
+import { paymentResultPath, readCheckoutPaymentVerdict } from "@/lib/payments/result";
+import { normalizeLocale } from "@/lib/site-locales";
 import { AZ_PHONE_PREFIX, azPhoneOnBlur, azPhoneOnFocus, isCompleteAzMobile, sanitizeNameInput } from "@repo/shared/utils";
 
 const formatPrice = (value: number) => `${value.toFixed(2)}₼`;
@@ -533,7 +535,7 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
             }
         }
 
-        const effectiveLocale = ["az", "ru", "en"].includes(locale.trim().toLowerCase()) ? locale.trim().toLowerCase() : "az";
+        const effectiveLocale = normalizeLocale(locale);
         const body: any = {
             payment_method: paymentMethodKey,
             // The form has always asked for an email but never sent it, so guest
@@ -603,6 +605,17 @@ const CheckoutDetailsForm = ({ locale, checkout, isAuthenticated, isLoading, onD
                     return;
                 }
                 window.location.assign(redirectUrl);
+                return;
+            }
+
+            // A card that needs no trip to a bank — a saved one, say — is
+            // already settled by the time this answers, so it gets the payment
+            // screen rather than the one that thanks people for a sent form.
+            // Only an outright approval is read that way: a cash order states
+            // no verdict here, and a declined card was turned back above.
+            if (readCheckoutPaymentVerdict(json) === "success") {
+                router.push(paymentResultPath("success", effectiveLocale));
+                router.refresh();
                 return;
             }
 
