@@ -91,6 +91,21 @@
     padding: 48px 24px 56px;
 }
 
+/* Confirmation variant: the title and button take the colour of the check
+   above them, so the screen reads as one mark rather than a green tick
+   announced in the site's blue. */
+.titleSuccess {
+    color: #15803D;
+}
+
+.buttonSuccess {
+    background: #16A34A;
+}
+
+.buttonSuccess:hover {
+    background: #15803D;
+}
+
 /* Failure variant: the same layout in the palette the rest of the site uses
    for errors, so a failed payment never reads as a confirmation. */
 .titleError {

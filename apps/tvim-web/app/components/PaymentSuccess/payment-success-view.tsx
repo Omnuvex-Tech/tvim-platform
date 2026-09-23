@@ -66,6 +66,7 @@ export function PaymentSuccessView({
         icon={<PaymentPaidMark />}
         buttonLabel={translations.orderReceived.button}
         buttonHref={`/${locale}`}
+        tone="success"
       />
     );
   }
@@ -83,6 +84,7 @@ export function PaymentSuccessView({
       buttonHref={`/${locale}`}
       secondaryLabel={copy.secondary}
       secondaryHref={localizedHref("orders", locale)}
+      tone="success"
     />
   );
 }
