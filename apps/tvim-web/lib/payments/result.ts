@@ -208,3 +208,17 @@ export const readPaymentVerdict = (
     searchParams: URLSearchParams | null
 ): PaymentOutcome | null =>
     searchParams ? readFromRecord(Object.fromEntries(searchParams.entries())) : null;
+
+/**
+ * What the checkout response says about the payment it just made, and `null`
+ * when it says nothing — a cash order, whose payment is still ahead of it,
+ * reads as null rather than as a failure.
+ *
+ * Only the payment object is consulted. The envelope around it carries its own
+ * `success`, which reports that the request was handled rather than that a card
+ * was charged, and the order's status describes fulfilment rather than money.
+ */
+export const readCheckoutPaymentVerdict = (payload: unknown): PaymentOutcome | null => {
+    const data = asRecord(asRecord(payload)?.data);
+    return readFromRecord(asRecord(data?.payment));
+};
