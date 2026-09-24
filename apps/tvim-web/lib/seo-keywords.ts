@@ -10,15 +10,15 @@ import { normalizeLocale } from "@/lib/site-locales";
  * a page written in Azerbaijani. The list is built here instead, so a page only
  * has to say what it is about.
  *
- * The order is deliberate. What an editor wrote in the cms comes first, then
- * the page's own subject — its title, its brand, the category above it — and
- * the site-wide terms last, where they fill the tag out rather than crowd it.
+ * Whatever the admin holds for a page is used exactly as it stands: nothing is
+ * added to it, nothing is filtered out of it and it is not cut to a length.
+ * Only a page whose keywords field is empty gets a built list — its own subject
+ * (its title, its brand, the category above it) and then the site-wide terms.
  */
 
 /**
- * Room for a full admin list plus what the page adds. It was 12, which cut the
- * admin's own lists short — the corporate page has 18 written for it — and left
- * little for a page to describe itself with once the site's terms were in.
+ * How long a list the site builds on its own may get. An admin list is never
+ * cut: it is published the way the admin wrote it.
  */
 const MAX_KEYWORDS = 20;
 
@@ -56,6 +56,11 @@ const isUsable = (keyword: string) =>
  * Whatever the api holds for a keywords field, as a list. Arrays, comma or
  * newline separated strings and `{ meta_keywords }` wrappers all appear across
  * the endpoints this site reads, and a page should not have to know which.
+ *
+ * The admin's entries are kept as written: the admin saves the field comma
+ * separated, so only commas and line breaks divide it, and nothing but empty
+ * entries is dropped. Length and number checks belong to the lists the site
+ * builds, not to what an editor chose.
  */
 export const normalizeKeywords = (raw: unknown): string[] => {
     if (!raw) return [];
@@ -66,9 +71,9 @@ export const normalizeKeywords = (raw: unknown): string[] => {
 
     if (typeof raw === "string") {
         return raw
-            .split(/[,\n;|]+/)
+            .split(/[,\n]+/)
             .map(clean)
-            .filter(isUsable);
+            .filter(Boolean);
     }
 
     if (typeof raw === "object") {
@@ -79,7 +84,7 @@ export const normalizeKeywords = (raw: unknown): string[] => {
     }
 
     const single = clean(raw);
-    return isUsable(single) ? [single] : [];
+    return single ? [single] : [];
 };
 
 /**
@@ -110,11 +115,17 @@ type BuildKeywordsOptions = {
 };
 
 /**
- * The keywords for one page: the cms list, the page's own subject and the
- * site-wide terms, in that order, deduplicated and capped.
+ * The keywords for one page: the admin's list exactly as written when there is
+ * one, and the page's own subject followed by the site-wide terms when the
+ * field is empty — never the two mixed.
  *
- * Deduplication ignores case and surrounding space, so a cms entry does not
- * come back a second time as a generated one.
+ * A field holding only the entity's name — which the admin fills in by itself,
+ * "Drel GSB 600 BOSCH" on most products — is taken as written too: it is what
+ * the admin has for that page. Clearing the field is what hands it to the
+ * built list.
+ *
+ * Only repeats are removed from the admin list, comparing without case. The
+ * built list is also capped.
  */
 export const buildKeywords = ({
     cms,
@@ -124,11 +135,15 @@ export const buildKeywords = ({
 }: BuildKeywordsOptions): string[] => {
     const siteLocale = normalizeLocale(locale);
 
-    const candidates = [
-        ...normalizeKeywords(cms),
-        ...subjects.flatMap((subject) => normalizePhrase(subject)),
-        ...(siteTerms ? SITE_TERMS[siteLocale] : []),
-    ];
+    const written = normalizeKeywords(cms);
+    const fromAdmin = written.length > 0;
+
+    const candidates = fromAdmin
+        ? written
+        : [
+            ...subjects.flatMap((subject) => normalizePhrase(subject)),
+            ...(siteTerms ? SITE_TERMS[siteLocale] : []),
+        ];
 
     const seen = new Set<string>();
     const keywords: string[] = [];
@@ -143,7 +158,7 @@ export const buildKeywords = ({
         seen.add(key);
         keywords.push(candidate);
 
-        if (keywords.length === MAX_KEYWORDS) break;
+        if (!fromAdmin && keywords.length === MAX_KEYWORDS) break;
     }
 
     return keywords;
