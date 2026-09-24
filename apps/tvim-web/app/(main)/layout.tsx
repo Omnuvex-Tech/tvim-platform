@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { SiteDocument, siteMetadata } from "@/app/components/SiteDocument/site-document";
 import { resolveRootLocale } from "@/lib/root-locale";
 
-export const metadata: Metadata = siteMetadata;
+// The unprefixed tree is redirects and the root page, which publishes its
+// own metadata; the site default is all this fallback needs to be.
+export const metadata: Metadata = siteMetadata();
 
 // Root layout for the urls that carry no language prefix: tvim.az/ itself and
 // the redirect stubs that send /checkout, /signin, ... to their localized

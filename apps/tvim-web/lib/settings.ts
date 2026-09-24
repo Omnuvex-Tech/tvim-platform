@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ProjectSettingsData } from "@repo/types/types";
 import { htmlToText } from "@repo/shared/utils";
 import { config } from "@/config";
+import { buildKeywords } from "@/lib/seo-keywords";
 
 const metaText = (value: unknown) => htmlToText(value) || undefined;
 
@@ -108,21 +109,6 @@ const normalizeObject = (value: unknown): AnyRecord => {
     if (Array.isArray(value)) return mapArrayToObject(value);
     if (isRecord(value)) return value;
     return {};
-};
-
-const normalizeKeywords = (keywords: unknown) => {
-    if (Array.isArray(keywords)) {
-        return keywords.map((keyword) => String(keyword).trim()).filter(Boolean);
-    }
-
-    if (typeof keywords === "string") {
-        return keywords
-            .split(",")
-            .map((keyword) => keyword.trim())
-            .filter(Boolean);
-    }
-
-    return undefined;
 };
 
 const resolveRawKeywords = (keywords: unknown): string[] | string | undefined => {
@@ -408,7 +394,14 @@ export const buildHomeMetadata = (
     const useProjectFallbacks = options.useProjectFallbacks ?? true;
     const title = metaText(seo?.meta_title || seo?.title) ?? (useProjectFallbacks ? config.project.projectName : undefined);
     const description = metaText(seo?.meta_description || seo?.description) ?? (useProjectFallbacks ? config.project.projectDescription : undefined);
-    const keywords = normalizeKeywords(seo?.meta_keywords ?? seo?.keywords);
+    // Every page this builds metadata for carries keywords, its own where it
+    // has them and the site's terms where it has none: an indexable page whose
+    // tag is missing describes itself to nobody. Callers that know what their
+    // page is about pass a list already built from it.
+    const keywords = buildKeywords({
+        cms: seo?.meta_keywords ?? seo?.keywords,
+        locale,
+    });
     const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
     // When the cms states a canonical it also settles which host the page is
     // published under, and the alternates have to agree with it — otherwise

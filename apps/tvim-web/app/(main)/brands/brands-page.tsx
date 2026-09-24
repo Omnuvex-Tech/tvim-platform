@@ -3,6 +3,8 @@ import { Breadcrumb, type Company } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
+import { buildKeywords } from "@/lib/seo-keywords";
+import { brandsIndexDescription, pickDescription, withSiteName } from "@/lib/seo-copy";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Pagination } from "@/app/components/Pagination/pagination";
@@ -254,10 +256,28 @@ export async function generateBrandsMetadata({
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
     const t = copyByLocale(locale);
 
+    // The same call the page itself makes, so the brands this index lists are
+    // what it is described by. It is cached and deduplicated per request, so
+    // asking for it here costs nothing the render was not already paying.
+    const brandsResponse = await api.get<ProductBrandsResponseData>("/product/brands", {
+        locale,
+        next: brandCacheOptions(),
+    });
+    // A handful of the brands listed, not all of them: the whole catalogue
+    // would fill the tag and leave no room for what the page itself is.
+    const listedBrands = (Array.isArray(brandsResponse.data?.values) ? brandsResponse.data.values : []).slice(0, 6);
+
     return buildSeoMetadata({
-        title: `${t.pageTitle} | TVIM`,
-        description: `${t.pageTitle} uzre secilmis brendleri ve mehsullari TVIM daxilinde kesf edin.`,
-        keywords: [t.pageTitle, "brands", "tvim"],
+        title: withSiteName(locale, t.pageTitle),
+        // The filter row's own description is the single word "Brend" today;
+        // it is used once someone writes an actual sentence there.
+        description: pickDescription(brandsResponse.data?.meta_description, t.pageTitle) ||
+            brandsIndexDescription(locale),
+        keywords: buildKeywords({
+            cms: brandsResponse.data?.meta_keywords,
+            subjects: [t.pageTitle, ...listedBrands.map((brand) => brand?.name)],
+            locale,
+        }),
         locale,
         canonicalPath: `${locale}/brands`,
         siteUrl: config.project.siteUrl,
