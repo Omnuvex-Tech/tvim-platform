@@ -15,7 +15,7 @@ import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { getTranslations } from "@/lib/i18n";
-import { findBrandBySlug, findBrandInOtherLocales, getBrandSlugsByLocale } from "@/lib/brand-slugs";
+import { findBrandBySlug, findBrandInOtherLocales, getBrandSlugsByLocale, type BrandEntry } from "@/lib/brand-slugs";
 
 type ProductListApiResponse = {
     menu?: {
@@ -82,6 +82,19 @@ const brandTerm = (locale: string, name: string) => {
     if (locale === "en") return `${name} brand`;
     return `${name} brendi`;
 };
+
+/**
+ * A brand's keywords, built once for the head and for the chips above the
+ * footer. The brand list carries what the admin wrote for the brand — "KAS,
+ * KAS brend, radiator ventili, …" — which is worth far more than the name the
+ * page could work out on its own, so it leads.
+ */
+const brandKeywords = (brand: BrandEntry | null | undefined, name: string, locale: string) =>
+    buildKeywords({
+        cms: brand?.metaKeywords,
+        subjects: [name, brandTerm(locale, name)],
+        locale,
+    });
 
 const decodeSlugParam = (value: string) => {
     try {
@@ -186,14 +199,7 @@ export async function generateBrandSlugMetadata({
         title: pickTitle(localBrand?.metaTitle, pageName) || withSiteName(locale, pageName),
         description: pickDescription(localBrand?.metaDescription, pageName, localBrand?.metaTitle) ||
             brandDescription(locale, pageName),
-        // The brand list carries what the admin wrote for this brand — "KAS,
-        // KAS brend, radiator ventili, …" — which is worth far more than the
-        // name this page could work out on its own.
-        keywords: buildKeywords({
-            cms: localBrand?.metaKeywords,
-            subjects: [pageName, brandTerm(locale, pageName)],
-            locale,
-        }),
+        keywords: brandKeywords(localBrand, pageName, locale),
         locale,
         canonicalPath,
         siteUrl: config.project.siteUrl,
@@ -363,7 +369,7 @@ export async function renderBrandSlugPage({
     const sortedItems = sortProductItems(listItems, activeSort, locale);
 
     return (
-        <SitePageShell chrome={chrome}>
+        <SitePageShell chrome={chrome} keywords={brandKeywords(localBrand, pageName, locale)}>
             <LocalizedLinks value={localizedLinks} />
             <Breadcrumb
                 items={breadcrumbItems}

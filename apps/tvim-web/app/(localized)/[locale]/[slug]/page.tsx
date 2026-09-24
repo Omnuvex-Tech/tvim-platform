@@ -25,7 +25,7 @@ import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar
 import { isSupportedLocale } from "@/lib/site-locales";
 import { PRODUCTS_TAG, PRODUCT_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { getTranslations } from "@/lib/i18n";
-import { buildKeywords } from "@/lib/seo-keywords";
+import { buildKeywords, normalizeKeywords } from "@/lib/seo-keywords";
 import { pageDescription, pickDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
@@ -383,6 +383,27 @@ const childCategoryNames = (detail: MenuDetailData): string[] =>
         .filter(Boolean)
         .slice(0, 6);
 
+/**
+ * This page's keywords, built once for the head and for the chips above the
+ * footer, so the two can never disagree.
+ *
+ * The first source that actually holds something wins. The api can send an seo
+ * block whose keywords are an empty string, and chaining the sources with `??`
+ * stopped at that empty string instead of moving on to the one that was filled.
+ */
+const categoryKeywords = (detail: MenuDetailData, locale: string) =>
+    buildKeywords({
+        cms: [
+            detail.data?.seo?.meta_keywords,
+            detail.menu.seo?.meta_keywords,
+            detail.data?.meta_keywords,
+            detail.data?.meta?.meta_keywords,
+            detail.menu?.meta_keywords,
+        ].find((source) => normalizeKeywords(source).length > 0),
+        subjects: [detail.menu.title, detail.menu.name, ...childCategoryNames(detail)],
+        locale,
+    });
+
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
     const { slug: rawSlug, locale } = await params;
     const slug = decodeSlugParam(rawSlug);
@@ -433,15 +454,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
             // The cms list first, then what the page is: its own title, and the
             // categories it offers. A category page with nothing written for it
             // in the admin used to publish no keywords at all.
-            meta_keywords: buildKeywords({
-                cms: seo?.meta_keywords ?? detail.data?.meta_keywords ?? detail.data?.meta?.meta_keywords ?? detail.menu?.meta_keywords,
-                subjects: [
-                    detail.menu.title,
-                    detail.menu.name,
-                    ...childCategoryNames(detail),
-                ],
-                locale: normalizedLocale,
-            }),
+            meta_keywords: categoryKeywords(detail, normalizedLocale),
             canonical: seo?.canonical,
             alternates: seo?.alternates,
             x_default: seo?.x_default,
@@ -528,20 +541,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         );
     }
 
-    // Normalize keywords for UI and metadata usage
-    function normalizeKeywords(raw: any): string[] {
-        if (!raw) return [];
-        if (Array.isArray(raw)) return raw.map(String).map((s) => s.trim()).filter(Boolean);
-        if (typeof raw === "string") return raw.split(",").map((s) => s.trim()).filter(Boolean);
-        if (typeof raw === "object") {
-            if (raw.meta_keywords) return normalizeKeywords(raw.meta_keywords);
-            if (raw.keywords) return normalizeKeywords(raw.keywords);
-        }
-        return [];
-    }
-
-    const rawKeywordsSource = menu.seo?.meta_keywords ?? pageData?.meta_keywords ?? pageData?.meta?.meta_keywords ?? menu.meta_keywords;
-    const keywordsArr = normalizeKeywords(rawKeywordsSource);
+    // The same list the head published, drawn above the footer by the shell.
+    const pageKeywords = categoryKeywords(menuDetail, normalizedLocale);
 
     const includedItems: any[] = menuDetail.included_items || [];
     const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
@@ -697,26 +698,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             {pageContentBody}
         </section>
     );
-
-    const footerSpacer = keywordsArr.length > 0 ? null : <div className="h-10 lg:h-14" />;
-
-    const keywordsSection = keywordsArr.length > 0 ? (
-        <div className="mx-auto mt-20 mb-10 w-full max-w-[1280px] px-1 lg:mt-24 lg:mb-14 lg:px-2">
-            <div className="w-full border-t border-[#e5e9ef]" />
-            <div className="pt-4">
-                <div className="flex flex-wrap justify-start gap-2">
-                    {keywordsArr.map((kw, i) => (
-                        <span
-                            key={i}
-                            className="inline-block rounded-[20px] border border-[#ddd] bg-[#f8f8f8] px-[12px] py-[6px] text-[14px] leading-none font-normal text-[#333] transition-all duration-200 ease-in-out cursor-default"
-                        >
-                            {kw}
-                        </span>
-                    ))}
-                </div>
-            </div>
-        </div>
-    ) : null;
 
     const isCategoriesView = (() => {
         const t = String(menu.type ?? "").trim().toLowerCase();
@@ -1040,7 +1021,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         ) : null;
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
                 <Breadcrumb
                     items={[
@@ -1205,8 +1186,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
                 {includedItemsSection}
                 {categoryAboutSection}
-                {keywordsSection}
-                {footerSpacer}
             </SitePageShell>
         );
     }
@@ -1279,7 +1258,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         };
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
                 {/* The breadcrumb stays outside the Roboto wrapper below, which
                     would otherwise shrink its type the way no other page does. */}
@@ -1417,7 +1396,6 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                 </div>
 
                 {includedItemsSection}
-                {footerSpacer}
             </SitePageShell>
         );
     }
@@ -1440,7 +1418,7 @@ const firstPhone =
         const addressMapLink = resolveMapLink(projectSettings?.general.map_iframe, address);
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
                 <Breadcrumb
                     items={[
@@ -1559,16 +1537,13 @@ const firstPhone =
                         </div>
                     </div>
                 )}
-
-                {keywordsSection}
-                {footerSpacer}
             </SitePageShell>
         );
     }
 
     // Default view type (fallback for content and others)
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast>
+        <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
             <Breadcrumb
                 items={[
@@ -1581,16 +1556,9 @@ const firstPhone =
                 titleClassName="!mt-[-10px] mb-0 !text-left !w-full !text-[28px] lg:!text-[44px]"
             />
 
-            {keywordsArr.length > 0 && (
-                null
-            )}
-
             {!hasSelfIncludedItem && pageContentSection}
 
             {renderIncludedItems(pageContentBody)}
-
-            {keywordsSection}
-            {footerSpacer}
         </SitePageShell>
     );
 }

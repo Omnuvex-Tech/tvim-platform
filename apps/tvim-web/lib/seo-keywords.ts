@@ -15,8 +15,12 @@ import { normalizeLocale } from "@/lib/site-locales";
  * the site-wide terms last, where they fill the tag out rather than crowd it.
  */
 
-/** Long enough to describe a page, short enough not to read as stuffing. */
-const MAX_KEYWORDS = 12;
+/**
+ * Room for a full admin list plus what the page adds. It was 12, which cut the
+ * admin's own lists short — the corporate page has 18 written for it — and left
+ * little for a page to describe itself with once the site's terms were in.
+ */
+const MAX_KEYWORDS = 20;
 
 /** A keyword is a phrase, not a sentence; anything longer is a description. */
 const MAX_KEYWORD_LENGTH = 60;
@@ -27,9 +31,9 @@ const MAX_KEYWORD_LENGTH = 60;
  * three languages into one tag describes none of them.
  */
 const SITE_TERMS: Record<SiteLocale, readonly string[]> = {
-    az: ["Tvim", "tikinti materialları", "inşaat materialları", "onlayn sifariş"],
-    en: ["Tvim", "construction materials", "building materials", "online store"],
-    ru: ["Tvim", "строительные материалы", "стройматериалы", "интернет-магазин"],
+    az: ["Tvim", "tikinti materialları", "inşaat materialları", "tikinti mağazası", "onlayn sifariş", "Bakı"],
+    en: ["Tvim", "construction materials", "building materials", "construction store", "online store", "Baku"],
+    ru: ["Tvim", "строительные материалы", "стройматериалы", "строительный магазин", "интернет-магазин", "Баку"],
 };
 
 const clean = (value: unknown) =>
