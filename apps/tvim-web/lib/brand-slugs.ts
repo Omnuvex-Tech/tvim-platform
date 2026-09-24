@@ -14,6 +14,7 @@ type BrandListResponseData = {
         value_id?: number | string;
         name?: string;
         slug?: string;
+        meta_keywords?: string | null;
     }>;
 };
 
@@ -21,6 +22,8 @@ export type BrandEntry = {
     valueId: number;
     name: string;
     slug: string;
+    /** What the admin wrote for this brand, where anything was written. */
+    metaKeywords?: string;
 };
 
 const normalizeSlug = (value: string) => {
@@ -52,7 +55,14 @@ const fetchBrandList = unstable_cache(
             const slug = normalizeSlug(String(value?.slug ?? ""));
             if (!Number.isFinite(valueId) || valueId <= 0 || !slug) return acc;
 
-            acc.push({ valueId, name: String(value?.name ?? "").trim(), slug });
+            const metaKeywords = String(value?.meta_keywords ?? "").trim();
+
+            acc.push({
+                valueId,
+                name: String(value?.name ?? "").trim(),
+                slug,
+                ...(metaKeywords ? { metaKeywords } : null),
+            });
             return acc;
         }, []);
     },

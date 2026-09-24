@@ -182,10 +182,12 @@ export async function generateBrandSlugMetadata({
     return buildSeoMetadata({
         title: `${pageName} | TVIM`,
         description: `${pageName} brandina aid mehsullar ve teklifleri TVIM daxilinde kesf edin.`,
-        // Neither the brand list nor live search returns keywords for a brand,
-        // so this page's tag is built entirely from what it is about.
+        // The brand list carries what the admin wrote for this brand — "KAS,
+        // KAS brend, radiator ventili, …" — which is worth far more than the
+        // name this page could work out on its own.
         keywords: buildKeywords({
-            subjects: [pageName, brandTerm(locale, pageName), localBrand?.name],
+            cms: localBrand?.metaKeywords,
+            subjects: [pageName, brandTerm(locale, pageName)],
             locale,
         }),
         locale,
