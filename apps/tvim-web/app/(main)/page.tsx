@@ -4,6 +4,7 @@ import {
     buildHomeMetadata,
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
+    seoKeywords,
 } from "@/lib/settings";
 import { config } from "@/config";
 import { resolveRootLocale } from "@/lib/root-locale";
@@ -46,13 +47,18 @@ export default async function Home() {
         );
     }
 
-    const [mainPageBlocks, chrome] = await Promise.all([
+    const [mainPageBlocks, chrome, settingsResponse] = await Promise.all([
         getMainPageBlocks(locale),
         getSiteChromeData(locale),
+        getPublicProjectSettingsResponse(locale),
     ]);
+    // The head of this address is the site default's, since that is the url it
+    // is canonical for. The chips are read by the visitor, so they follow the
+    // language the page is actually rendered in.
+    const keywords = seoKeywords(settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined, locale);
 
     return (
-        <SitePageShell chrome={chrome} contentClassName="gap-6">
+        <SitePageShell chrome={chrome} contentClassName="gap-6" keywords={keywords}>
             <MainPageBlocks blocks={mainPageBlocks} locale={locale} />
         </SitePageShell>
     );

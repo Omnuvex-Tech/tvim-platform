@@ -5,6 +5,7 @@ import {
     buildHomeMetadata,
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
+    seoKeywords,
 } from "@/lib/settings";
 import { config } from "@/config";
 import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
@@ -66,13 +67,18 @@ export default async function HomePage({
         notFound();
     }
 
-    const [mainPageBlocks, chrome] = await Promise.all([
+    const [mainPageBlocks, chrome, settingsResponse] = await Promise.all([
         getMainPageBlocks(normalizedLocale),
         getSiteChromeData(normalizedLocale),
+        getPublicProjectSettingsResponse(normalizedLocale),
     ]);
+    const keywords = seoKeywords(
+        settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined,
+        normalizedLocale,
+    );
 
     return (
-        <SitePageShell chrome={chrome} contentClassName="gap-6" includeLogoutToast>
+        <SitePageShell chrome={chrome} contentClassName="gap-6" includeLogoutToast keywords={keywords}>
             <MainPageBlocks blocks={mainPageBlocks} locale={normalizedLocale} />
         </SitePageShell>
     );

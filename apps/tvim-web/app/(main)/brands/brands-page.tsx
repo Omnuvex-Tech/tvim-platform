@@ -41,6 +41,21 @@ type ProductBrandValue = {
     meta_keywords?: string | null;
 };
 
+/**
+ * The brand index's keywords, built once for the head and for the chips above
+ * the footer: the page itself, then a handful of the brands it lists — the
+ * whole catalogue would fill the list and leave no room for what the page is.
+ */
+const brandsIndexKeywords = (data: ProductBrandsResponseData | null | undefined, pageTitle: string, locale: string) =>
+    buildKeywords({
+        cms: data?.meta_keywords,
+        subjects: [
+            pageTitle,
+            ...(Array.isArray(data?.values) ? data.values : []).slice(0, 6).map((brand) => brand?.name),
+        ],
+        locale,
+    });
+
 type RenderBrandsPageProps = {
     locale: string;
     searchParams?: Promise<BrandsPageSearchParams>;
@@ -209,7 +224,7 @@ export async function renderBrandsPage({
     };
 
     return (
-        <SitePageShell chrome={chrome}>
+        <SitePageShell chrome={chrome} keywords={brandsIndexKeywords(brandsPayload, t.pageTitle, locale)}>
             <Breadcrumb
                 items={[
                     { label: t.home, href: `/${locale}` },
@@ -263,9 +278,6 @@ export async function generateBrandsMetadata({
         locale,
         next: brandCacheOptions(),
     });
-    // A handful of the brands listed, not all of them: the whole catalogue
-    // would fill the tag and leave no room for what the page itself is.
-    const listedBrands = (Array.isArray(brandsResponse.data?.values) ? brandsResponse.data.values : []).slice(0, 6);
 
     return buildSeoMetadata({
         title: withSiteName(locale, t.pageTitle),
@@ -273,11 +285,7 @@ export async function generateBrandsMetadata({
         // it is used once someone writes an actual sentence there.
         description: pickDescription(brandsResponse.data?.meta_description, t.pageTitle) ||
             brandsIndexDescription(locale),
-        keywords: buildKeywords({
-            cms: brandsResponse.data?.meta_keywords,
-            subjects: [t.pageTitle, ...listedBrands.map((brand) => brand?.name)],
-            locale,
-        }),
+        keywords: brandsIndexKeywords(brandsResponse.data, t.pageTitle, locale),
         locale,
         canonicalPath: `${locale}/brands`,
         siteUrl: config.project.siteUrl,

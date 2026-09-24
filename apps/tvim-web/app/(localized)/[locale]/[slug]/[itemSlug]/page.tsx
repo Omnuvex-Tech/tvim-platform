@@ -5,7 +5,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
-import { buildKeywords } from "@/lib/seo-keywords";
+import { buildKeywords, normalizeKeywords } from "@/lib/seo-keywords";
 import { articleDescription, clampDescription, pickDescription, pickTitle, productDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
@@ -259,6 +259,35 @@ const productCategoryName = (detail: ProductDetailData): string | undefined => {
     return String(crumbs[crumbs.length - 1]?.name ?? "").trim() || undefined;
 };
 
+/**
+ * A product's keywords, built once for the head and for the chips above the
+ * footer. A product is searched for by its own name, by the brand on it and by
+ * the category it belongs to; most come back with no keywords of their own,
+ * which is why these are built rather than only read.
+ */
+const productKeywords = (detail: ProductDetailData, locale: string) =>
+    buildKeywords({
+        cms: [detail.active_variation?.meta_keywords, detail.product?.meta_keywords]
+            .find((source) => normalizeKeywords(source).length > 0),
+        subjects: [
+            toPlainText(detail.active_variation?.name) || toPlainText(detail.product?.name),
+            productBrandName(detail),
+            productCategoryName(detail),
+        ],
+        locale,
+    });
+
+/**
+ * An article's keywords: the item, then the section it was published under —
+ * the same order a reader would name them in.
+ */
+const menuItemKeywords = (detail: MenuDetailData, locale: string) =>
+    buildKeywords({
+        cms: detail.data?.item?.seo?.meta_keywords,
+        subjects: [detail.data?.item?.name, detail.menu.title, detail.menu.name],
+        locale,
+    });
+
 async function getMenuItemDetail(slug: string, itemSlug: string, locale: string) {
     const decodedItemSlug = decodeSlugParam(itemSlug);
     const locales = [locale, ...SUPPORTED_LOCALES.filter((candidate) => candidate !== locale)];
@@ -491,15 +520,7 @@ export async function generateMetadata({
         return buildSeoMetadata({
             title: title ? withSiteName(normalizedLocale, title) : undefined,
             description,
-            // A product is searched for by its own name, by the brand on it and
-            // by the category it belongs to. Most products come back with no
-            // keywords of their own, which is why these are built rather than
-            // read.
-            keywords: buildKeywords({
-                cms: active?.meta_keywords ?? product?.meta_keywords,
-                subjects: [productName, brandName, categoryName],
-                locale: normalizedLocale,
-            }),
+            keywords: productKeywords(productResult.data, normalizedLocale),
             locale: normalizedLocale,
             canonicalPath: `${normalizedLocale}/products/${canonicalSlug}`,
             siteUrl: config.project.siteUrl,
@@ -524,13 +545,7 @@ export async function generateMetadata({
     return buildSeoMetadata({
         title: title ? withSiteName(normalizedLocale, title) : undefined,
         description,
-        // The item, then the section it was published under — the same order a
-        // reader would name them in.
-        keywords: buildKeywords({
-            cms: item.seo?.meta_keywords,
-            subjects: [item.name, menuDetail.menu.title, menuDetail.menu.name],
-            locale: normalizedLocale,
-        }),
+        keywords: menuItemKeywords(menuDetail, normalizedLocale),
         locale: normalizedLocale,
         canonicalPath: `${normalizedLocale}/${slug}/${itemSlug}`,
         siteUrl: config.project.siteUrl,
@@ -833,7 +848,7 @@ export default async function GridDetailPage({
         ];
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={productKeywords(detail, normalizedLocale)}>
                 <LocalizedLinks value={productLocalizedLinks} />
                 <Breadcrumb
                     items={breadcrumbItems as any}
@@ -1039,7 +1054,7 @@ export default async function GridDetailPage({
     const image = item.banner || item.main_photo || null;
 
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast>
+        <SitePageShell chrome={chrome} includeLogoutToast keywords={menuItemKeywords(menuDetail, normalizedLocale)}>
             <LocalizedLinks value={itemLocalizedLinks} />
             <Breadcrumb
                 items={[

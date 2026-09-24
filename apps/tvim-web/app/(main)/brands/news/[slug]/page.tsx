@@ -255,6 +255,18 @@ const extractFirstImageFromHtml = (html: string | null | undefined) => {
     return match?.[1]?.trim() ?? "";
 };
 
+/**
+ * An article's keywords, built once for the head and for the chips above the
+ * footer: the article, then the section it was published in — a news item is
+ * found by its subject far more often than by its section.
+ */
+const brandNewsKeywords = (detail: MenuDetailData, item: NewsItem | null, title: string, locale: string) =>
+    buildKeywords({
+        cms: item?.seo?.meta_keywords ?? item?.meta_keywords,
+        subjects: [title, detail.menu?.title, detail.menu?.name],
+        locale,
+    });
+
 const resolveMainItem = (detail: MenuDetailData, slug: string, locale: string): NewsItem | null => {
     const direct = detail.data?.item;
     if (direct) return direct;
@@ -320,13 +332,7 @@ export async function generateBrandNewsMetadata({
         description: pickDescription(mainItem?.seo?.meta_description, pageTitle, mainItem?.seo?.meta_title ?? undefined) ||
             pageDescription ||
             articleDescription(locale, pageTitle),
-        keywords: buildKeywords({
-            cms: mainItem?.seo?.meta_keywords ?? mainItem?.meta_keywords,
-            // The article, then the section it was published in — a news item
-            // is found by its subject far more often than by its section.
-            subjects: [pageTitle, menuDetail.menu.title, menuDetail.menu.name],
-            locale,
-        }),
+        keywords: brandNewsKeywords(menuDetail, mainItem, pageTitle, locale),
         locale,
         canonicalPath: `${locale}/${normalizedMenuLink}/${normalizedSlug}`,
         siteUrl: config.project.siteUrl,
@@ -407,7 +413,7 @@ export async function renderBrandNewsSlugPage({
         .filter(Boolean);
 
     return (
-        <SitePageShell chrome={chrome}>
+        <SitePageShell chrome={chrome} keywords={brandNewsKeywords(menuDetail, mainItem, pageTitle, locale)}>
             <LocalizedLinks value={localizedLinks} />
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
                 <div className="relative w-full overflow-hidden rounded-[16px] bg-[#e0e3e8] skeleton-loader">

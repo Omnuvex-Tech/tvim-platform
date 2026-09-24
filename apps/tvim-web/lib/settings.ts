@@ -386,6 +386,17 @@ export const resolveSiteUrlWithFallbacks = ({
     return normalizeAbsoluteHttpUrl(configUrl);
 };
 
+/**
+ * The keywords of a page described by an seo block: what the admin wrote, then
+ * the site's own terms in the page's language. The home page's head and the
+ * chips above its footer both come from here.
+ */
+export const seoKeywords = (seo: ProjectSettingsSeoData | undefined, locale: string) =>
+    buildKeywords({
+        cms: seo?.meta_keywords ?? seo?.keywords,
+        locale,
+    });
+
 export const buildHomeMetadata = (
     seo: ProjectSettingsSeoData | undefined,
     locale: string,
@@ -398,10 +409,7 @@ export const buildHomeMetadata = (
     // has them and the site's terms where it has none: an indexable page whose
     // tag is missing describes itself to nobody. Callers that know what their
     // page is about pass a list already built from it.
-    const keywords = buildKeywords({
-        cms: seo?.meta_keywords ?? seo?.keywords,
-        locale,
-    });
+    const keywords = seoKeywords(seo, locale);
     const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
     // When the cms states a canonical it also settles which host the page is
     // published under, and the alternates have to agree with it — otherwise
