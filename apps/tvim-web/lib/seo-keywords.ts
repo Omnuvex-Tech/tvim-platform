@@ -78,6 +78,19 @@ export const normalizeKeywords = (raw: unknown): string[] => {
     return isUsable(single) ? [single] : [];
 };
 
+/**
+ * One subject as one keyword.
+ *
+ * Unlike a cms keywords field, a subject is a single phrase that happens to
+ * contain punctuation — an article titled "Holcim Tector Ceram 301: Kafel və
+ * Keramika İşlərində Peşəkar, Dayanıqlı və Sərfəli Həll" is one thing, and
+ * splitting it at its comma leaves half a sentence standing in for it.
+ */
+const normalizePhrase = (value: unknown): string[] => {
+    const phrase = clean(value);
+    return isUsable(phrase) ? [phrase] : [];
+};
+
 type BuildKeywordsOptions = {
     /** What the cms holds for this page, in whatever shape it holds it. */
     cms?: unknown;
@@ -109,7 +122,7 @@ export const buildKeywords = ({
 
     const candidates = [
         ...normalizeKeywords(cms),
-        ...subjects.flatMap((subject) => normalizeKeywords(subject)),
+        ...subjects.flatMap((subject) => normalizePhrase(subject)),
         ...(siteTerms ? SITE_TERMS[siteLocale] : []),
     ];
 
