@@ -5,6 +5,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
+import { buildKeywords } from "@/lib/seo-keywords";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
@@ -215,6 +216,46 @@ type ProductDetailData = {
     labels?: ProductDetailLabel[];
     comments?: ProductDetailComments;
     related?: ProductDetailRelatedItem[];
+};
+
+/** Filter labels that name a brand, in the languages the api answers in. */
+const BRAND_FILTER_PATTERN = /^(brend|brand|бренд|marka|марка|istehsal[cç]ı|производитель|manufacturer)$/i;
+
+/**
+ * The brand on a product, where the detail response makes it plain.
+ *
+ * Attributes arrive twice: as the whole filter set the category offers, and as
+ * the values this variation actually carries. Only the second describes the
+ * product, so a brand filter holding more than a couple of values is taken to
+ * be the category copy and left alone — a product has one brand, not forty.
+ */
+const productBrandName = (detail: ProductDetailData): string | undefined => {
+    const filters = Array.isArray(detail.active_variation?.filters)
+        ? detail.active_variation.filters
+        : [];
+
+    for (const filter of filters) {
+        const label = String(filter?.name ?? "").trim();
+        const slug = String(filter?.slug ?? "").trim();
+        if (!BRAND_FILTER_PATTERN.test(label) && !BRAND_FILTER_PATTERN.test(slug)) continue;
+
+        const values = Array.isArray(filter?.values) ? filter.values : [];
+        if (values.length === 0 || values.length > 2) continue;
+
+        const name = String(values[0]?.name ?? "").trim();
+        if (name) return name;
+    }
+
+    return undefined;
+};
+
+/** The category a product sits in, as its own menu or its breadcrumb states it. */
+const productCategoryName = (detail: ProductDetailData): string | undefined => {
+    const fromMenu = String(detail.menu?.name ?? "").trim();
+    if (fromMenu) return fromMenu;
+
+    const crumbs = Array.isArray(detail.breadcrumbs) ? detail.breadcrumbs : [];
+    return String(crumbs[crumbs.length - 1]?.name ?? "").trim() || undefined;
 };
 
 async function getMenuItemDetail(slug: string, itemSlug: string, locale: string) {
@@ -446,7 +487,19 @@ export async function generateMetadata({
         return buildSeoMetadata({
             title,
             description,
-            keywords: active?.meta_keywords ?? product?.meta_keywords ?? undefined,
+            // A product is searched for by its own name, by the brand on it and
+            // by the category it belongs to. Most products come back with no
+            // keywords of their own, which is why these are built rather than
+            // read.
+            keywords: buildKeywords({
+                cms: active?.meta_keywords ?? product?.meta_keywords,
+                subjects: [
+                    String(active?.name ?? "").trim() || String(product?.name ?? "").trim(),
+                    productBrandName(productResult.data),
+                    productCategoryName(productResult.data),
+                ],
+                locale: normalizedLocale,
+            }),
             locale: normalizedLocale,
             canonicalPath: `${normalizedLocale}/products/${canonicalSlug}`,
             siteUrl: config.project.siteUrl,
@@ -468,7 +521,13 @@ export async function generateMetadata({
     return buildSeoMetadata({
         title,
         description,
-        keywords: item.seo?.meta_keywords,
+        // The item, then the section it was published under — the same order a
+        // reader would name them in.
+        keywords: buildKeywords({
+            cms: item.seo?.meta_keywords,
+            subjects: [item.name, menuDetail.menu.title, menuDetail.menu.name],
+            locale: normalizedLocale,
+        }),
         locale: normalizedLocale,
         canonicalPath: `${normalizedLocale}/${slug}/${itemSlug}`,
         siteUrl: config.project.siteUrl,

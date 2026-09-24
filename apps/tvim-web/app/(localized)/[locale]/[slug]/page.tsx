@@ -25,6 +25,7 @@ import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar
 import { isSupportedLocale } from "@/lib/site-locales";
 import { PRODUCTS_TAG, PRODUCT_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { getTranslations } from "@/lib/i18n";
+import { buildKeywords } from "@/lib/seo-keywords";
 import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 type MenuDetailData = {
@@ -368,6 +369,19 @@ const hasListingSeoRefinement = (searchParams: Record<string, string | string[] 
     };
 };
 
+/**
+ * The categories a section offers, which is what someone searching for the
+ * section is usually actually after: nobody looks for "Kataloq", they look for
+ * the thing inside it. The list is trimmed here because a catalogue root can
+ * hold dozens, and the keyword builder would otherwise spend its whole budget
+ * on one level of the tree.
+ */
+const childCategoryNames = (detail: MenuDetailData): string[] =>
+    (Array.isArray(detail.data?.categories) ? detail.data.categories : [])
+        .map((category) => String(category?.name ?? "").trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
     const { slug: rawSlug, locale } = await params;
     const slug = decodeSlugParam(rawSlug);
@@ -404,7 +418,18 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         {
             meta_title: seo?.meta_title || detail.menu.title || detail.menu.name,
             meta_description: seo?.meta_description || detail.menu.description || detail.data?.description,
-            meta_keywords: seo?.meta_keywords ?? detail.data?.meta_keywords ?? detail.data?.meta?.meta_keywords ?? detail.menu?.meta_keywords,
+            // The cms list first, then what the page is: its own title, and the
+            // categories it offers. A category page with nothing written for it
+            // in the admin used to publish no keywords at all.
+            meta_keywords: buildKeywords({
+                cms: seo?.meta_keywords ?? detail.data?.meta_keywords ?? detail.data?.meta?.meta_keywords ?? detail.menu?.meta_keywords,
+                subjects: [
+                    detail.menu.title,
+                    detail.menu.name,
+                    ...childCategoryNames(detail),
+                ],
+                locale: normalizedLocale,
+            }),
             canonical: seo?.canonical,
             alternates: seo?.alternates,
             x_default: seo?.x_default,

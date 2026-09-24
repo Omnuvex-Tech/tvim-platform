@@ -6,6 +6,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
+import { buildKeywords } from "@/lib/seo-keywords";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
@@ -32,6 +33,10 @@ type NewsItem = {
     multi_slugs?: Record<string, string>;
     name?: string;
     content?: string;
+    // The api sends an article's seo block in the same shape menu items use
+    // elsewhere; only the keywords are read here.
+    seo?: { meta_keywords?: unknown } | null;
+    meta_keywords?: unknown;
     banner?: string | null;
     main_photo?: string | null;
     files?: Array<{ url?: string; is_main?: boolean }>;
@@ -307,7 +312,13 @@ export async function generateBrandNewsMetadata({
     return buildSeoMetadata({
         title: `${pageTitle} | TVIM`,
         description: pageDescription || `${pageTitle} haqqinda yenilikleri TVIM daxilinde oxuyun.`,
-        keywords: [pageTitle, "brand news", "tvim"],
+        keywords: buildKeywords({
+            cms: mainItem?.seo?.meta_keywords ?? mainItem?.meta_keywords,
+            // The article, then the section it was published in — a news item
+            // is found by its subject far more often than by its section.
+            subjects: [pageTitle, menuDetail.menu.title, menuDetail.menu.name],
+            locale,
+        }),
         locale,
         canonicalPath: `${locale}/${normalizedMenuLink}/${normalizedSlug}`,
         siteUrl: config.project.siteUrl,

@@ -4,6 +4,7 @@ import { Breadcrumb } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
+import { buildKeywords } from "@/lib/seo-keywords";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
@@ -69,6 +70,16 @@ type LiveSearchResponseData = {
     };
     categories?: unknown;
     products?: unknown;
+};
+
+/**
+ * "Knauf" alone is what someone types when they already know the brand; the
+ * phrase below is what they type when they are looking for it on a shop.
+ */
+const brandTerm = (locale: string, name: string) => {
+    if (locale === "ru") return `бренд ${name}`;
+    if (locale === "en") return `${name} brand`;
+    return `${name} brendi`;
 };
 
 const decodeSlugParam = (value: string) => {
@@ -171,7 +182,12 @@ export async function generateBrandSlugMetadata({
     return buildSeoMetadata({
         title: `${pageName} | TVIM`,
         description: `${pageName} brandina aid mehsullar ve teklifleri TVIM daxilinde kesf edin.`,
-        keywords: [pageName, "brand", "brands", "tvim"],
+        // Neither the brand list nor live search returns keywords for a brand,
+        // so this page's tag is built entirely from what it is about.
+        keywords: buildKeywords({
+            subjects: [pageName, brandTerm(locale, pageName), localBrand?.name],
+            locale,
+        }),
         locale,
         canonicalPath,
         siteUrl: config.project.siteUrl,
