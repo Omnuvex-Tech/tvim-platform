@@ -5,6 +5,7 @@ import {
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
     seoKeywords,
+    catalogNames,
 } from "@/lib/settings";
 import { config } from "@/config";
 import { resolveRootLocale } from "@/lib/root-locale";
@@ -17,7 +18,10 @@ export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
     const { languages, siteDefaultLocale } = await resolveRootLocale();
-    const settingsResponse = await getPublicProjectSettingsResponse(siteDefaultLocale);
+    const [settingsResponse, chrome] = await Promise.all([
+        getPublicProjectSettingsResponse(siteDefaultLocale),
+        getSiteChromeData(siteDefaultLocale),
+    ]);
 
     const siteUrl = resolveSiteUrlWithFallbacks({
         settingsResponse,
@@ -32,6 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
             locales: languages.map((language) => language.code),
             defaultLocale: siteDefaultLocale,
             siteUrl,
+            keywordSubjects: catalogNames(chrome.initialCatalogItems, siteDefaultLocale),
         }
     );
 }
@@ -55,7 +60,11 @@ export default async function Home() {
     // The head of this address is the site default's, since that is the url it
     // is canonical for. The chips are read by the visitor, so they follow the
     // language the page is actually rendered in.
-    const keywords = seoKeywords(settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined, locale);
+    const keywords = seoKeywords(
+        settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined,
+        locale,
+        catalogNames(chrome.initialCatalogItems, locale),
+    );
 
     return (
         <SitePageShell chrome={chrome} contentClassName="gap-6" keywords={keywords}>

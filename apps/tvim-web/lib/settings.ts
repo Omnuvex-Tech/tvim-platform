@@ -57,6 +57,8 @@ type HomeMetadataOptions = {
     defaultLocale?: string;
     siteUrl?: string;
     useProjectFallbacks?: boolean;
+    /** What the page is about, for the keywords it builds; see seoKeywords. */
+    keywordSubjects?: Array<string | null | undefined>;
 };
 
 const isRecord = (value: unknown): value is AnyRecord =>
@@ -391,11 +393,58 @@ export const resolveSiteUrlWithFallbacks = ({
  * the site's own terms in the page's language. The home page's head and the
  * chips above its footer both come from here.
  */
-export const seoKeywords = (seo: ProjectSettingsSeoData | undefined, locale: string) =>
+export const seoKeywords = (
+    seo: ProjectSettingsSeoData | undefined,
+    locale: string,
+    subjects: Array<string | null | undefined> = [],
+) =>
     buildKeywords({
         cms: seo?.meta_keywords ?? seo?.keywords,
+        subjects,
         locale,
     });
+
+type CatalogNode = { name?: string | null; title?: string | null; children?: unknown };
+
+const descendantCount = (node: CatalogNode): number =>
+    Array.isArray(node?.children)
+        ? node.children.reduce((sum: number, child: CatalogNode) => sum + 1 + descendantCount(child), 0)
+        : 0;
+
+/**
+ * Whether a catalogue name is written in the page's language.
+ *
+ * Ten of the catalogue's root sections have no translation, and the api hands
+ * their Azerbaijani names to /en and /ru as they are — "Drellər və açarlar" at
+ * the head of the English home page's keywords. A Russian name carries Cyrillic
+ * and an English one carries none of the letters only Azerbaijani uses. This is
+ * for translated content only: a brand name is Latin in every language.
+ */
+const isInPageLanguage = (text: string, locale: string) => {
+    if (locale === "ru") return /[а-яё]/i.test(text);
+    if (locale === "en") return !/[əğıöşüçƏĞİÖŞÜÇ]/.test(text);
+    return true;
+};
+
+/** Enough sections to say what the site sells, with room left for its own name. */
+const MAX_CATALOG_NAMES = 12;
+
+/**
+ * The main sections of the catalogue, by name. On the home page these are what
+ * the site is about: nobody searches for a home page, they search for what it
+ * sells.
+ *
+ * The biggest sections come first. The api lists ten new, empty root sections
+ * ahead of the established ones, and taking the list in its own order filled
+ * the keywords with "PnevmoTool" and "Vintillər" while "Tikinti materialları"
+ * and the site's own name were left off.
+ */
+export const catalogNames = (items: ReadonlyArray<CatalogNode>, locale: string) =>
+    [...items]
+        .sort((a, b) => descendantCount(b) - descendantCount(a))
+        .map((item) => htmlToText(item?.name || item?.title))
+        .filter((name) => name && isInPageLanguage(name, locale))
+        .slice(0, MAX_CATALOG_NAMES);
 
 export const buildHomeMetadata = (
     seo: ProjectSettingsSeoData | undefined,
@@ -409,7 +458,7 @@ export const buildHomeMetadata = (
     // has them and the site's terms where it has none: an indexable page whose
     // tag is missing describes itself to nobody. Callers that know what their
     // page is about pass a list already built from it.
-    const keywords = seoKeywords(seo, locale);
+    const keywords = seoKeywords(seo, locale, options.keywordSubjects);
     const canonicalFromSeo = normalizeAbsoluteHttpUrl(seo?.canonical);
     // When the cms states a canonical it also settles which host the page is
     // published under, and the alternates have to agree with it — otherwise

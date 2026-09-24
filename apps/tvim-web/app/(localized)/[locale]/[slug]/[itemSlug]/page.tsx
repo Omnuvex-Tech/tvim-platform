@@ -273,6 +273,11 @@ const productKeywords = (detail: ProductDetailData, locale: string) =>
             toPlainText(detail.active_variation?.name) || toPlainText(detail.product?.name),
             productBrandName(detail),
             productCategoryName(detail),
+            // The trail above it too — "Drellər", then "Elektrik əl alətləri",
+            // then "Əl alətləri" — since a shopper searches at every level.
+            ...(Array.isArray(detail.breadcrumbs) ? detail.breadcrumbs : [])
+                .map((crumb) => toPlainText(crumb?.name))
+                .reverse(),
         ],
         locale,
     });
