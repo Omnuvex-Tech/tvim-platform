@@ -11,6 +11,7 @@ import { LocalizedLinksProvider } from "@/app/components/SiteChrome/localized-li
 import { VexvonBubbleOffset } from "@/app/components/VexvonBubble/vexvon-bubble-offset";
 import { config } from "@/config";
 import type { SiteLocale } from "@/lib/site-locales";
+import { buildKeywords } from "@/lib/seo-keywords";
 import "@/app/globals.css";
 
 // Served as subsetted woff2 per unicode-range rather than the two raw variable
@@ -23,16 +24,24 @@ const inter = Inter({
     display: "swap",
 });
 
-export const siteMetadata: Metadata = {
+/**
+ * What a page inherits when it publishes no metadata of its own — in practice
+ * a 404 or one of the screens kept out of the index.
+ *
+ * It takes the language because the keywords used to be an Azerbaijani list
+ * written into the layout as a constant, which every /en and /ru page that
+ * fell back to it then carried.
+ */
+export const siteMetadata = (lang: SiteLocale = "az"): Metadata => ({
     title: config.project.projectName,
     description: config.project.projectDescription,
-    keywords: [...config.project.keywords],
+    keywords: buildKeywords({ locale: lang }),
     // Renders <meta name="google-site-verification" ...> into every page's
     // head; child metadata inherits it, so Search Console can verify any URL.
     verification: {
         google: "eWe-tmi3JBc_oLpVnUBgfOvJLeXW2XKKqb8vmLzW0vU",
     },
-};
+});
 
 /**
  * The document every page is rendered into. It lives here rather than in a
