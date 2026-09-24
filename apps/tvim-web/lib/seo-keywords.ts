@@ -10,15 +10,16 @@ import { normalizeLocale } from "@/lib/site-locales";
  * a page written in Azerbaijani. The list is built here instead, so a page only
  * has to say what it is about.
  *
- * The order is deliberate. What an editor wrote in the cms comes first, then
- * the page's own subject — its title, its brand, the category above it — and
- * the site-wide terms last, where they fill the tag out rather than crowd it.
+ * What an editor wrote in the admin is used as it stands, with nothing added
+ * to it. Only a page nobody wrote keywords for gets a built list: its own
+ * subject — its title, its brand, the category above it — and then the
+ * site-wide terms.
  */
 
 /**
- * Room for a full admin list plus what the page adds. It was 12, which cut the
- * admin's own lists short — the corporate page has 18 written for it — and left
- * little for a page to describe itself with once the site's terms were in.
+ * Room for a full admin list, or for a built one with the site's terms in. It
+ * was 12, which cut the admin's own lists short — the corporate page has 18
+ * written for it.
  */
 const MAX_KEYWORDS = 20;
 
@@ -110,11 +111,17 @@ type BuildKeywordsOptions = {
 };
 
 /**
- * The keywords for one page: the cms list, the page's own subject and the
- * site-wide terms, in that order, deduplicated and capped.
+ * The keywords for one page: the cms list when the admin wrote one, and the
+ * page's own subject followed by the site-wide terms when nobody did — never
+ * the two mixed. Deduplicated and capped either way.
  *
- * Deduplication ignores case and surrounding space, so a cms entry does not
- * come back a second time as a generated one.
+ * A cms list that only repeats the page's own name counts as not written. The
+ * admin fills an empty keywords field with the entity's name on its own —
+ * "Drel GSB 600 BOSCH" on most products, "Brend" on the brand filter — and
+ * taking that at its word would leave those pages a single keyword where the
+ * built list has a dozen. The name is still in the built list, as a subject.
+ *
+ * Deduplication ignores case and surrounding space.
  */
 export const buildKeywords = ({
     cms,
@@ -124,11 +131,14 @@ export const buildKeywords = ({
 }: BuildKeywordsOptions): string[] => {
     const siteLocale = normalizeLocale(locale);
 
-    const candidates = [
-        ...normalizeKeywords(cms),
-        ...subjects.flatMap((subject) => normalizePhrase(subject)),
-        ...(siteTerms ? SITE_TERMS[siteLocale] : []),
-    ];
+    const written = normalizeKeywords(cms);
+    const pageSubjects = subjects.flatMap((subject) => normalizePhrase(subject));
+    const ownNames = new Set(pageSubjects.map((subject) => subject.toLowerCase()));
+    const adminWroteList = written.some((keyword) => !ownNames.has(keyword.toLowerCase()));
+
+    const candidates = adminWroteList
+        ? written
+        : [...pageSubjects, ...(siteTerms ? SITE_TERMS[siteLocale] : [])];
 
     const seen = new Set<string>();
     const keywords: string[] = [];

@@ -51,6 +51,9 @@ const brandsIndexKeywords = (data: ProductBrandsResponseData | null | undefined,
         cms: data?.meta_keywords,
         subjects: [
             pageTitle,
+            // The filter's own name, so the "Brend" the admin filled its keywords
+            // with is recognised as that name rather than as a written list.
+            data?.name,
             ...(Array.isArray(data?.values) ? data.values : []).slice(0, 6).map((brand) => brand?.name),
         ],
         locale,
