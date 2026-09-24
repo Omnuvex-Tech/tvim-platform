@@ -4,6 +4,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { brandsIndexDescription, withSiteName } from "@/lib/seo-copy";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Pagination } from "@/app/components/Pagination/pagination";
@@ -267,8 +268,8 @@ export async function generateBrandsMetadata({
     const listedBrands = (Array.isArray(brandsResponse.data?.values) ? brandsResponse.data.values : []).slice(0, 6);
 
     return buildSeoMetadata({
-        title: `${t.pageTitle} | TVIM`,
-        description: `${t.pageTitle} uzre secilmis brendleri ve mehsullari TVIM daxilinde kesf edin.`,
+        title: withSiteName(locale, t.pageTitle),
+        description: brandsIndexDescription(locale),
         keywords: buildKeywords({
             cms: brandsResponse.data?.meta_keywords,
             subjects: [t.pageTitle, ...listedBrands.map((brand) => brand?.name)],

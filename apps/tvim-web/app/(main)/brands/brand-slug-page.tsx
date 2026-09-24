@@ -5,6 +5,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { brandDescription, withSiteName } from "@/lib/seo-copy";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
@@ -180,8 +181,8 @@ export async function generateBrandSlugMetadata({
     const alternateLocales = Object.keys(alternatePathByLocale);
 
     return buildSeoMetadata({
-        title: `${pageName} | TVIM`,
-        description: `${pageName} brandina aid mehsullar ve teklifleri TVIM daxilinde kesf edin.`,
+        title: withSiteName(locale, pageName),
+        description: brandDescription(locale, pageName),
         // The brand list carries what the admin wrote for this brand — "KAS,
         // KAS brend, radiator ventili, …" — which is worth far more than the
         // name this page could work out on its own.

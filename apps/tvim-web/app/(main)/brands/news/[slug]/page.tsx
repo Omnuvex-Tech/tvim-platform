@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { articleDescription, clampDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
@@ -291,7 +292,9 @@ export async function generateBrandNewsMetadata({
     const mainItem = resolveMainItem(menuDetail, normalizedSlug, locale);
     const pageTitle = String(mainItem?.name ?? menuDetail.menu.title ?? menuDetail.menu.name ?? normalizeSlugText(normalizedSlug)).trim() || "Brand News";
     const pageDescriptionHtml = String(mainItem?.content ?? menuDetail.menu.description ?? menuDetail.data?.content ?? "");
-    const pageDescription = pageDescriptionHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 170);
+    // Entities stay unread by a tag strip, and a fixed slice ends the sentence
+    // mid-word; both showed up in result pages as "&ndash;" and "… Azerbaycanda! B".
+    const pageDescription = clampDescription(toPlainText(pageDescriptionHtml));
     const bannerImage =
         String(mainItem?.banner ?? mainItem?.main_photo ?? menuDetail.data?.banner ?? menuDetail.data?.main_photo ?? "").trim() ||
         String(mainItem?.files?.find((f) => f?.is_main)?.url ?? mainItem?.files?.[0]?.url ?? "").trim() ||
@@ -310,8 +313,8 @@ export async function generateBrandNewsMetadata({
     const alternateLocales = Object.keys(alternatePathByLocale);
 
     return buildSeoMetadata({
-        title: `${pageTitle} | TVIM`,
-        description: pageDescription || `${pageTitle} haqqinda yenilikleri TVIM daxilinde oxuyun.`,
+        title: withSiteName(locale, pageTitle),
+        description: pageDescription || articleDescription(locale, pageTitle),
         keywords: buildKeywords({
             cms: mainItem?.seo?.meta_keywords ?? mainItem?.meta_keywords,
             // The article, then the section it was published in — a news item

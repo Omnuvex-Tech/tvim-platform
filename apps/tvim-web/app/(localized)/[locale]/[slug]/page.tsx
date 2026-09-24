@@ -26,6 +26,7 @@ import { isSupportedLocale } from "@/lib/site-locales";
 import { PRODUCTS_TAG, PRODUCT_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { getTranslations } from "@/lib/i18n";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { clampDescription, pageDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 type MenuDetailData = {
@@ -414,10 +415,17 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         viewType === "product-list";
     const listingSeoState = hasListingSeoRefinement(resolvedSearchParams || {});
 
+    const menuTitle = seo?.meta_title || detail.menu.title || detail.menu.name;
+
     const metadata = buildHomeMetadata(
         {
-            meta_title: seo?.meta_title || detail.menu.title || detail.menu.name,
-            meta_description: seo?.meta_description || detail.menu.description || detail.data?.description,
+            meta_title: menuTitle ? withSiteName(normalizedLocale, String(menuTitle)) : menuTitle,
+            // A page the cms left without a description used to publish none at
+            // all, which leaves a result page quoting the navigation.
+            meta_description:
+                clampDescription(toPlainText(
+                    seo?.meta_description || detail.menu.description || detail.data?.description || "",
+                )) || pageDescription(normalizedLocale, String(menuTitle)),
             // The cms list first, then what the page is: its own title, and the
             // categories it offers. A category page with nothing written for it
             // in the admin used to publish no keywords at all.

@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { articleDescription, clampDescription, productDescription, saysMoreThan, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
@@ -278,11 +279,6 @@ const decodeSlugParam = (slug: string) => {
     }
 };
 
-function stripHtml(input?: string | null) {
-    if (!input) return "";
-    return input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
-
 const isProductSlug = (slug: string) => {
     const normalized = String(slug ?? "").trim().toLowerCase();
     return normalized === "products" || normalized === "product";
@@ -465,11 +461,27 @@ export async function generateMetadata({
             String(active?.name ?? "").trim() ||
             String(product?.name ?? "").trim() ||
             undefined;
-        const description =
+        const productName = String(active?.name ?? "").trim() || String(product?.name ?? "").trim();
+        const brandName = productBrandName(productResult.data);
+        const categoryName = productCategoryName(productResult.data);
+
+        const cmsDescription = toPlainText(
             String(active?.meta_description ?? "").trim() ||
-            String(product?.meta_description ?? "").trim() ||
-            stripHtml(product?.description).slice(0, 170) ||
-            undefined;
+            String(product?.meta_description ?? "").trim(),
+        );
+        const bodyDescription = toPlainText(product?.description);
+
+        // Most of the catalogue arrives with `meta_description` holding nothing
+        // but the product's own name, which repeats the title in a result page
+        // instead of telling anyone what the product is.
+        const description =
+            (saysMoreThan(cmsDescription, productName, title) ? clampDescription(cmsDescription) : "") ||
+            clampDescription(bodyDescription) ||
+            productDescription(normalizedLocale, {
+                name: productName,
+                brand: brandName,
+                category: categoryName,
+            });
         const canonicalSlug = String(active?.slug ?? product?.slug ?? itemSlug).trim() || itemSlug;
 
         // Each language serves this product under its own slug, so alternates
@@ -485,7 +497,7 @@ export async function generateMetadata({
         const alternateLocales = Object.keys(alternatePathByLocale);
 
         return buildSeoMetadata({
-            title,
+            title: title ? withSiteName(normalizedLocale, title) : undefined,
             description,
             // A product is searched for by its own name, by the brand on it and
             // by the category it belongs to. Most products come back with no
@@ -493,11 +505,7 @@ export async function generateMetadata({
             // read.
             keywords: buildKeywords({
                 cms: active?.meta_keywords ?? product?.meta_keywords,
-                subjects: [
-                    String(active?.name ?? "").trim() || String(product?.name ?? "").trim(),
-                    productBrandName(productResult.data),
-                    productCategoryName(productResult.data),
-                ],
+                subjects: [productName, brandName, categoryName],
                 locale: normalizedLocale,
             }),
             locale: normalizedLocale,
@@ -515,11 +523,14 @@ export async function generateMetadata({
     const item = menuDetail.data?.item;
     if (!item) return {};
 
-    const fallbackDescription = stripHtml(item.content).slice(0, 170);
     const title = item.seo?.meta_title || item.name || menuDetail.menu.title || menuDetail.menu.name;
-    const description = item.seo?.meta_description || fallbackDescription;
+    const cmsDescription = toPlainText(item.seo?.meta_description);
+    const description =
+        (saysMoreThan(cmsDescription, title) ? clampDescription(cmsDescription) : "") ||
+        clampDescription(toPlainText(item.content)) ||
+        articleDescription(normalizedLocale, String(title ?? "").trim());
     return buildSeoMetadata({
-        title,
+        title: title ? withSiteName(normalizedLocale, String(title)) : undefined,
         description,
         // The item, then the section it was published under — the same order a
         // reader would name them in.
