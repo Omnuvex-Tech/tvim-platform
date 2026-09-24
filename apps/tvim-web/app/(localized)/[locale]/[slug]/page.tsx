@@ -26,7 +26,7 @@ import { isSupportedLocale } from "@/lib/site-locales";
 import { PRODUCTS_TAG, PRODUCT_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { getTranslations } from "@/lib/i18n";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { clampDescription, pageDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
+import { pageDescription, pickDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 type MenuDetailData = {
@@ -415,17 +415,21 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         viewType === "product-list";
     const listingSeoState = hasListingSeoRefinement(resolvedSearchParams || {});
 
-    const menuTitle = seo?.meta_title || detail.menu.title || detail.menu.name;
+    // The page's plain name is what a sentence can be built around; the seo
+    // title is often a phrase that already ends in the site's name.
+    const pageName = toPlainText(detail.menu.title || detail.menu.name);
+    const menuTitle = toPlainText(seo?.meta_title) || pageName;
 
     const metadata = buildHomeMetadata(
         {
-            meta_title: menuTitle ? withSiteName(normalizedLocale, String(menuTitle)) : menuTitle,
+            meta_title: menuTitle ? withSiteName(normalizedLocale, menuTitle) : undefined,
             // A page the cms left without a description used to publish none at
             // all, which leaves a result page quoting the navigation.
             meta_description:
-                clampDescription(toPlainText(
-                    seo?.meta_description || detail.menu.description || detail.data?.description || "",
-                )) || pageDescription(normalizedLocale, String(menuTitle)),
+                pickDescription(seo?.meta_description, menuTitle, pageName) ||
+                pickDescription(detail.menu.description, menuTitle, pageName) ||
+                pickDescription(detail.data?.description, menuTitle, pageName) ||
+                (pageName ? pageDescription(normalizedLocale, pageName) : undefined),
             // The cms list first, then what the page is: its own title, and the
             // categories it offers. A category page with nothing written for it
             // in the admin used to publish no keywords at all.

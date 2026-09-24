@@ -158,15 +158,48 @@ export const saysMoreThan = (description: string, ...titles: Array<string | unde
     return body.length > 0 && !titles.some((title) => title && norm(title) === body);
 };
 
+/** Roughly what a result page shows of a title before it cuts it off. */
+const MAX_TITLE_LENGTH = 60;
+
+/** Shorter than this, a cms description is a label rather than a description. */
+const MIN_DESCRIPTION_LENGTH = 50;
+
 /**
- * The site's name on the end of a title, unless the title already carries it.
+ * The site's name on the end of a title, unless the title already carries it
+ * or has no room left for it.
  *
- * A cms title often ends in "– TVİM" already, and a suffix added on top of that
- * would read twice in a result page.
+ * A cms title often ends in "– TVİM" already, and a suffix added on top would
+ * read twice. A title already near the cut-off loses the suffix to the cut
+ * anyway, so adding it there only pushes the page's own words further out.
  */
 export const withSiteName = (locale: string, title: string) => {
     const site = SITE_NAME[normalizeLocale(locale)];
     const alreadyNamed = /tv[iİı]m/i.test(title);
+    const named = `${title} | ${site}`;
 
-    return alreadyNamed ? title : `${title} | ${site}`;
+    return alreadyNamed || named.length > MAX_TITLE_LENGTH ? title : named;
+};
+
+/**
+ * The cms title when it says more than the page's own name, and nothing when it
+ * does not — the caller then falls back to the name.
+ *
+ * "Termet" as the meta title of the Termet brand adds nothing; "KAS Radiator
+ * Ventilləri | Keyfiyyətli İstilik Sistemi Hissələri – TVİM" is what the admin
+ * wrote the page to be found by.
+ */
+export const pickTitle = (cms: unknown, name: string) => {
+    const text = toPlainText(cms);
+    return text && saysMoreThan(text, name) ? text : "";
+};
+
+/**
+ * The cms description when it is one, and nothing when it is not: empty, a
+ * repeat of the title, or a single word like the "Brend" the brand index holds.
+ */
+export const pickDescription = (cms: unknown, ...titles: Array<string | undefined>) => {
+    const text = toPlainText(cms);
+    return text.length >= MIN_DESCRIPTION_LENGTH && saysMoreThan(text, ...titles)
+        ? clampDescription(text)
+        : "";
 };

@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { articleDescription, clampDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
+import { articleDescription, clampDescription, pickDescription, pickTitle, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { normalizeLocale } from "@/lib/site-locales";
 import { getTranslations } from "@/lib/i18n";
@@ -36,7 +36,7 @@ type NewsItem = {
     content?: string;
     // The api sends an article's seo block in the same shape menu items use
     // elsewhere; only the keywords are read here.
-    seo?: { meta_keywords?: unknown } | null;
+    seo?: { meta_title?: string | null; meta_description?: string | null; meta_keywords?: unknown } | null;
     meta_keywords?: unknown;
     banner?: string | null;
     main_photo?: string | null;
@@ -313,8 +313,13 @@ export async function generateBrandNewsMetadata({
     const alternateLocales = Object.keys(alternatePathByLocale);
 
     return buildSeoMetadata({
-        title: withSiteName(locale, pageTitle),
-        description: pageDescription || articleDescription(locale, pageTitle),
+        // The article's own seo block is what the admin wrote it to be found
+        // by. It was never read here: every one of these pages went out under
+        // its bare name and the first sentence of its body instead.
+        title: pickTitle(mainItem?.seo?.meta_title, pageTitle) || withSiteName(locale, pageTitle),
+        description: pickDescription(mainItem?.seo?.meta_description, pageTitle, mainItem?.seo?.meta_title ?? undefined) ||
+            pageDescription ||
+            articleDescription(locale, pageTitle),
         keywords: buildKeywords({
             cms: mainItem?.seo?.meta_keywords ?? mainItem?.meta_keywords,
             // The article, then the section it was published in — a news item

@@ -4,7 +4,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { brandsIndexDescription, withSiteName } from "@/lib/seo-copy";
+import { brandsIndexDescription, pickDescription, withSiteName } from "@/lib/seo-copy";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Pagination } from "@/app/components/Pagination/pagination";
@@ -269,7 +269,10 @@ export async function generateBrandsMetadata({
 
     return buildSeoMetadata({
         title: withSiteName(locale, t.pageTitle),
-        description: brandsIndexDescription(locale),
+        // The filter row's own description is the single word "Brend" today;
+        // it is used once someone writes an actual sentence there.
+        description: pickDescription(brandsResponse.data?.meta_description, t.pageTitle) ||
+            brandsIndexDescription(locale),
         keywords: buildKeywords({
             cms: brandsResponse.data?.meta_keywords,
             subjects: [t.pageTitle, ...listedBrands.map((brand) => brand?.name)],

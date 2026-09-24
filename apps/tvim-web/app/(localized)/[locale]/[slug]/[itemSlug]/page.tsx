@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { getPublicMenuDetail } from "@/lib/public-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { articleDescription, clampDescription, productDescription, saysMoreThan, toPlainText, withSiteName } from "@/lib/seo-copy";
+import { articleDescription, clampDescription, pickDescription, pickTitle, productDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
@@ -455,33 +455,25 @@ export async function generateMetadata({
 
         const active = productResult.data.active_variation;
         const product = productResult.data?.product;
+        const productName = toPlainText(active?.name) || toPlainText(product?.name);
         const title =
-            String(active?.meta_title ?? "").trim() ||
-            String(product?.meta_title ?? "").trim() ||
-            String(active?.name ?? "").trim() ||
-            String(product?.name ?? "").trim() ||
+            toPlainText(active?.meta_title) ||
+            toPlainText(product?.meta_title) ||
+            productName ||
             undefined;
-        const productName = String(active?.name ?? "").trim() || String(product?.name ?? "").trim();
         const brandName = productBrandName(productResult.data);
         const categoryName = productCategoryName(productResult.data);
-
-        const cmsDescription = toPlainText(
-            String(active?.meta_description ?? "").trim() ||
-            String(product?.meta_description ?? "").trim(),
-        );
-        const bodyDescription = toPlainText(product?.description);
 
         // Most of the catalogue arrives with `meta_description` holding nothing
         // but the product's own name, which repeats the title in a result page
         // instead of telling anyone what the product is.
         const description =
-            (saysMoreThan(cmsDescription, productName, title) ? clampDescription(cmsDescription) : "") ||
-            clampDescription(bodyDescription) ||
-            productDescription(normalizedLocale, {
-                name: productName,
-                brand: brandName,
-                category: categoryName,
-            });
+            pickDescription(active?.meta_description, productName, title) ||
+            pickDescription(product?.meta_description, productName, title) ||
+            clampDescription(toPlainText(product?.description)) ||
+            (productName
+                ? productDescription(normalizedLocale, { name: productName, brand: brandName, category: categoryName })
+                : undefined);
         const canonicalSlug = String(active?.slug ?? product?.slug ?? itemSlug).trim() || itemSlug;
 
         // Each language serves this product under its own slug, so alternates
@@ -523,14 +515,14 @@ export async function generateMetadata({
     const item = menuDetail.data?.item;
     if (!item) return {};
 
-    const title = item.seo?.meta_title || item.name || menuDetail.menu.title || menuDetail.menu.name;
-    const cmsDescription = toPlainText(item.seo?.meta_description);
+    const itemName = toPlainText(item.name || menuDetail.menu.title || menuDetail.menu.name);
+    const title = pickTitle(item.seo?.meta_title, itemName) || itemName;
     const description =
-        (saysMoreThan(cmsDescription, title) ? clampDescription(cmsDescription) : "") ||
+        pickDescription(item.seo?.meta_description, title, itemName) ||
         clampDescription(toPlainText(item.content)) ||
-        articleDescription(normalizedLocale, String(title ?? "").trim());
+        (itemName ? articleDescription(normalizedLocale, itemName) : undefined);
     return buildSeoMetadata({
-        title: title ? withSiteName(normalizedLocale, String(title)) : undefined,
+        title: title ? withSiteName(normalizedLocale, title) : undefined,
         description,
         // The item, then the section it was published under — the same order a
         // reader would name them in.

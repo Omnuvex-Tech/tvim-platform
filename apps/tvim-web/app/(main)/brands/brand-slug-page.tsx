@@ -5,7 +5,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { brandDescription, withSiteName } from "@/lib/seo-copy";
+import { brandDescription, pickDescription, pickTitle, withSiteName } from "@/lib/seo-copy";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
@@ -181,8 +181,11 @@ export async function generateBrandSlugMetadata({
     const alternateLocales = Object.keys(alternatePathByLocale);
 
     return buildSeoMetadata({
-        title: withSiteName(locale, pageName),
-        description: brandDescription(locale, pageName),
+        // What the admin wrote for this brand comes first; the built title and
+        // sentence cover the brands nobody has written anything for yet.
+        title: pickTitle(localBrand?.metaTitle, pageName) || withSiteName(locale, pageName),
+        description: pickDescription(localBrand?.metaDescription, pageName, localBrand?.metaTitle) ||
+            brandDescription(locale, pageName),
         // The brand list carries what the admin wrote for this brand — "KAS,
         // KAS brend, radiator ventili, …" — which is worth far more than the
         // name this page could work out on its own.
