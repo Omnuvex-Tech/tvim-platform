@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { getMainPageBlocks } from "@/lib/main-page";
 import {
-    buildHomeMetadata,
+    buildLocaleHomeMetadata,
     resolveSettingsSeo,
     resolveSiteUrlWithFallbacks,
     seoKeywords,
     catalogNames,
+    resolveBusinessProfile,
+    homeHeading,
 } from "@/lib/settings";
+import { siteJsonLdNodes } from "@/lib/structured-data";
+import { JsonLd } from "@/app/components/JsonLd/json-ld";
 import { config } from "@/config";
 import { resolveRootLocale } from "@/lib/root-locale";
 import { MainPageBlocks } from "@/app/components/MainPageBlocks/main-page-blocks";
@@ -28,11 +32,10 @@ export async function generateMetadata(): Promise<Metadata> {
         configUrl: config.project.url,
     });
 
-    return buildHomeMetadata(
+    return buildLocaleHomeMetadata(
         settingsResponse ? resolveSettingsSeo(settingsResponse) : undefined,
         siteDefaultLocale,
         {
-            canonicalPath: "",
             locales: languages.map((language) => language.code),
             defaultLocale: siteDefaultLocale,
             siteUrl,
@@ -68,6 +71,17 @@ export default async function Home() {
 
     return (
         <SitePageShell chrome={chrome} contentClassName="gap-6" keywords={keywords}>
+            {/* The home page had no H1. Its visible layout is a set of
+                sliders and strips with no single heading, so the title is
+                given to screen readers and crawlers without changing it. */}
+            <h1 className="sr-only">{homeHeading(settingsResponse)}</h1>
+            <JsonLd
+                nodes={siteJsonLdNodes(
+                    resolveBusinessProfile(settingsResponse),
+                    locale,
+                    languages.map((language) => language.code.trim().toLowerCase()),
+                )}
+            />
             <MainPageBlocks blocks={mainPageBlocks} locale={locale} />
         </SitePageShell>
     );

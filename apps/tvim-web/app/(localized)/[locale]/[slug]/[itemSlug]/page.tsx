@@ -28,6 +28,9 @@ import {
 } from "@/app/(main)/brands/news/[slug]/page";
 import { getTranslations } from "@/lib/i18n";
 import { resolveLegacyServicePath } from "@/lib/legacy-services";
+import { JsonLd } from "@/app/components/JsonLd/json-ld";
+import { prepareContentHtml } from "@/lib/content-html";
+import { absoluteUrl, articleJsonLd, breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
 
 type GridItem = {
     id?: number | string;
@@ -335,6 +338,20 @@ const resolveAssetUrl = (value: string | null | undefined) => {
     return cleaned;
 };
 
+/**
+ * A variation's main image. `main_image_path` comes back empty from the api;
+ * the image is in the gallery, flagged `is_main`, or else first in its order.
+ */
+const productMainImage = (variation: ProductDetailVariation | null | undefined) => {
+    const direct = resolveAssetUrl(variation?.main_image_path);
+    if (direct) return direct;
+
+    const gallery = Array.isArray(variation?.gallery) ? [...variation.gallery] : [];
+    const main = gallery.find((entry) => entry?.is_main) ??
+        gallery.sort((a, b) => Number(a?.sort_order ?? 0) - Number(b?.sort_order ?? 0))[0];
+    return resolveAssetUrl(main?.path);
+};
+
 async function getProductDetailBySlug(slug: string, locale: string) {
     try {
         // Əvvəl burada `cache: "force-cache"` vardı: Next cavabı `revalidate:
@@ -530,7 +547,7 @@ export async function generateMetadata({
             canonicalPath: `${normalizedLocale}/products/${canonicalSlug}`,
             siteUrl: config.project.siteUrl,
             ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
-            image: resolveAssetUrl(active?.main_image_path),
+            image: productMainImage(active) || undefined,
             imageAlt: title,
         });
     }
@@ -547,17 +564,44 @@ export async function generateMetadata({
         pickDescription(item.seo?.meta_description, title, itemName) ||
         clampDescription(toPlainText(item.content)) ||
         (itemName ? articleDescription(normalizedLocale, itemName) : undefined);
+
+    // An article is published under a translated slug in every language, and
+    // so is the menu above it ("xeberler/bosch-drel-hansi-uygundur", then
+    // "news/bosch-drill-buying-guide"), so each alternate is built from both.
+    // Only the current language used to be listed, which left the English and
+    // Russian versions unconnected to this one.
+    const alternatePathByLocale = Object.entries(item.multi_slugs ?? {}).reduce<Record<string, string>>(
+        (acc, [localeCode, localeSlug]) => {
+            const code = localeCode.trim().toLowerCase();
+            const cleanItemSlug = String(localeSlug ?? "").trim().replace(/^\/+|\/+$/g, "");
+            const cleanMenuSlug = String(menuDetail.menu.multi_links?.[code] ?? "").trim().replace(/^\/+|\/+$/g, "");
+            if (isSupportedLocale(code) && cleanItemSlug && cleanMenuSlug) {
+                acc[code] = `${code}/${cleanMenuSlug}/${cleanItemSlug}`;
+            }
+            return acc;
+        },
+        {},
+    );
+    const alternateLocales = Object.keys(alternatePathByLocale);
+    const hasAlternates = alternateLocales.includes(normalizedLocale);
+
     return buildSeoMetadata({
         title: title ? withSiteName(normalizedLocale, title) : undefined,
         description,
         keywords: menuItemKeywords(menuDetail, normalizedLocale),
         locale: normalizedLocale,
-        canonicalPath: `${normalizedLocale}/${slug}/${itemSlug}`,
+        canonicalPath: alternatePathByLocale[normalizedLocale] ?? `${normalizedLocale}/${slug}/${itemSlug}`,
         siteUrl: config.project.siteUrl,
-        locales: [normalizedLocale],
-        defaultLocale: normalizedLocale,
+        ...(hasAlternates
+            ? {
+                alternatePathByLocale,
+                locales: alternateLocales,
+                defaultLocale: alternateLocales.includes(config.project.defLang) ? config.project.defLang : normalizedLocale,
+            }
+            : { locales: [normalizedLocale], defaultLocale: normalizedLocale }),
         image: resolveAssetUrl(item.banner || item.main_photo),
         imageAlt: title,
+        type: "article",
     });
 }
 
@@ -852,9 +896,35 @@ export default async function GridDetailPage({
             { label: resolvedName, isCurrent: true },
         ];
 
+        const productUrl = absoluteUrl(`/${normalizedLocale}/products/${canonicalSlug || decodeSlugParam(itemSlug)}`);
+        const productSku = String(active.sku ?? product?.sku ?? "").trim();
+        const productModel = String(active.model ?? product?.model ?? "").trim();
+        const productStructuredData = [
+            productJsonLd({
+                name: resolvedName,
+                url: productUrl,
+                description: clampDescription(toPlainText(product?.description), 500) || undefined,
+                images: Array.from(new Set(images)),
+                sku: productSku || undefined,
+                // The admin copies the sku into `model` when there is no
+                // separate model number, which is no manufacturer code.
+                mpn: productModel && productModel !== productSku ? productModel : undefined,
+                brand: productBrandName(detail),
+                category: (Array.isArray(detail.breadcrumbs) ? detail.breadcrumbs : [])
+                    .map((crumb) => toPlainText(crumb?.name))
+                    .filter(Boolean)
+                    .join(" > ") || undefined,
+                properties: allSpecRows,
+                price: currentPrice,
+                inStock: isPurchasable,
+            }),
+            breadcrumbJsonLd(breadcrumbItems, productUrl),
+        ];
+
         return (
             <SitePageShell chrome={chrome} includeLogoutToast keywords={productKeywords(detail, normalizedLocale)}>
                 <LocalizedLinks value={productLocalizedLinks} />
+                <JsonLd nodes={productStructuredData} />
                 <Breadcrumb
                     items={breadcrumbItems as any}
                     className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
@@ -999,7 +1069,9 @@ export default async function GridDetailPage({
                     </section>
 
                     <ProductDetailTabs
-                        descriptionHtml={product?.description ?? null}
+                        // Headings and alt text are settled here, on the server,
+                        // where the product's name is at hand.
+                        descriptionHtml={product?.description ? prepareContentHtml(product.description, resolvedName) : null}
                         allSpecRows={allSpecRows}
                         commentsCount={detailCommentsCount}
                         productVariationId={productVariationId}
@@ -1057,16 +1129,34 @@ export default async function GridDetailPage({
     );
 
     const image = item.banner || item.main_photo || null;
+    const articleBreadcrumbItems = [
+        { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
+        { label: menuDetail.menu.title || menuDetail.menu.name, href: `/${normalizedLocale}/${slug}` },
+        { label: item.name || "Detail", isCurrent: true as const },
+    ];
+    const articleUrl = absoluteUrl(`/${normalizedLocale}/${targetMenuSlug}/${targetItemSlug}`);
+    const articleHeadline = toPlainText(item.name || menuDetail.menu.title || menuDetail.menu.name);
 
     return (
         <SitePageShell chrome={chrome} includeLogoutToast keywords={menuItemKeywords(menuDetail, normalizedLocale)}>
             <LocalizedLinks value={itemLocalizedLinks} />
-            <Breadcrumb
-                items={[
-                    { label: getHomeLabel(normalizedLocale), href: `/${normalizedLocale}` },
-                    { label: menuDetail.menu.title || menuDetail.menu.name, href: `/${normalizedLocale}/${slug}` },
-                    { label: item.name || "Detail", isCurrent: true },
+            <JsonLd
+                nodes={[
+                    articleHeadline
+                        ? articleJsonLd({
+                            headline: articleHeadline,
+                            url: articleUrl,
+                            description: clampDescription(toPlainText(item.content)) || undefined,
+                            image,
+                            datePublished: item.datetime1,
+                            locale: normalizedLocale,
+                        })
+                        : null,
+                    breadcrumbJsonLd(articleBreadcrumbItems, articleUrl),
                 ]}
+            />
+            <Breadcrumb
+                items={articleBreadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
                 showTitle={false}
                 pageTitle={item.name || menuDetail.menu.title || menuDetail.menu.name}
@@ -1099,11 +1189,17 @@ export default async function GridDetailPage({
                             ) : null}
                         </div>
                     </div>
-                ) : null}
+                ) : (
+                    // The title sits on the banner; an article without one had
+                    // no H1 at all.
+                    <h1 className="mb-6 text-[28px] leading-tight font-bold tracking-[-0.02em] text-[#111318] lg:text-[44px]">
+                        {item.name || menuDetail.menu.title || menuDetail.menu.name}
+                    </h1>
+                )}
 
                 <div className="mx-auto w-full">
                     {item.content ? (
-                        <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: item.content }} />
+                        <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: prepareContentHtml(item.content, item.name || menuDetail.menu.title || menuDetail.menu.name) }} />
                     ) : (
                         <p className="text-[16px] text-[#4b5563]">Kontent tapilmadi.</p>
                     )}

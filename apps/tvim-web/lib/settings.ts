@@ -3,6 +3,7 @@ import type { ProjectSettingsData } from "@repo/types/types";
 import { htmlToText } from "@repo/shared/utils";
 import { config } from "@/config";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { extractMapCoordinates, resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 const metaText = (value: unknown) => htmlToText(value) || undefined;
 
@@ -154,6 +155,13 @@ const resolveTwitterCard = (card: unknown) => {
 };
 
 const normalizeSiteUrl = (url: string | undefined) => String(url || "").replace(/\/+$/, "");
+
+/** og:locale for each language the site serves. */
+const OPEN_GRAPH_LOCALE: Record<string, string> = {
+    az: "az_AZ",
+    en: "en_US",
+    ru: "ru_RU",
+};
 
 const getUrlOrigin = (url: string | undefined) => {
     const normalizedUrl = normalizeSiteUrl(url);
@@ -339,6 +347,94 @@ export const resolveSettingsSeo = (responseData: unknown): ProjectSettingsSeoDat
     };
 };
 
+/** What the settings say about the business itself, for its structured data. */
+export type BusinessProfile = {
+    name: string;
+    logo?: string;
+    image?: string;
+    email?: string;
+    phones: string[];
+    address?: string;
+    /** Free text per day as the admin writes it, keyed mon…sun. */
+    workHours: Record<string, string>;
+    /** Active social profiles, deduplicated. */
+    sameAs: string[];
+    /** The store's pin, from the map the contact page embeds. */
+    coordinates?: { latitude: number; longitude: number };
+    /** The store's Google Maps listing. */
+    mapUrl?: string;
+};
+
+const readText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+
+/**
+ * A social link as a profile url. The admin copies links straight from the
+ * browser, so they carry tracking leftovers (`?_rdr` on Facebook); two slots
+ * also hold the same page, since the "twitter" slot is used for TikTok and was
+ * filled with the Facebook link.
+ */
+const profileUrl = (value: unknown) => {
+    const url = normalizeAbsoluteHttpUrl(value);
+    if (!url) return undefined;
+
+    try {
+        const parsed = new URL(url);
+        parsed.search = "";
+        parsed.hash = "";
+        return parsed.toString();
+    } catch {
+        return undefined;
+    }
+};
+
+export const resolveBusinessProfile = (responseData: unknown): BusinessProfile | undefined => {
+    const payload = extractPayload(responseData);
+    if (!payload) return undefined;
+
+    const general = normalizeObject(payload.general);
+    const og = normalizeObject(payload.og);
+    const social = normalizeObject(payload.social);
+    const images = normalizeObject(general.images);
+    const workHours = normalizeObject(general.work_hours);
+
+    // "Tvim | Tikinti Materialları və İnşaat Materialları" is a page title;
+    // the business is the part before the bar.
+    const name = readText(general.site_title).split("|")[0]?.trim() || config.project.name || "Tvim";
+
+    const sameAs = Array.from(
+        new Set(
+            Object.values(social)
+                .filter((entry): entry is AnyRecord => isRecord(entry) && String(entry.active ?? "1") !== "0")
+                .map((entry) => profileUrl(entry.link ?? entry.url))
+                .filter((url): url is string => Boolean(url)),
+        ),
+    );
+
+    // The contact page embeds the admin's map, or TVİM's own listing while
+    // the admin field is empty; the structured data names the same place.
+    const [latitude, longitude] = extractMapCoordinates(resolveMapEmbedUrl(general.map_iframe))
+        .split(",")
+        .map(Number);
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+    return {
+        name,
+        logo: normalizeAbsoluteHttpUrl(images.logo) || undefined,
+        image: normalizeAbsoluteHttpUrl(og.image) || undefined,
+        email: readText(general.email).toLowerCase() || undefined,
+        phones: normalizePhones(general).map((phone) => phone.number.trim()).filter(Boolean),
+        address: readText(general.address) || undefined,
+        workHours: Object.fromEntries(
+            Object.entries(workHours)
+                .map(([day, text]) => [day.trim().toLowerCase(), readText(text)])
+                .filter(([, text]) => text),
+        ),
+        sameAs,
+        coordinates: hasCoordinates ? { latitude: latitude as number, longitude: longitude as number } : undefined,
+        mapUrl: resolveMapLink(general.map_iframe, general.address) || undefined,
+    };
+};
+
 export const resolveSettingsRobotsText = (responseData: unknown): string | undefined => {
     const payload = extractPayload(responseData);
     if (!payload) return undefined;
@@ -500,7 +596,9 @@ export const buildHomeMetadata = (
                 title: metaText(seo.open_graph.title) ?? title,
                 description: metaText(seo.open_graph.description) ?? description,
                 url: seo.open_graph.url || canonical,
-                siteName: metaText(seo.open_graph.site_name),
+                // Neither is set in the admin, and a shared card without a site
+                // name shows the bare domain instead.
+                siteName: metaText(seo.open_graph.site_name) ?? (config.project.name || "Tvim"),
                 images: seo.open_graph.image
                     ? [
                         {
@@ -512,7 +610,7 @@ export const buildHomeMetadata = (
                     ]
                     : undefined,
                 type: resolveOpenGraphType(seo.open_graph.type),
-                locale: seo.open_graph.locale,
+                locale: seo.open_graph.locale || OPEN_GRAPH_LOCALE[normalizedLocale],
             }
             : undefined,
         twitter: {
@@ -527,4 +625,52 @@ export const buildHomeMetadata = (
             follow: true,
         },
     };
+};
+
+/**
+ * The home page's H1: the title the admin gave the home page in this language
+ * ("Tvim | Tikinti Materialları və İnşaat Materialları"), read as a heading.
+ */
+export const homeHeading = (settingsResponse: unknown) => {
+    const title = metaText(resolveSettingsSeo(settingsResponse)?.meta_title) ?? config.project.projectName;
+    return title.replace(/\s*\|\s*/g, " — ");
+};
+
+/**
+ * The home page of one language.
+ *
+ * The admin stores a single canonical for the whole site (`og.canonical`,
+ * "https://tvim.az"), and applying it as it stands made /en and /ru declare
+ * themselves copies of the Azerbaijani root, so neither could be indexed on
+ * its own. Only the host is taken from it: the default language's home is the
+ * bare domain — /az serves the same page — and every other language's home is
+ * its own prefix. x-default points at the bare domain too.
+ */
+export const buildLocaleHomeMetadata = (
+    seo: ProjectSettingsSeoData | undefined,
+    locale: string,
+    options: Omit<HomeMetadataOptions, "canonicalPath" | "alternatePathByLocale"> = {},
+): Metadata => {
+    const normalizedLocale = locale.trim().toLowerCase();
+    const defaultLocale = (options.defaultLocale ?? config.project.defLang).trim().toLowerCase();
+    const siteUrl = getUrlOrigin(normalizeAbsoluteHttpUrl(seo?.canonical) ?? options.siteUrl);
+
+    return buildHomeMetadata(
+        seo
+            ? {
+                ...seo,
+                canonical: undefined,
+                // og:url is read from the same site-wide canonical.
+                open_graph: seo.open_graph ? { ...seo.open_graph, url: undefined } : undefined,
+            }
+            : undefined,
+        normalizedLocale,
+        {
+            ...options,
+            siteUrl,
+            defaultLocale,
+            canonicalPath: normalizedLocale === defaultLocale ? "" : normalizedLocale,
+            alternatePathByLocale: { [defaultLocale]: "" },
+        },
+    );
 };

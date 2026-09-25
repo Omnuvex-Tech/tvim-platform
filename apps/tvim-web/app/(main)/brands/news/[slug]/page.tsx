@@ -14,6 +14,9 @@ import { getTranslations } from "@/lib/i18n";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
 import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
+import { JsonLd } from "@/app/components/JsonLd/json-ld";
+import { prepareContentHtml } from "@/lib/content-html";
+import { absoluteUrl, articleJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
 
 type NewsVariation = {
     variation_id?: number;
@@ -40,6 +43,7 @@ type NewsItem = {
     meta_keywords?: unknown;
     banner?: string | null;
     main_photo?: string | null;
+    datetime1?: string | null;
     files?: Array<{ url?: string; is_main?: boolean }>;
     related_products?: NewsRelatedProduct[];
 };
@@ -339,6 +343,7 @@ export async function generateBrandNewsMetadata({
         ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
         image: bannerImage || undefined,
         imageAlt: pageTitle,
+        type: "article",
     });
 }
 
@@ -412,9 +417,30 @@ export async function renderBrandNewsSlugPage({
         })
         .filter(Boolean);
 
+    const breadcrumbItems = [
+        { label: t.common.home, href: `/${locale}` },
+        // The corporate menu keeps the same slug in every locale.
+        { label: t.breadcrumb.corporate, href: `/${locale}/korporativ` },
+        { label: pageTitle, isCurrent: true as const },
+    ];
+    const articleUrl = absoluteUrl(`/${locale}/${normalizedMenuLink}/${normalizedSlug}`);
+
     return (
         <SitePageShell chrome={chrome} keywords={brandNewsKeywords(menuDetail, mainItem, pageTitle, locale)}>
             <LocalizedLinks value={localizedLinks} />
+            <JsonLd
+                nodes={[
+                    articleJsonLd({
+                        headline: pageTitle,
+                        url: articleUrl,
+                        description: clampDescription(toPlainText(pageDescriptionHtml)) || undefined,
+                        image: bannerImage || null,
+                        datePublished: mainItem?.datetime1,
+                        locale,
+                    }),
+                    breadcrumbJsonLd(breadcrumbItems, articleUrl),
+                ]}
+            />
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-2 lg:px-2">
                 <div className="relative w-full overflow-hidden rounded-[16px] bg-[#e0e3e8] skeleton-loader">
                     {bannerImage ? (
@@ -427,12 +453,7 @@ export async function renderBrandNewsSlugPage({
             </section>
 
             <Breadcrumb
-                items={[
-                    { label: t.common.home, href: `/${locale}` },
-                    // The corporate menu keeps the same slug in every locale.
-                    { label: t.breadcrumb.corporate, href: `/${locale}/korporativ` },
-                    { label: pageTitle, isCurrent: true as const },
-                ]}
+                items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2 [&_ul.breadcrumb]:!mb-0 [&_ul.breadcrumb]:!pb-0"
                 showTitle
                 pageTitle={pageTitle}
@@ -442,7 +463,7 @@ export async function renderBrandNewsSlugPage({
             <section className="mx-auto w-full max-w-[1280px] px-1 pt-7 pb-12 lg:px-2">
                 <div className="prose max-w-none">
                     {pageDescriptionHtml ? (
-                        <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
+                        <div dangerouslySetInnerHTML={{ __html: prepareContentHtml(pageDescriptionHtml, pageTitle) }} />
                     ) : (
                         <p>{pageTitle}</p>
                     )}

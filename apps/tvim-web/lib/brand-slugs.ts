@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { config } from "@/config";
 import { api } from "@/lib/api";
 import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
 
@@ -17,6 +18,7 @@ type BrandListResponseData = {
         meta_title?: string | null;
         meta_description?: string | null;
         meta_keywords?: string | null;
+        image?: string | null;
     }>;
 };
 
@@ -28,6 +30,23 @@ export type BrandEntry = {
     metaTitle?: string;
     metaDescription?: string;
     metaKeywords?: string;
+    /** The brand's logo as an absolute url, where one is uploaded. */
+    image?: string;
+};
+
+/** The api stores logos as a path under its public storage. */
+const resolveBrandImage = (value: unknown) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return undefined;
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    try {
+        const origin = new URL(config.api.publicUrl).origin;
+        const path = raw.replace(/^\/+/, "");
+        return path.startsWith("storage/") ? `${origin}/${path}` : `${origin}/storage/${path}`;
+    } catch {
+        return undefined;
+    }
 };
 
 const normalizeSlug = (value: string) => {
@@ -62,6 +81,7 @@ const fetchBrandList = unstable_cache(
             const metaTitle = String(value?.meta_title ?? "").trim();
             const metaDescription = String(value?.meta_description ?? "").trim();
             const metaKeywords = String(value?.meta_keywords ?? "").trim();
+            const image = resolveBrandImage(value?.image);
 
             acc.push({
                 valueId,
@@ -70,6 +90,7 @@ const fetchBrandList = unstable_cache(
                 ...(metaTitle ? { metaTitle } : null),
                 ...(metaDescription ? { metaDescription } : null),
                 ...(metaKeywords ? { metaKeywords } : null),
+                ...(image ? { image } : null),
             });
             return acc;
         }, []);

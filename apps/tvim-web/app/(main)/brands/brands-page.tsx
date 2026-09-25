@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Breadcrumb, type Company } from "@repo/ui";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { brandsIndexDescription, pickDescription, withSiteName } from "@/lib/seo-copy";
-import { normalizeLocale } from "@/lib/site-locales";
+import { brandsIndexDescription, pickDescription, withPageNumber, withSiteName } from "@/lib/seo-copy";
+import { normalizeLocale, SUPPORTED_LOCALES } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { Pagination } from "@/app/components/Pagination/pagination";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { PendingNavProvider, PendingOverlay } from "@/app/components/DrawerScrollLock/drawer-scroll-lock";
 import { getSiteChromeData } from "@/lib/site-chrome";
 import { brandCacheOptions } from "@/lib/cache-tags";
+import { JsonLd } from "@/app/components/JsonLd/json-ld";
+import { absoluteUrl, breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/structured-data";
 
 type ProductBrandsResponseData = {
     filter_id?: number;
@@ -203,6 +206,11 @@ export async function renderBrandsPage({
         .filter(Boolean) as Company[];
 
     const lastPage = Math.max(1, Math.ceil(brandCompanies.length / BRANDS_PER_PAGE));
+    // A page past the end of the index does not exist; it used to repeat the
+    // last page, which is now indexed at its own url.
+    if (brandsResponse.success && requestedPage > lastPage) {
+        notFound();
+    }
     const currentPage = Math.max(1, Math.min(requestedPage, lastPage));
     const paginatedCompanies = brandCompanies.slice((currentPage - 1) * BRANDS_PER_PAGE, currentPage * BRANDS_PER_PAGE);
     const infoMessage = brandsResponse.success
@@ -223,13 +231,27 @@ export async function renderBrandsPage({
         return qs ? `${basePath}?${qs}` : basePath;
     };
 
+    const breadcrumbItems = [
+        { label: t.home, href: `/${locale}` },
+        { label: t.brands, isCurrent: true as const },
+    ];
+    const brandsUrl = absoluteUrl(`/${locale}/brands`);
+
     return (
         <SitePageShell chrome={chrome} keywords={brandsIndexKeywords(brandsPayload, t.pageTitle, locale)}>
-            <Breadcrumb
-                items={[
-                    { label: t.home, href: `/${locale}` },
-                    { label: t.brands, isCurrent: true as const },
+            <JsonLd
+                nodes={[
+                    collectionPageJsonLd({
+                        name: t.pageTitle,
+                        url: currentPage > 1 ? absoluteUrl(`/${locale}/brands?page=${currentPage}`) : brandsUrl,
+                        itemUrls: paginatedCompanies.map((company) => absoluteUrl(company.url)),
+                        startPosition: (currentPage - 1) * BRANDS_PER_PAGE + 1,
+                    }),
+                    breadcrumbJsonLd(breadcrumbItems, brandsUrl),
                 ]}
+            />
+            <Breadcrumb
+                items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"
                 showTitle
                 pageTitle={t.pageTitle}
@@ -270,6 +292,7 @@ export async function generateBrandsMetadata({
     const resolvedSearchParams = searchParams ? await searchParams : undefined;
     const requestedPage = parsePageNumber(resolvedSearchParams?.page);
     const t = copyByLocale(locale);
+    const pageQuery = requestedPage > 1 ? `?page=${requestedPage}` : "";
 
     // The same call the page itself makes, so the brands this index lists are
     // what it is described by. It is cached and deduplicated per request, so
@@ -280,25 +303,27 @@ export async function generateBrandsMetadata({
     });
 
     return buildSeoMetadata({
-        title: withSiteName(locale, t.pageTitle),
+        title: withSiteName(locale, withPageNumber(locale, t.pageTitle, requestedPage)),
         // The filter row's own description is the single word "Brend" today;
         // it is used once someone writes an actual sentence there.
         description: pickDescription(brandsResponse.data?.meta_description, t.pageTitle) ||
             brandsIndexDescription(locale),
         keywords: brandsIndexKeywords(brandsResponse.data, t.pageTitle, locale),
         locale,
-        canonicalPath: `${locale}/brands`,
+        // Each page of the index lists different brands, so each is indexed
+        // at its own url rather than folded into page one.
+        canonicalPath: `${locale}/brands${pageQuery}`,
         siteUrl: config.project.siteUrl,
-        locales: [locale],
-        defaultLocale: locale,
-        robots: requestedPage > 1
-            ? {
-                index: false,
-                follow: true,
-            }
-            : {
-                index: true,
-                follow: true,
-            },
+        // The index sits at /brands in every language. Listing only this
+        // language left x-default to fall back on the home page (/az).
+        alternatePathByLocale: Object.fromEntries(
+            SUPPORTED_LOCALES.map((code) => [code, `${code}/brands${pageQuery}`]),
+        ),
+        locales: [...SUPPORTED_LOCALES],
+        defaultLocale: config.project.defLang,
+        robots: {
+            index: true,
+            follow: true,
+        },
     });
 }
