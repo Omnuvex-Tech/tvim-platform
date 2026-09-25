@@ -31,6 +31,7 @@ import { resolveLegacyServicePath } from "@/lib/legacy-services";
 import { JsonLd } from "@/app/components/JsonLd/json-ld";
 import { prepareContentHtml } from "@/lib/content-html";
 import { absoluteUrl, articleJsonLd, breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
+import { readApiSchema } from "@/lib/api-schema";
 
 type GridItem = {
     id?: number | string;
@@ -45,6 +46,8 @@ type GridItem = {
         meta_title?: string;
         meta_description?: string;
         meta_keywords?: string | string[];
+        /** The article's schema as the backend builds it. */
+        schema?: unknown;
     };
 };
 
@@ -122,6 +125,8 @@ type ProductDetailVariation = {
     main_image_path?: string | null;
     gallery?: ProductDetailVariationGalleryItem[];
     filters?: ProductDetailFilter[];
+    /** The product page's schema as the backend builds it. */
+    schema?: unknown;
 };
 
 type ProductDetailPaymentInstallment = {
@@ -899,7 +904,8 @@ export default async function GridDetailPage({
         const productUrl = absoluteUrl(`/${normalizedLocale}/products/${canonicalSlug || decodeSlugParam(itemSlug)}`);
         const productSku = String(active.sku ?? product?.sku ?? "").trim();
         const productModel = String(active.model ?? product?.model ?? "").trim();
-        const productStructuredData = [
+        // The backend's schema when it sends one; the one built here until then.
+        const productStructuredData = readApiSchema(active.schema) ?? [
             productJsonLd({
                 name: resolvedName,
                 url: productUrl,
@@ -1141,7 +1147,7 @@ export default async function GridDetailPage({
         <SitePageShell chrome={chrome} includeLogoutToast keywords={menuItemKeywords(menuDetail, normalizedLocale)}>
             <LocalizedLinks value={itemLocalizedLinks} />
             <JsonLd
-                nodes={[
+                nodes={readApiSchema(item.seo?.schema) ?? [
                     articleHeadline
                         ? articleJsonLd({
                             headline: articleHeadline,

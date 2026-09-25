@@ -2,6 +2,8 @@ import { unstable_cache } from "next/cache";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
+import { readApiSchema } from "@/lib/api-schema";
+import type { JsonLdNode } from "@/lib/structured-data";
 
 /**
  * Brand slugs are localized: filter value 7666 is "xususiler" in az,
@@ -19,6 +21,7 @@ type BrandListResponseData = {
         meta_description?: string | null;
         meta_keywords?: string | null;
         image?: string | null;
+        schema?: unknown;
     }>;
 };
 
@@ -32,6 +35,8 @@ export type BrandEntry = {
     metaKeywords?: string;
     /** The brand's logo as an absolute url, where one is uploaded. */
     image?: string;
+    /** The brand page's schema as the backend builds it, where it sends one. */
+    schema?: JsonLdNode[];
 };
 
 /** The api stores logos as a path under its public storage. */
@@ -82,6 +87,7 @@ const fetchBrandList = unstable_cache(
             const metaDescription = String(value?.meta_description ?? "").trim();
             const metaKeywords = String(value?.meta_keywords ?? "").trim();
             const image = resolveBrandImage(value?.image);
+            const schema = readApiSchema(value?.schema);
 
             acc.push({
                 valueId,
@@ -91,6 +97,7 @@ const fetchBrandList = unstable_cache(
                 ...(metaDescription ? { metaDescription } : null),
                 ...(metaKeywords ? { metaKeywords } : null),
                 ...(image ? { image } : null),
+                ...(schema ? { schema } : null),
             });
             return acc;
         }, []);
