@@ -170,6 +170,7 @@ export const storeJsonLd = (profile: BusinessProfile, locale: string): JsonLdNod
         address: {
             "@type": "PostalAddress",
             streetAddress: profile.address,
+            postalCode: profile.postalCode,
             addressLocality: LOCALITY[normalizeLocale(locale)],
             addressCountry: "AZ",
         },
