@@ -17,6 +17,7 @@ import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { JsonLd } from "@/app/components/JsonLd/json-ld";
 import { prepareContentHtml } from "@/lib/content-html";
 import { absoluteUrl, articleJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
+import { readApiSchema } from "@/lib/api-schema";
 
 type NewsVariation = {
     variation_id?: number;
@@ -39,7 +40,7 @@ type NewsItem = {
     content?: string;
     // The api sends an article's seo block in the same shape menu items use
     // elsewhere; only the keywords are read here.
-    seo?: { meta_title?: string | null; meta_description?: string | null; meta_keywords?: unknown } | null;
+    seo?: { meta_title?: string | null; meta_description?: string | null; meta_keywords?: unknown; schema?: unknown } | null;
     meta_keywords?: unknown;
     banner?: string | null;
     main_photo?: string | null;
@@ -435,7 +436,7 @@ export async function renderBrandNewsSlugPage({
         >
             <LocalizedLinks value={localizedLinks} />
             <JsonLd
-                nodes={[
+                nodes={readApiSchema(mainItem?.seo?.schema) ?? [
                     articleJsonLd({
                         headline: pageTitle,
                         url: articleUrl,

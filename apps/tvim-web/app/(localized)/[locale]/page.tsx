@@ -8,6 +8,7 @@ import {
     seoKeywords,
     catalogNames,
     resolveBusinessProfile,
+    resolveSettingsSchema,
     homeHeading,
 } from "@/lib/settings";
 import { siteJsonLdNodes } from "@/lib/structured-data";
@@ -93,7 +94,7 @@ export default async function HomePage({
                 given to screen readers and crawlers without changing it. */}
             <h1 className="sr-only">{homeHeading(settingsResponse)}</h1>
             <JsonLd
-                nodes={siteJsonLdNodes(
+                nodes={resolveSettingsSchema(settingsResponse) ?? siteJsonLdNodes(
                     resolveBusinessProfile(settingsResponse),
                     normalizedLocale,
                     languages.map((language) => language.code.trim().toLowerCase()),

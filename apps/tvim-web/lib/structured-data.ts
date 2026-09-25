@@ -1,4 +1,5 @@
 import { config } from "@/config";
+import { itemListJsonLd } from "@/lib/api-schema";
 import type { BusinessProfile } from "@/lib/settings";
 import { clampDescription, toPlainText } from "@/lib/seo-copy";
 import { normalizeLocale, type SiteLocale } from "@/lib/site-locales";
@@ -52,14 +53,18 @@ export const absoluteUrl = (href: string | null | undefined) => {
     return `${origin}/${path}`;
 };
 
-/** The admin's dates are Baku local time without an offset. */
+/**
+ * The admin's dates come without an offset and are stored in UTC: the
+ * backend's own schema publishes the same "2026-02-20 06:27:09" as
+ * "2026-02-20T06:27:09+00:00", and both sides have to agree.
+ */
 const toIsoDateTime = (value: unknown) => {
     const raw = String(value ?? "").trim();
-    const match = raw.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}(?::\d{2})?))?/);
+    const match = raw.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2})(:\d{2})?)?/);
     if (!match) return undefined;
     if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)) return raw.replace(" ", "T");
 
-    return `${match[1]}T${match[2] ?? "00:00:00"}+04:00`;
+    return `${match[1]}T${match[2] ?? "00:00"}${match[3] ?? ":00"}+00:00`;
 };
 
 /** Drops the keys a builder left empty, so the markup carries no nulls. */
@@ -184,8 +189,8 @@ export const storeJsonLd = (profile: BusinessProfile, locale: string): JsonLdNod
         address: {
             "@type": "PostalAddress",
             streetAddress: profile.address,
-            addressLocality: LOCALITY[normalizeLocale(locale)],
             postalCode: profile.postalCode,
+            addressLocality: LOCALITY[normalizeLocale(locale)],
             addressCountry: "AZ",
         },
         geo: profile.coordinates
@@ -289,29 +294,16 @@ type CollectionJsonLdInput = {
  * lists, by url only. Google shows product details for a product's own page,
  * never for a list, so the full Product markup stays there.
  */
-export const collectionPageJsonLd = (collection: CollectionJsonLdInput): JsonLdNode => {
-    const start = Math.max(1, collection.startPosition ?? 1);
-    const urls = collection.itemUrls.filter((url): url is string => Boolean(url));
-
-    return compact({
+export const collectionPageJsonLd = (collection: CollectionJsonLdInput): JsonLdNode =>
+    compact({
         "@type": "CollectionPage",
         name: collection.name,
         url: collection.url,
         description: collection.description,
         about: collection.about,
         isPartOf: { "@id": WEBSITE_ID() },
-        mainEntity: urls.length > 0
-            ? {
-                "@type": "ItemList",
-                itemListElement: urls.map((url, index) => ({
-                    "@type": "ListItem",
-                    position: start + index,
-                    url,
-                })),
-            }
-            : undefined,
+        mainEntity: itemListJsonLd(collection.itemUrls, collection.startPosition),
     });
-};
 
 type ArticleJsonLdInput = {
     headline: string;

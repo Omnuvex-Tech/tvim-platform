@@ -2,6 +2,8 @@ import { unstable_cache } from "next/cache";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
+import { readApiSchema } from "@/lib/api-schema";
+import type { JsonLdNode } from "@/lib/structured-data";
 
 /**
  * Brand slugs are localized: filter value 7666 is "xususiler" in az,
@@ -20,6 +22,7 @@ type BrandListResponseData = {
         meta_keywords?: string | null;
         image?: string | null;
         seo?: { extra_schema?: unknown } | null;
+        schema?: unknown;
     }>;
 };
 
@@ -35,6 +38,8 @@ export type BrandEntry = {
     image?: string;
     /** Admin-written JSON-LD for this brand's page, in this language. */
     extraSchema?: unknown;
+    /** The brand page's schema as the backend builds it, where it sends one. */
+    schema?: JsonLdNode[];
 };
 
 /** The api stores logos as a path under its public storage. */
@@ -86,6 +91,7 @@ const fetchBrandList = unstable_cache(
             const metaKeywords = String(value?.meta_keywords ?? "").trim();
             const image = resolveBrandImage(value?.image);
             const extraSchema = value?.seo?.extra_schema ?? undefined;
+            const schema = readApiSchema(value?.schema);
 
             acc.push({
                 valueId,
@@ -96,6 +102,7 @@ const fetchBrandList = unstable_cache(
                 ...(metaKeywords ? { metaKeywords } : null),
                 ...(image ? { image } : null),
                 ...(extraSchema ? { extraSchema } : null),
+                ...(schema ? { schema } : null),
             });
             return acc;
         }, []);
