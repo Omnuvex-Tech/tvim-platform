@@ -12,6 +12,9 @@ const apiImageHost = (() => {
 
 const nextConfig = {
     transpilePackages: ["@repo/ui"],
+    // "X-Powered-By: Next.js" told every scanner which framework, and so which
+    // advisories, to try first. Nothing on the site reads it.
+    poweredByHeader: false,
     images: {
         remotePatterns: [
             {
@@ -61,6 +64,16 @@ const nextConfig = {
     // /brands now, so the old paths are kept alive as permanent redirects.
     async redirects() {
         return [
+            // www.tvim.az answered 200 with a full copy of the site. Every path
+            // on a www host is moved to the bare domain, query included. This
+            // relies on nginx passing the Host header through; a redirect in
+            // nginx or Cloudflare does the same job one hop earlier.
+            {
+                source: "/:path*",
+                has: [{ type: "host", value: "www\\.(?<host>.+)" }],
+                destination: "https://:host/:path*",
+                permanent: true,
+            },
             {
                 source: "/product/brands",
                 destination: "/brands",
