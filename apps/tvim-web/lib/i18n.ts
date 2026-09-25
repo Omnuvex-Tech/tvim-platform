@@ -26,14 +26,11 @@ type TranslationDictionary = {
     };
     paymentError: {
         title: string;
-        subtitle: string;
         button: string;
     };
     paymentSuccess: {
         title: string;
-        subtitle: string;
         button: string;
-        secondary: string;
     };
     /** The title carries this screen on its own; see PaymentSuccessView. */
     orderReceived: {
@@ -441,15 +438,12 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
             corporate: "Korporativ",
         },
         paymentError: {
-            title: "Ödəniş uğursuz",
-            subtitle: "Kartınızdan məbləğ çıxılmadı.",
+            title: "Ödəniş uğursuz oldu",
             button: "Ana səhifəyə qayıt",
         },
         paymentSuccess: {
             title: "Ödəniş uğurlu oldu",
-            subtitle: "Sifarişiniz qəbul edildi. Təsdiq məlumatı qısa zamanda sizə göndəriləcək.",
             button: "Ana səhifəyə qayıt",
-            secondary: "Sifarişlərimə bax",
         },
         orderReceived: {
             title: "Sifarişiniz qəbul edildi",
@@ -881,14 +875,11 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         paymentError: {
             title: "Payment failed",
-            subtitle: "Your card has not been charged.",
             button: "Back to homepage",
         },
         paymentSuccess: {
             title: "Payment successful",
-            subtitle: "Your order has been received. A confirmation will reach you shortly.",
             button: "Back to homepage",
-            secondary: "View my orders",
         },
         orderReceived: {
             title: "Order received",
@@ -1320,14 +1311,11 @@ const translations: Record<SiteLocale, TranslationDictionary> = {
         },
         paymentError: {
             title: "Оплата не прошла",
-            subtitle: "Средства с карты не списаны.",
             button: "Вернуться на главную",
         },
         paymentSuccess: {
             title: "Оплата прошла успешно",
-            subtitle: "Ваш заказ принят. Подтверждение придёт в ближайшее время.",
             button: "Вернуться на главную",
-            secondary: "Мои заказы",
         },
         orderReceived: {
             title: "Заказ принят",

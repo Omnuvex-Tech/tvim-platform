@@ -36,8 +36,12 @@
     max-width: 560px;
 }
 
+/* Kept a little tighter than the gap under the title, so the mark reads as
+   part of the heading. The icon is a block so no line box adds space under
+   it. */
 .iconWrap {
-    margin-bottom: 20px;
+    display: flex;
+    margin-bottom: 22px;
 }
 
 .title {
@@ -89,6 +93,12 @@
 .compact {
     min-height: 60vh;
     padding: 48px 24px 56px;
+}
+
+/* Room for a payment title such as "Ödəniş uğursuz oldu" to stay on one line
+   at desktop size; the backdrop screen keeps its narrower column. */
+.compact .content {
+    max-width: 720px;
 }
 
 /* Confirmation variant: the title and button take the colour of the check

@@ -1,6 +1,5 @@
 import { ThankYou } from "@repo/ui";
 import { getTranslations } from "@/lib/i18n";
-import { localizedHref } from "@/lib/routes";
 import type { SiteLocale } from "@/lib/site-locales";
 
 /**
@@ -13,8 +12,8 @@ function PaymentPaidMark() {
   return (
     <svg
       width="132"
-      height="132"
-      viewBox="0 0 132 132"
+      height="112"
+      viewBox="0 0 132 112"
       fill="none"
       role="presentation"
       aria-hidden="true"
@@ -47,8 +46,7 @@ function PaymentPaidMark() {
  * A cash order reaches the same screen but is worded as received rather than
  * paid: the money changes hands at the door, so telling anyone their payment
  * succeeded here would be a confirmation of something that has not happened.
- * It is also left as the title alone — there is nothing to add to it that the
- * shopper does not already know.
+ * Both variants are left as the title alone, with home as the only action.
  */
 export function PaymentSuccessView({
   locale,
@@ -76,14 +74,9 @@ export function PaymentSuccessView({
   return (
     <ThankYou
       title={copy.title}
-      subtitle={copy.subtitle}
       icon={<PaymentPaidMark />}
-      // Home is the primary action, as on the failure and thank-you screens.
-      // The order itself stays one click away underneath.
       buttonLabel={copy.button}
       buttonHref={`/${locale}`}
-      secondaryLabel={copy.secondary}
-      secondaryHref={localizedHref("orders", locale)}
       tone="success"
     />
   );

@@ -11,8 +11,8 @@ function PaymentFailedMark() {
   return (
     <svg
       width="132"
-      height="132"
-      viewBox="0 0 132 132"
+      height="112"
+      viewBox="0 0 132 112"
       fill="none"
       role="presentation"
       aria-hidden="true"
@@ -46,7 +46,6 @@ export function PaymentErrorView({ locale }: { locale: SiteLocale }) {
   return (
     <ThankYou
       title={copy.title}
-      subtitle={copy.subtitle}
       icon={<PaymentFailedMark />}
       // Home is the only action here. A retry link used to sit under it and
       // led back to the checkout, which is not where a failed payment is
