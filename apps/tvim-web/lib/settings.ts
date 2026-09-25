@@ -355,6 +355,7 @@ export type BusinessProfile = {
     email?: string;
     phones: string[];
     address?: string;
+    postalCode?: string;
     /** Free text per day as the admin writes it, keyed mon…sun. */
     workHours: Record<string, string>;
     /** Active social profiles, deduplicated. */
@@ -387,6 +388,29 @@ const profileUrl = (value: unknown) => {
     }
 };
 
+/**
+ * What the business states about itself that the admin has no field for, as
+ * the business gave it: the name it trades under, its postcode, and its
+ * official profiles. The admin's social links have no YouTube slot, and the
+ * slot showing the TikTok icon links to Facebook. Everything the admin does
+ * hold (address, phone, hours, map) is still read from it.
+ */
+const BUSINESS_NAME = "TVIM.az";
+const BUSINESS_POSTAL_CODE = "AZ1108";
+const BUSINESS_PROFILES = [
+    "https://www.linkedin.com/company/tvim/",
+    "https://www.instagram.com/tvim.az",
+    "https://www.tiktok.com/@tvim.az",
+    "https://www.youtube.com/@tvimaz",
+    "https://www.facebook.com/p/Tvimaz-100095715123358/",
+];
+
+/** One profile however it is spelled: with or without www, http, a trailing slash. */
+const profileKey = (url: string) => {
+    const parsed = new URL(url);
+    return `${parsed.hostname.replace(/^www\./, "")}${parsed.pathname.replace(/\/+$/, "")}`.toLowerCase();
+};
+
 export const resolveBusinessProfile = (responseData: unknown): BusinessProfile | undefined => {
     const payload = extractPayload(responseData);
     if (!payload) return undefined;
@@ -397,18 +421,17 @@ export const resolveBusinessProfile = (responseData: unknown): BusinessProfile |
     const images = normalizeObject(general.images);
     const workHours = normalizeObject(general.work_hours);
 
-    // "Tvim | Tikinti Materialları və İnşaat Materialları" is a page title;
-    // the business is the part before the bar.
-    const name = readText(general.site_title).split("|")[0]?.trim() || config.project.name || "Tvim";
-
-    const sameAs = Array.from(
-        new Set(
-            Object.values(social)
-                .filter((entry): entry is AnyRecord => isRecord(entry) && String(entry.active ?? "1") !== "0")
-                .map((entry) => profileUrl(entry.link ?? entry.url))
-                .filter((url): url is string => Boolean(url)),
-        ),
-    );
+    // The business's own list first, then anything the admin adds later.
+    const adminProfiles = Object.values(social)
+        .filter((entry): entry is AnyRecord => isRecord(entry) && String(entry.active ?? "1") !== "0")
+        .map((entry) => profileUrl(entry.link ?? entry.url))
+        .filter((url): url is string => Boolean(url));
+    const profilesByKey = new Map<string, string>();
+    [...BUSINESS_PROFILES, ...adminProfiles].forEach((url) => {
+        const key = profileKey(url);
+        if (!profilesByKey.has(key)) profilesByKey.set(key, url);
+    });
+    const sameAs = Array.from(profilesByKey.values());
 
     // The contact page embeds the admin's map, or TVİM's own listing while
     // the admin field is empty; the structured data names the same place.
@@ -418,7 +441,8 @@ export const resolveBusinessProfile = (responseData: unknown): BusinessProfile |
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
 
     return {
-        name,
+        name: BUSINESS_NAME,
+        postalCode: BUSINESS_POSTAL_CODE,
         logo: normalizeAbsoluteHttpUrl(images.logo) || undefined,
         image: normalizeAbsoluteHttpUrl(og.image) || undefined,
         email: readText(general.email).toLowerCase() || undefined,
