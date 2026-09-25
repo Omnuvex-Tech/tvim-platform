@@ -3,6 +3,7 @@ import type { ProjectSettingsData } from "@repo/types/types";
 import { htmlToText } from "@repo/shared/utils";
 import { config } from "@/config";
 import { buildKeywords } from "@/lib/seo-keywords";
+import { readApiSchema } from "@/lib/api-schema";
 import { extractMapCoordinates, resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 const metaText = (value: unknown) => htmlToText(value) || undefined;
@@ -457,6 +458,18 @@ export const resolveBusinessProfile = (responseData: unknown): BusinessProfile |
         coordinates: hasCoordinates ? { latitude: latitude as number, longitude: longitude as number } : undefined,
         mapUrl: resolveMapLink(general.map_iframe, general.address) || undefined,
     };
+};
+
+/**
+ * The site-wide schema the backend builds from these settings: the business,
+ * the site and the store, with the admin's edits laid over them. Null while
+ * the backend sends none, and the pages then build it from the profile above.
+ */
+export const resolveSettingsSchema = (responseData: unknown) => {
+    const payload = extractPayload(responseData);
+    if (!payload) return null;
+
+    return readApiSchema(normalizeObject(payload.seo).schema);
 };
 
 export const resolveSettingsRobotsText = (responseData: unknown): string | undefined => {

@@ -18,6 +18,7 @@ import { getTranslations } from "@/lib/i18n";
 import { findBrandBySlug, findBrandInOtherLocales, getBrandSlugsByLocale, type BrandEntry } from "@/lib/brand-slugs";
 import { JsonLd } from "@/app/components/JsonLd/json-ld";
 import { absoluteUrl, breadcrumbJsonLd, collectionPageJsonLd, listedProductUrl } from "@/lib/structured-data";
+import { withListing } from "@/lib/api-schema";
 
 type ProductListApiResponse = {
     menu?: {
@@ -384,22 +385,30 @@ export async function renderBrandSlugPage({
 
     const sortedItems = sortProductItems(listItems, activeSort, locale);
     const brandUrl = absoluteUrl(`/${buildBrandBasePath(locale, localBrand.slug)}`);
+    const brandPageUrl = currentPage > 1
+        ? absoluteUrl(`/${buildBrandBasePath(locale, localBrand.slug)}?page=${currentPage}`)
+        : brandUrl;
+    const brandItemUrls = sortedItems.map((item) => listedProductUrl(item, locale));
+    const brandStartPosition = (currentPage - 1) * perPage + 1;
+    // The backend's page schema with this page's products laid in; the one built
+    // here while the backend sends none.
+    const brandStructuredData = localBrand.schema
+        ? withListing(localBrand.schema, { url: brandPageUrl, itemUrls: brandItemUrls, startPosition: brandStartPosition })
+        : [
+            collectionPageJsonLd({
+                name: pageName,
+                url: brandPageUrl,
+                about: { "@type": "Brand", name: pageName },
+                itemUrls: brandItemUrls,
+                startPosition: brandStartPosition,
+            }),
+            breadcrumbJsonLd(breadcrumbItems, brandUrl),
+        ];
 
     return (
         <SitePageShell chrome={chrome} keywords={brandKeywords(localBrand, pageName, locale)}>
             <LocalizedLinks value={localizedLinks} />
-            <JsonLd
-                nodes={[
-                    collectionPageJsonLd({
-                        name: pageName,
-                        url: currentPage > 1 ? absoluteUrl(`/${buildBrandBasePath(locale, localBrand.slug)}?page=${currentPage}`) : brandUrl,
-                        about: { "@type": "Brand", name: pageName },
-                        itemUrls: sortedItems.map((item) => listedProductUrl(item, locale)),
-                        startPosition: (currentPage - 1) * perPage + 1,
-                    }),
-                    breadcrumbJsonLd(breadcrumbItems, brandUrl),
-                ]}
-            />
+            <JsonLd nodes={brandStructuredData} />
             <Breadcrumb
                 items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"

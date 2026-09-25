@@ -8,7 +8,7 @@ import { Breadcrumb, type Company } from "@repo/ui";
 import { RemoteImage } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
-import { buildHomeMetadata, resolveBusinessProfile, resolveSettingsApiLocale } from "@/lib/settings";
+import { buildHomeMetadata, resolveBusinessProfile, resolveSettingsApiLocale, resolveSettingsSchema } from "@/lib/settings";
 import { htmlToText } from "@repo/shared/utils";
 import { getPublicMenuDetail, getPublicMenuList, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
@@ -38,7 +38,9 @@ import {
     contactPageJsonLd,
     listedProductUrl,
     storeJsonLd,
+    type JsonLdNode,
 } from "@/lib/structured-data";
+import { nodesOfType, readApiSchema, withListing } from "@/lib/api-schema";
 
 type MenuDetailData = {
     type: string;
@@ -580,6 +582,10 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     const pageUrlAt = (page: number) =>
         page > 1 ? absoluteUrl(`/${normalizedLocale}/${slug}?page=${page}`) : pageUrl;
     const pageBreadcrumbJsonLd = breadcrumbJsonLd(pageBreadcrumbItems, pageUrl);
+    // The page's schema as the backend builds it (page type and breadcrumb, with
+    // the admin's edits). Every branch below prints it when it is there and builds
+    // its own until the backend sends one.
+    const menuSchema = readApiSchema(menu.seo?.schema);
 
     const includedItems: any[] = menuDetail.included_items || [];
     const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
@@ -919,15 +925,14 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         }
         const paginationTokens = buildPaginationTokens(currentPage, lastPage);
         const listPerPage = Math.max(1, Number(productList?.pagination?.per_page ?? 0) || sortedListItems.length || 1);
-        const listingStructuredData = [
-            collectionPageJsonLd({
-                name: toPlainText(menu.title || menu.name),
-                url: pageUrlAt(currentPage),
-                itemUrls: sortedListItems.map((item) => listedProductUrl(item, normalizedLocale)),
-                startPosition: (currentPage - 1) * listPerPage + 1,
-            }),
-            pageBreadcrumbJsonLd,
-        ];
+        const listing = {
+            url: pageUrlAt(currentPage),
+            itemUrls: sortedListItems.map((item) => listedProductUrl(item, normalizedLocale)),
+            startPosition: (currentPage - 1) * listPerPage + 1,
+        };
+        const listingStructuredData = menuSchema
+            ? withListing(menuSchema, listing)
+            : [collectionPageJsonLd({ name: toPlainText(menu.title || menu.name), ...listing }), pageBreadcrumbJsonLd];
 
         const hasFilters = Array.isArray(productList?.filters) && productList.filters.length > 0;
         const drawerId = `filters-drawer-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
@@ -1322,8 +1327,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             { label: menu.name, isCurrent: true as const },
         ];
         const gridName = toPlainText(menu.title || menu.name);
-        const gridStructuredData = [
-            isBlogView
+        const gridPageNode = isBlogView
                 ? blogJsonLd({
                     name: gridName,
                     url: pageUrlAt(gridCurrentPage),
@@ -1340,9 +1344,15 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     url: pageUrlAt(gridCurrentPage),
                     itemUrls: pageItems.map((item) => absoluteUrl(resolveGridItemHref(item))),
                     startPosition: (gridCurrentPage - 1) * gridPerPage + 1,
-                }),
-            breadcrumbJsonLd(gridBreadcrumbItems, pageUrl),
-        ];
+                });
+        const gridStructuredData = menuSchema
+            ? withListing(menuSchema, {
+                url: pageUrlAt(gridCurrentPage),
+                itemUrls: pageItems.map((item) => absoluteUrl(resolveGridItemHref(item))),
+                startPosition: (gridCurrentPage - 1) * gridPerPage + 1,
+                posts: (gridPageNode.blogPost as JsonLdNode[] | undefined) ?? [],
+            })
+            : [gridPageNode, breadcrumbJsonLd(gridBreadcrumbItems, pageUrl)];
 
         return (
             <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
@@ -1498,16 +1508,21 @@ const firstPhone =
         // Clicking the address opens the same pin the map below shows, so it
         // never lands on whatever Google matches the prose address to.
         const addressMapLink = resolveMapLink(projectSettings?.general.map_iframe, address);
-        const businessProfile = resolveBusinessProfile(await getPublicProjectSettingsResponse(normalizedLocale));
+        const settingsResponse = await getPublicProjectSettingsResponse(normalizedLocale);
+        const businessProfile = resolveBusinessProfile(settingsResponse);
+        // The store as the backend describes it in the site's schema; built from
+        // the settings here while the backend sends none.
+        const storeNodes = nodesOfType(resolveSettingsSchema(settingsResponse), ["HardwareStore", "Store", "LocalBusiness"]);
 
         return (
             <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
                 <JsonLd
                     nodes={[
-                        contactPageJsonLd(toPlainText(menu.title || menu.name), pageUrl),
-                        businessProfile ? storeJsonLd(businessProfile, normalizedLocale) : null,
-                        pageBreadcrumbJsonLd,
+                        ...(menuSchema ?? [contactPageJsonLd(toPlainText(menu.title || menu.name), pageUrl), pageBreadcrumbJsonLd]),
+                        ...(storeNodes.length > 0
+                            ? storeNodes
+                            : [businessProfile ? storeJsonLd(businessProfile, normalizedLocale) : null]),
                     ]}
                 />
                 <Breadcrumb
@@ -1632,7 +1647,7 @@ const firstPhone =
     return (
         <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
-            <JsonLd nodes={[pageBreadcrumbJsonLd]} />
+            <JsonLd nodes={menuSchema ?? [pageBreadcrumbJsonLd]} />
             <Breadcrumb
                 items={pageBreadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
