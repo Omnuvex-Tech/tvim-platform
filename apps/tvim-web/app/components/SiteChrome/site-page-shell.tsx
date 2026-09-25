@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { Footer } from "@/app/components/Footer/footer";
+import { ExtraJsonLd } from "@/app/components/JsonLd/json-ld";
 import { KeywordChips } from "@/app/components/KeywordChips/keyword-chips";
 import { LogoutToast } from "@/app/components/LogoutToast/logout-toast";
 import { NavbarWrapper } from "@/app/components/Navbar/navbar-wrapper";
@@ -15,6 +16,8 @@ type SitePageShellProps = {
      * page published in its metadata; pages kept out of the index pass none.
      */
     keywords?: readonly string[];
+    /** The page's own `seo.extra_schema` from the admin, if it has one. */
+    extraSchema?: unknown;
 };
 
 export function SitePageShell({
@@ -23,6 +26,7 @@ export function SitePageShell({
     contentClassName = "gap-0",
     includeLogoutToast = false,
     keywords = [],
+    extraSchema,
 }: SitePageShellProps) {
     return (
         <div className={`flex min-h-svh w-full flex-col items-center justify-start ${contentClassName} pt-0 pb-8`}>
@@ -42,6 +46,9 @@ export function SitePageShell({
                     <LogoutToast />
                 </Suspense>
             ) : null}
+
+            <ExtraJsonLd value={chrome.siteExtraSchema} />
+            <ExtraJsonLd value={extraSchema} />
 
             <KeywordChips keywords={keywords} />
 

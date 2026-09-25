@@ -922,7 +922,12 @@ export default async function GridDetailPage({
         ];
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast keywords={productKeywords(detail, normalizedLocale)}>
+            <SitePageShell
+                chrome={chrome}
+                includeLogoutToast
+                keywords={productKeywords(detail, normalizedLocale)}
+                extraSchema={(product as { seo?: { extra_schema?: unknown } } | undefined)?.seo?.extra_schema}
+            >
                 <LocalizedLinks value={productLocalizedLinks} />
                 <JsonLd nodes={productStructuredData} />
                 <Breadcrumb
@@ -1138,7 +1143,12 @@ export default async function GridDetailPage({
     const articleHeadline = toPlainText(item.name || menuDetail.menu.title || menuDetail.menu.name);
 
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast keywords={menuItemKeywords(menuDetail, normalizedLocale)}>
+        <SitePageShell
+            chrome={chrome}
+            includeLogoutToast
+            keywords={menuItemKeywords(menuDetail, normalizedLocale)}
+            extraSchema={(menuDetail.data as { seo?: { extra_schema?: unknown } } | undefined)?.seo?.extra_schema}
+        >
             <LocalizedLinks value={itemLocalizedLinks} />
             <JsonLd
                 nodes={[

@@ -19,7 +19,7 @@ import {
     resolveHeaderMenuLabel,
 } from "@/lib/header-navigation";
 import { getPublicHeaderCategories, getPublicLanguages, getPublicMenuList, getPublicProjectSettingsResponse } from "@/lib/public-data";
-import { resolveProjectSettings } from "@/lib/settings";
+import { resolveProjectSettings, resolveSettingsExtraSchema } from "@/lib/settings";
 
 export type SiteChromeData = {
     footerMenus: MenuItem[];
@@ -30,6 +30,8 @@ export type SiteChromeData = {
     menuItems: NavbarMenuItem[];
     phone?: string;
     projectSettings?: ProjectSettingsData;
+    /** Admin → Settings → SEO → extra schema, published on every page. */
+    siteExtraSchema?: unknown;
 };
 
 export async function getSiteChromeData(incomingLocale: string): Promise<SiteChromeData> {
@@ -100,5 +102,6 @@ export async function getSiteChromeData(incomingLocale: string): Promise<SiteChr
         menuItems,
         phone,
         projectSettings,
+        siteExtraSchema: resolveSettingsExtraSchema(settingsResponse),
     };
 }

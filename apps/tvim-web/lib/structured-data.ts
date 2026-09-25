@@ -117,6 +117,20 @@ const openingHours = (workHours: Record<string, string>) => {
     });
 };
 
+/** The admin's structured hours (Settings → SEO → business), one entry per row. */
+const adminOpeningHours = (rows: BusinessProfile["openingHours"]) => {
+    const weekOrder = Object.keys(DAYS);
+    return rows.map((row) => ({
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: [...new Set(row.days)]
+            .filter((day) => DAYS[day])
+            .sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b))
+            .map((day) => DAYS[day]),
+        opens: row.opens,
+        closes: row.closes,
+    }));
+};
+
 const telephone = (profile: BusinessProfile) =>
     profile.phones[0]?.replace(/[^\d+]/g, "") || undefined;
 
@@ -171,13 +185,16 @@ export const storeJsonLd = (profile: BusinessProfile, locale: string): JsonLdNod
             "@type": "PostalAddress",
             streetAddress: profile.address,
             addressLocality: LOCALITY[normalizeLocale(locale)],
+            postalCode: profile.postalCode,
             addressCountry: "AZ",
         },
         geo: profile.coordinates
             ? { "@type": "GeoCoordinates", ...profile.coordinates }
             : undefined,
         hasMap: profile.mapUrl,
-        openingHoursSpecification: openingHours(profile.workHours),
+        openingHoursSpecification: profile.openingHours.length > 0
+            ? adminOpeningHours(profile.openingHours)
+            : openingHours(profile.workHours),
         sameAs: profile.sameAs,
         parentOrganization: { "@id": ORGANIZATION_ID() },
     });
@@ -396,4 +413,25 @@ export const serializeJsonLd = (nodes: ReadonlyArray<JsonLdNode | null | undefin
     if (graph.length === 0) return null;
 
     return JSON.stringify({ "@context": SCHEMA_CONTEXT, "@graph": graph }).replace(/</g, "\\u003c");
+};
+
+const isJsonLdObject = (value: unknown): value is JsonLdNode =>
+    typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * The JSON-LD an admin pasted into a page's (or the site's) SEO tab, returned
+ * by the API as `seo.extra_schema`: an object, an array of objects, or null.
+ * It goes out as its own script, apart from the graph built above, exactly as
+ * written except that a node without `@context` gets schema.org's. The admin
+ * side already rejected anything without an `@type`.
+ */
+export const serializeExtraSchema = (value: unknown) => {
+    const nodes = (Array.isArray(value) ? value : [value])
+        .filter(isJsonLdObject)
+        .map((node) => ("@context" in node ? node : { "@context": SCHEMA_CONTEXT, ...node }));
+
+    if (nodes.length === 0) return null;
+
+    const payload = nodes.length === 1 ? nodes[0] : nodes;
+    return JSON.stringify(payload).replace(/</g, "\\u003c");
 };

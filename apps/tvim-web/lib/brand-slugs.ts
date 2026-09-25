@@ -19,6 +19,7 @@ type BrandListResponseData = {
         meta_description?: string | null;
         meta_keywords?: string | null;
         image?: string | null;
+        seo?: { extra_schema?: unknown } | null;
     }>;
 };
 
@@ -32,6 +33,8 @@ export type BrandEntry = {
     metaKeywords?: string;
     /** The brand's logo as an absolute url, where one is uploaded. */
     image?: string;
+    /** Admin-written JSON-LD for this brand's page, in this language. */
+    extraSchema?: unknown;
 };
 
 /** The api stores logos as a path under its public storage. */
@@ -82,6 +85,7 @@ const fetchBrandList = unstable_cache(
             const metaDescription = String(value?.meta_description ?? "").trim();
             const metaKeywords = String(value?.meta_keywords ?? "").trim();
             const image = resolveBrandImage(value?.image);
+            const extraSchema = value?.seo?.extra_schema ?? undefined;
 
             acc.push({
                 valueId,
@@ -91,6 +95,7 @@ const fetchBrandList = unstable_cache(
                 ...(metaDescription ? { metaDescription } : null),
                 ...(metaKeywords ? { metaKeywords } : null),
                 ...(image ? { image } : null),
+                ...(extraSchema ? { extraSchema } : null),
             });
             return acc;
         }, []);

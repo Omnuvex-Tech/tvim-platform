@@ -570,6 +570,8 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
     // The same list the head published, drawn above the footer by the shell.
     const pageKeywords = categoryKeywords(menuDetail, normalizedLocale);
+    // Admin-written JSON-LD for this menu, in this language (seo.extra_schema).
+    const pageExtraSchema = (pageData?.seo ?? menu.seo)?.extra_schema;
 
     // The trail every single-level page draws, and the url it is published at.
     const pageBreadcrumbItems = [
@@ -1076,7 +1078,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         ) : null;
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords} extraSchema={pageExtraSchema}>
                 <LocalizedLinks value={localizedLinks} />
                 <JsonLd nodes={listingStructuredData} />
                 <Breadcrumb
@@ -1345,7 +1347,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         ];
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords} extraSchema={pageExtraSchema}>
                 <LocalizedLinks value={localizedLinks} />
                 <JsonLd nodes={gridStructuredData} />
                 {/* The breadcrumb stays outside the Roboto wrapper below, which
@@ -1501,7 +1503,7 @@ const firstPhone =
         const businessProfile = resolveBusinessProfile(await getPublicProjectSettingsResponse(normalizedLocale));
 
         return (
-            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
+            <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords} extraSchema={pageExtraSchema}>
                 <LocalizedLinks value={localizedLinks} />
                 <JsonLd
                     nodes={[
@@ -1630,7 +1632,7 @@ const firstPhone =
 
     // Default view type (fallback for content and others)
     return (
-        <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
+        <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords} extraSchema={pageExtraSchema}>
                 <LocalizedLinks value={localizedLinks} />
             <JsonLd nodes={[pageBreadcrumbJsonLd]} />
             <Breadcrumb

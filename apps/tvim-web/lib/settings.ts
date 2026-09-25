@@ -363,6 +363,35 @@ export type BusinessProfile = {
     coordinates?: { latitude: number; longitude: number };
     /** The store's Google Maps listing. */
     mapUrl?: string;
+    postalCode?: string;
+    /** Admin → Settings → SEO → business; when set it wins over parsing `workHours`. */
+    openingHours: BusinessOpeningHours[];
+};
+
+export type BusinessOpeningHours = {
+    /** mon…sun */
+    days: string[];
+    /** HH:MM */
+    opens: string;
+    closes: string;
+};
+
+const TIME = /^\d{2}:\d{2}$/;
+
+/** `seo.business.opening_hours`, keeping only complete rows. */
+const readOpeningHours = (value: unknown): BusinessOpeningHours[] =>
+    (Array.isArray(value) ? value : [])
+        .filter(isRecord)
+        .map((row) => ({
+            days: (Array.isArray(row.days) ? row.days : []).map((day) => readText(day).toLowerCase()).filter(Boolean),
+            opens: readText(row.opens),
+            closes: readText(row.closes),
+        }))
+        .filter((row) => row.days.length > 0 && TIME.test(row.opens) && TIME.test(row.closes));
+
+const readCoordinate = (value: unknown, limit: number) => {
+    const number = typeof value === "number" ? value : Number.NaN;
+    return Number.isFinite(number) && Math.abs(number) <= limit ? number : undefined;
 };
 
 const readText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
@@ -396,17 +425,25 @@ export const resolveBusinessProfile = (responseData: unknown): BusinessProfile |
     const social = normalizeObject(payload.social);
     const images = normalizeObject(general.images);
     const workHours = normalizeObject(general.work_hours);
+    // Admin → Settings → SEO → business. Each field that is filled overrides
+    // what is otherwise worked out from the general settings below.
+    const business = normalizeObject(normalizeObject(payload.seo).business);
 
     // "Tvim | Tikinti Materialları və İnşaat Materialları" is a page title;
     // the business is the part before the bar.
-    const name = readText(general.site_title).split("|")[0]?.trim() || config.project.name || "Tvim";
+    const name = readText(business.name)
+        || readText(general.site_title).split("|")[0]?.trim()
+        || config.project.name
+        || "Tvim";
 
     const sameAs = Array.from(
         new Set(
-            Object.values(social)
-                .filter((entry): entry is AnyRecord => isRecord(entry) && String(entry.active ?? "1") !== "0")
-                .map((entry) => profileUrl(entry.link ?? entry.url))
-                .filter((url): url is string => Boolean(url)),
+            [
+                ...(Array.isArray(business.same_as) ? business.same_as : []).map(profileUrl),
+                ...Object.values(social)
+                    .filter((entry): entry is AnyRecord => isRecord(entry) && String(entry.active ?? "1") !== "0")
+                    .map((entry) => profileUrl(entry.link ?? entry.url)),
+            ].filter((url): url is string => Boolean(url)),
         ),
     );
 
@@ -416,6 +453,13 @@ export const resolveBusinessProfile = (responseData: unknown): BusinessProfile |
         .split(",")
         .map(Number);
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+    const adminLatitude = readCoordinate(business.latitude, 90);
+    const adminLongitude = readCoordinate(business.longitude, 180);
+    const coordinates = adminLatitude !== undefined && adminLongitude !== undefined
+        ? { latitude: adminLatitude, longitude: adminLongitude }
+        : hasCoordinates
+            ? { latitude: latitude as number, longitude: longitude as number }
+            : undefined;
 
     return {
         name,
@@ -430,9 +474,19 @@ export const resolveBusinessProfile = (responseData: unknown): BusinessProfile |
                 .filter(([, text]) => text),
         ),
         sameAs,
-        coordinates: hasCoordinates ? { latitude: latitude as number, longitude: longitude as number } : undefined,
+        coordinates,
         mapUrl: resolveMapLink(general.map_iframe, general.address) || undefined,
+        postalCode: readText(business.postal_code) || undefined,
+        openingHours: readOpeningHours(business.opening_hours),
     };
+};
+
+/** Admin → Settings → SEO → extra schema, for the settings' language. */
+export const resolveSettingsExtraSchema = (responseData: unknown): unknown => {
+    const payload = extractPayload(responseData);
+    if (!payload) return undefined;
+
+    return normalizeObject(payload.seo).extra_schema ?? undefined;
 };
 
 export const resolveSettingsRobotsText = (responseData: unknown): string | undefined => {

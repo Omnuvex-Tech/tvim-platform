@@ -426,7 +426,13 @@ export async function renderBrandNewsSlugPage({
     const articleUrl = absoluteUrl(`/${locale}/${normalizedMenuLink}/${normalizedSlug}`);
 
     return (
-        <SitePageShell chrome={chrome} keywords={brandNewsKeywords(menuDetail, mainItem, pageTitle, locale)}>
+        <SitePageShell
+            chrome={chrome}
+            keywords={brandNewsKeywords(menuDetail, mainItem, pageTitle, locale)}
+            extraSchema={(menuDetail?.data as { mode?: string; seo?: { extra_schema?: unknown } } | undefined)?.mode === "detail"
+                ? (menuDetail?.data as { seo?: { extra_schema?: unknown } }).seo?.extra_schema
+                : undefined}
+        >
             <LocalizedLinks value={localizedLinks} />
             <JsonLd
                 nodes={[

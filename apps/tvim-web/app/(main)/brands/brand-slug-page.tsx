@@ -386,7 +386,7 @@ export async function renderBrandSlugPage({
     const brandUrl = absoluteUrl(`/${buildBrandBasePath(locale, localBrand.slug)}`);
 
     return (
-        <SitePageShell chrome={chrome} keywords={brandKeywords(localBrand, pageName, locale)}>
+        <SitePageShell chrome={chrome} keywords={brandKeywords(localBrand, pageName, locale)} extraSchema={localBrand.extraSchema}>
             <LocalizedLinks value={localizedLinks} />
             <JsonLd
                 nodes={[
