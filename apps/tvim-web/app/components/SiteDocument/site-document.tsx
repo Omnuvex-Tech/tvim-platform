@@ -12,6 +12,13 @@ import { VexvonBubbleOffset } from "@/app/components/VexvonBubble/vexvon-bubble-
 import { config } from "@/config";
 import type { SiteLocale } from "@/lib/site-locales";
 import { buildKeywords } from "@/lib/seo-keywords";
+// Font Awesome is bundled with the site's own css rather than linked from
+// cdnjs. The link was a render-blocking stylesheet on a third-party host, so
+// every first visit waited on one more DNS lookup and TLS handshake before
+// anything was painted. Bundled, the css ships in the site's own chunk and the
+// fonts are served from /_next/static with a year-long immutable cache. The
+// icon classes the admin stores (social links, category icons) keep working.
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import "@/app/globals.css";
 
 // Served as subsetted woff2 per unicode-range rather than the two raw variable
@@ -64,12 +71,6 @@ export function SiteDocument({
     return (
         <html lang={lang} suppressHydrationWarning>
             <head>
-                <link
-                    rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-                    crossOrigin="anonymous"
-                    referrerPolicy="no-referrer"
-                />
                 <Script id="gtm" strategy="afterInteractive">
                     {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
                     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
