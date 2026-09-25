@@ -248,7 +248,7 @@ const FOOTER_SOCIALS: Array<FooterSocialItem & { colorClass: string }> = [
     },
     {
         label: "Facebook",
-        href: "https://www.facebook.com/p/Tvimaz-100095715123358/?_rdr",
+        href: "https://www.facebook.com/p/Tvimaz-100095715123358/",
         icon: <i className="fab fa-facebook text-[16px] text-white" aria-hidden="true" />,
         colorClass: "bg-[#3a5795]",
     },
