@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  Served by nginx, not by Next, for the errors that happen before or instead of
+  the app answering: 400 on a malformed request, and 502/503/504 while the app
+  restarts. It is plain html with inline css so it works with the app down.
+
+  nginx (inside the tvim.az server block):
+
+      server_tokens off;
+      error_page 400 502 503 504 /errors/server-error.html;
+      location = /errors/server-error.html {
+          root /var/www/tvim-platform/apps/tvim-web/public;
+          internal;
+      }
+
+  For planned maintenance, answer 503 with a Retry-After header so search
+  engines come back later instead of dropping pages.
+-->
+<html lang="az">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Xəta baş verdi | TVİM</title>
+    <style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            background: #f5f7fb;
+            color: #111111;
+            font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        main { width: 100%; max-width: 640px; text-align: center; }
+        .brand { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: #0f57d6; margin: 0 0 32px; }
+        h1 { font-size: clamp(22px, 3vw, 30px); line-height: 1.25; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 8px; }
+        p { margin: 0 0 20px; color: #4b5565; font-size: 15px; line-height: 1.5; }
+        .lang + .lang { border-top: 1px solid #e2e6ef; padding-top: 20px; }
+        a.button {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 14px 32px;
+            border-radius: 999px;
+            background: #0f57d6;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+        }
+        a.button:hover { background: #0c4fc6; }
+    </style>
+</head>
+<body>
+<main>
+    <p class="brand">TVIM</p>
+
+    <section class="lang" lang="az">
+        <h1>Sayt hazırda cavab vermir.</h1>
+        <p>Bir neçə dəqiqədən sonra yenidən cəhd edin.</p>
+    </section>
+    <section class="lang" lang="en">
+        <h1>The site is not responding right now.</h1>
+        <p>Please try again in a few minutes.</p>
+    </section>
+    <section class="lang" lang="ru">
+        <h1>Сайт сейчас не отвечает.</h1>
+        <p>Пожалуйста, попробуйте снова через несколько минут.</p>
+    </section>
+
+    <a class="button" href="/">tvim.az</a>
+</main>
+</body>
+</html>

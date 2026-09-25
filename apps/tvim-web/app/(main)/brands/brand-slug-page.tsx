@@ -5,7 +5,7 @@ import { config } from "@/config";
 import { api } from "@/lib/api";
 import { buildSeoMetadata } from "@/lib/seo";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { brandDescription, pickDescription, pickTitle, withSiteName } from "@/lib/seo-copy";
+import { brandDescription, pickDescription, pickTitle, withPageNumber, withSiteName } from "@/lib/seo-copy";
 import { normalizeLocale } from "@/lib/site-locales";
 import { SitePageShell } from "@/app/components/SiteChrome/site-page-shell";
 import { LocalizedLinks } from "@/app/components/SiteChrome/localized-links";
@@ -16,6 +16,8 @@ import { normalizeProductSort, sortProductItems } from "@/lib/product-sort";
 import { ProductSortBar } from "@/app/components/ProductSortBar/product-sort-bar";
 import { getTranslations } from "@/lib/i18n";
 import { findBrandBySlug, findBrandInOtherLocales, getBrandSlugsByLocale, type BrandEntry } from "@/lib/brand-slugs";
+import { JsonLd } from "@/app/components/JsonLd/json-ld";
+import { absoluteUrl, breadcrumbJsonLd, collectionPageJsonLd, listedProductUrl } from "@/lib/structured-data";
 
 type ProductListApiResponse = {
     menu?: {
@@ -179,14 +181,18 @@ export async function generateBrandSlugMetadata({
     const localBrand = await findBrandBySlug(slug, locale);
     const pageName = String(localBrand?.name || matchedBrand?.name || normalizeSlugText(slug) || slug).trim() || "Brand";
     const seoState = hasListingQuery(resolvedSearchParams);
-    const canonicalPath = buildBrandBasePath(locale, slug);
+    // Every page of the brand's list is indexed at its own url; sorting and
+    // page size only reorder it and stay out of the index.
+    const listPage = seoState.hasRefinement ? 1 : seoState.page;
+    const pageQuery = listPage > 1 ? `?page=${listPage}` : "";
+    const canonicalPath = `${buildBrandBasePath(locale, slug)}${pageQuery}`;
 
     // Each language serves this brand under its own slug, so the alternates
     // have to be looked up rather than derived by swapping the locale prefix.
     const brandSlugsByLocale = localBrand ? await getBrandSlugsByLocale(localBrand.valueId) : {};
     const alternatePathByLocale = Object.entries(brandSlugsByLocale).reduce<Record<string, string>>(
         (acc, [localeCode, localeSlug]) => {
-            acc[localeCode] = buildBrandBasePath(localeCode, localeSlug);
+            acc[localeCode] = `${buildBrandBasePath(localeCode, localeSlug)}${pageQuery}`;
             return acc;
         },
         {},
@@ -196,7 +202,7 @@ export async function generateBrandSlugMetadata({
     return buildSeoMetadata({
         // What the admin wrote for this brand comes first; the built title and
         // sentence cover the brands nobody has written anything for yet.
-        title: pickTitle(localBrand?.metaTitle, pageName) || withSiteName(locale, pageName),
+        title: withPageNumber(locale, pickTitle(localBrand?.metaTitle, pageName) || withSiteName(locale, pageName), listPage),
         description: pickDescription(localBrand?.metaDescription, pageName, localBrand?.metaTitle) ||
             brandDescription(locale, pageName),
         keywords: brandKeywords(localBrand, pageName, locale),
@@ -204,7 +210,9 @@ export async function generateBrandSlugMetadata({
         canonicalPath,
         siteUrl: config.project.siteUrl,
         ...(alternateLocales.length > 0 ? { alternatePathByLocale, locales: alternateLocales } : null),
-        robots: seoState.hasCustomPage || seoState.hasRefinement
+        image: localBrand?.image,
+        imageAlt: pageName,
+        robots: seoState.hasRefinement
             ? {
                 index: false,
                 follow: true,
@@ -357,6 +365,14 @@ export async function renderBrandSlugPage({
     const listItems = Array.isArray(detailData?.items) ? detailData.items : [];
     const pagination = detailData?.pagination;
     const lastPage = Math.max(1, Number(pagination?.last_page ?? 1));
+    // A page past the end of the list does not exist. It used to render an
+    // empty grid (or repeat the last page), which did no harm while every
+    // page after the first was noindex, but would now be indexed at its own
+    // url. Filtered, sorted and searched lists stay lenient: they are
+    // noindex, and narrowing a list while on page 3 must not end in a 404.
+    if (detailData && !hasListingQuery(resolvedSearchParams).hasRefinement && requestedPage > lastPage) {
+        notFound();
+    }
     const currentPage = Math.max(1, Math.min(Number(pagination?.current_page ?? requestedPage), lastPage));
     const paginationTokens = buildPaginationTokens(currentPage, lastPage);
 
@@ -367,10 +383,23 @@ export async function renderBrandSlugPage({
     };
 
     const sortedItems = sortProductItems(listItems, activeSort, locale);
+    const brandUrl = absoluteUrl(`/${buildBrandBasePath(locale, localBrand.slug)}`);
 
     return (
         <SitePageShell chrome={chrome} keywords={brandKeywords(localBrand, pageName, locale)}>
             <LocalizedLinks value={localizedLinks} />
+            <JsonLd
+                nodes={[
+                    collectionPageJsonLd({
+                        name: pageName,
+                        url: currentPage > 1 ? absoluteUrl(`/${buildBrandBasePath(locale, localBrand.slug)}?page=${currentPage}`) : brandUrl,
+                        about: { "@type": "Brand", name: pageName },
+                        itemUrls: sortedItems.map((item) => listedProductUrl(item, locale)),
+                        startPosition: (currentPage - 1) * perPage + 1,
+                    }),
+                    breadcrumbJsonLd(breadcrumbItems, brandUrl),
+                ]}
+            />
             <Breadcrumb
                 items={breadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] !px-1 lg:!px-2"

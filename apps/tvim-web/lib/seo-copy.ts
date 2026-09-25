@@ -180,6 +180,29 @@ export const withSiteName = (locale: string, title: string) => {
     return alreadyNamed || named.length > MAX_TITLE_LENGTH ? title : named;
 };
 
+const PAGE_WORD: Record<SiteLocale, string> = {
+    az: "Səhifə",
+    en: "Page",
+    ru: "Страница",
+};
+
+/**
+ * A list's title from its second page on. Every page of a list is indexed at
+ * its own url, and giving them all page one's title leaves a result page with
+ * a row of identical entries.
+ */
+export const withPageNumber = (locale: string, title: string, page: number) => {
+    if (page <= 1) return title;
+
+    const label = `${PAGE_WORD[normalizeLocale(locale)]} ${page}`;
+    // Admin titles often end in the site's name ("… | TVIM"); the number
+    // belongs to the page, so it goes before that suffix, not after it.
+    const suffix = title.match(/\s*[|–—-]\s*TV[İIı]M\s*$/i);
+    return suffix
+        ? `${title.slice(0, suffix.index)} — ${label}${suffix[0]}`
+        : `${title} — ${label}`;
+};
+
 /**
  * The cms title when it says more than the page's own name, and nothing when it
  * does not — the caller then falls back to the name.

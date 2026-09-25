@@ -30,6 +30,46 @@ const normalizeUserAgents = (robotsText: string | undefined) => {
     return Array.from(new Set(items));
 };
 
+/**
+ * Crawlers the site depends on, which the admin list can never shut out.
+ *
+ * The robots field in the admin holds a 382-name "bad bots" list that was
+ * pasted in whole, and `yandex` came with it: the whole site was closed to
+ * Yandex, the search engine most of the Russian-speaking audience uses. Search
+ * engines and the link-preview fetchers of the messengers the site is shared
+ * on are kept open here whatever the list says; the admin still decides for
+ * everything else.
+ */
+const PROTECTED_CRAWLER_PREFIXES = [
+    "googlebot",
+    "adsbot-google",
+    "mediapartners-google",
+    "bingbot",
+    "msnbot",
+    "adidxbot",
+    "bingpreview",
+    "slurp",
+    "yandex",
+    "applebot",
+    "duckduckbot",
+    "facebookexternalhit",
+    "facebot",
+    "twitterbot",
+    "linkedinbot",
+    "whatsapp",
+    "telegrambot",
+];
+
+const isProtectedCrawler = (userAgent: string) => {
+    const name = userAgent.toLowerCase();
+    // A blanket group would close the site to every crawler at once.
+    if (name === "*") return true;
+    // Google-Extended and Applebot-Extended only opt the site out of AI
+    // training; they do not crawl for search, so they stay the admin's call.
+    if (name.endsWith("-extended")) return false;
+    return PROTECTED_CRAWLER_PREFIXES.some((prefix) => name.startsWith(prefix));
+};
+
 export async function GET(request: Request) {
     const settings = await getSettings();
     const requestOrigin = (() => {
@@ -44,7 +84,8 @@ export async function GET(request: Request) {
         requestOrigin,
         configUrl: config.project.url,
     });
-    const userAgents = normalizeUserAgents(resolveSettingsRobotsText(settings));
+    const userAgents = normalizeUserAgents(resolveSettingsRobotsText(settings))
+        .filter((userAgent) => !isProtectedCrawler(userAgent));
     const lines = [
         "User-agent: *",
         "Allow: /",

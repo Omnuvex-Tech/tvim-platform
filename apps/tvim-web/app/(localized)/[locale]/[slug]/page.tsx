@@ -8,9 +8,9 @@ import { Breadcrumb, type Company } from "@repo/ui";
 import { RemoteImage } from "@repo/ui";
 import BrandListSlider from "@/app/components/BrandListSlider/brand-list-slider";
 import { config } from "@/config";
-import { buildHomeMetadata, resolveSettingsApiLocale } from "@/lib/settings";
+import { buildHomeMetadata, resolveBusinessProfile, resolveSettingsApiLocale } from "@/lib/settings";
 import { htmlToText } from "@repo/shared/utils";
-import { getPublicMenuDetail, getPublicMenuList } from "@/lib/public-data";
+import { getPublicMenuDetail, getPublicMenuList, getPublicProjectSettingsResponse } from "@/lib/public-data";
 import { RequestForm } from "@/app/components/RequestForm/request-form";
 import { ProductGrid } from "@/app/components/ProductGrid/product-grid";
 import { Pagination } from "@/app/components/Pagination/pagination";
@@ -26,8 +26,19 @@ import { isSupportedLocale } from "@/lib/site-locales";
 import { PRODUCTS_TAG, PRODUCT_REVALIDATE_SECONDS } from "@/lib/cache-tags";
 import { getTranslations } from "@/lib/i18n";
 import { buildKeywords, normalizeKeywords } from "@/lib/seo-keywords";
-import { pageDescription, pickDescription, toPlainText, withSiteName } from "@/lib/seo-copy";
+import { pageDescription, pickDescription, toPlainText, withPageNumber, withSiteName } from "@/lib/seo-copy";
 import { resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
+import { JsonLd } from "@/app/components/JsonLd/json-ld";
+import { prepareContentHtml } from "@/lib/content-html";
+import {
+    absoluteUrl,
+    blogJsonLd,
+    breadcrumbJsonLd,
+    collectionPageJsonLd,
+    contactPageJsonLd,
+    listedProductUrl,
+    storeJsonLd,
+} from "@/lib/structured-data";
 
 type MenuDetailData = {
     type: string;
@@ -366,7 +377,10 @@ const hasListingSeoRefinement = (searchParams: Record<string, string | string[] 
 
     return {
         page: normalizedPage,
-        hasRefinement: Boolean(q || sort || perPage || hasFilter || normalizedPage > 1),
+        // A page number on its own is not a refinement: every page of a list
+        // is indexed at its own url. Search, sort, page size and filters only
+        // reshuffle what page one already lists.
+        hasRefinement: Boolean(q || sort || perPage || hasFilter),
     };
 };
 
@@ -421,12 +435,6 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const seoCanonicalPath = getCanonicalPath(seo?.canonical);
     const currentLink = multiLinks[normalizedLocale] || multiLinks[normalizedLocale.toUpperCase()] || detail.menu.link || slug;
     const currentPath = seoCanonicalPath || `${normalizedLocale}/${String(currentLink).replace(/^\/+/, "")}`;
-    const alternatePathByLocale = ["az", "en", "ru"].reduce<Record<string, string>>((acc, alternateLocale) => {
-        const link = multiLinks[alternateLocale] || multiLinks[alternateLocale.toUpperCase()] || detail.menu.link || slug;
-        acc[alternateLocale] = `${alternateLocale}/${String(link).replace(/^\/+/, "")}`;
-        return acc;
-    }, {});
-
     const menuType = String(detail.menu.type ?? "").trim().toLowerCase();
     const viewType = String(detail.menu.view_type ?? "").trim().toLowerCase();
     const isListingPage =
@@ -434,7 +442,22 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         viewType === "categories" ||
         viewType === "catalog" ||
         viewType === "product-list";
+    const gridItems = Array.isArray(detail.data?.items) ? detail.data.items : [];
+    const isGridView = menuType === "grids" || (detail.data?.mode === "list" && gridItems.length > 0);
     const listingSeoState = hasListingSeoRefinement(resolvedSearchParams || {});
+
+    // Page two of a list is a page of its own, with its own canonical. It used
+    // to be noindex and point at page one, which left everything past the
+    // first 20 products reachable only through links Google stops following
+    // on pages it keeps out of the index.
+    const listPage = (isListingPage || isGridView) && !listingSeoState.hasRefinement ? listingSeoState.page : 1;
+    const pageQuery = listPage > 1 ? `?page=${listPage}` : "";
+
+    const alternatePathByLocale = ["az", "en", "ru"].reduce<Record<string, string>>((acc, alternateLocale) => {
+        const link = multiLinks[alternateLocale] || multiLinks[alternateLocale.toUpperCase()] || detail.menu.link || slug;
+        acc[alternateLocale] = `${alternateLocale}/${String(link).replace(/^\/+/, "")}${pageQuery}`;
+        return acc;
+    }, {});
 
     // The page's plain name is what a sentence can be built around; the seo
     // title is often a phrase that already ends in the site's name.
@@ -443,7 +466,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
     const metadata = buildHomeMetadata(
         {
-            meta_title: menuTitle ? withSiteName(normalizedLocale, menuTitle) : undefined,
+            meta_title: menuTitle ? withSiteName(normalizedLocale, withPageNumber(normalizedLocale, menuTitle, listPage)) : undefined,
             // A page the cms left without a description used to publish none at
             // all, which leaves a result page quoting the navigation.
             meta_description:
@@ -455,15 +478,19 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
             // categories it offers. A category page with nothing written for it
             // in the admin used to publish no keywords at all.
             meta_keywords: categoryKeywords(detail, normalizedLocale),
-            canonical: seo?.canonical,
-            alternates: seo?.alternates,
+            // An admin canonical names page one; later pages build their own
+            // from its path (currentPath) plus the page number.
+            canonical: listPage > 1 ? undefined : seo?.canonical,
+            // The admin's alternates and og:url name page one too, and would
+            // point a later page's other languages back at page one.
+            alternates: listPage > 1 ? undefined : seo?.alternates,
             x_default: seo?.x_default,
             twitter: seo?.twitter,
-            open_graph: seo?.open_graph,
+            open_graph: listPage > 1 && seo?.open_graph ? { ...seo.open_graph, url: undefined } : seo?.open_graph,
         },
         normalizedLocale,
         {
-            canonicalPath: currentPath,
+            canonicalPath: `${currentPath}${pageQuery}`,
             alternatePathByLocale,
             siteUrl: config.project.siteUrl,
             useProjectFallbacks: false,
@@ -543,6 +570,16 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
     // The same list the head published, drawn above the footer by the shell.
     const pageKeywords = categoryKeywords(menuDetail, normalizedLocale);
+
+    // The trail every single-level page draws, and the url it is published at.
+    const pageBreadcrumbItems = [
+        { label: t.common.home, href: `/${normalizedLocale}` },
+        { label: menu.name, isCurrent: true as const },
+    ];
+    const pageUrl = absoluteUrl(`/${normalizedLocale}/${slug}`);
+    const pageUrlAt = (page: number) =>
+        page > 1 ? absoluteUrl(`/${normalizedLocale}/${slug}?page=${page}`) : pageUrl;
+    const pageBreadcrumbJsonLd = breadcrumbJsonLd(pageBreadcrumbItems, pageUrl);
 
     const includedItems: any[] = menuDetail.included_items || [];
     const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
@@ -681,7 +718,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         <>
             <div className="prose max-w-none">
                 {pageDescriptionHtml && (
-                    <div dangerouslySetInnerHTML={{ __html: pageDescriptionHtml }} />
+                    <div dangerouslySetInnerHTML={{ __html: prepareContentHtml(pageDescriptionHtml, menu.title || menu.name) }} />
                 )}
             </div>
 
@@ -872,7 +909,25 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
 
         const currentPage = Math.max(1, Number(productList?.pagination?.current_page ?? parsePageNumber(resolvedSearchParams.page)));
         const lastPage = Math.max(1, Number(productList?.pagination?.last_page ?? 1));
+        // A page past the end of the list does not exist. It used to render an
+        // empty grid (or repeat the last page), which did no harm while every
+        // page after the first was noindex, but would now be indexed at its own
+        // url. Filtered, sorted and searched lists stay lenient: they are
+        // noindex, and narrowing a list while on page 3 must not end in a 404.
+        if (productList && !hasListingSeoRefinement(resolvedSearchParams).hasRefinement && requestedPage > lastPage) {
+            notFound();
+        }
         const paginationTokens = buildPaginationTokens(currentPage, lastPage);
+        const listPerPage = Math.max(1, Number(productList?.pagination?.per_page ?? 0) || sortedListItems.length || 1);
+        const listingStructuredData = [
+            collectionPageJsonLd({
+                name: toPlainText(menu.title || menu.name),
+                url: pageUrlAt(currentPage),
+                itemUrls: sortedListItems.map((item) => listedProductUrl(item, normalizedLocale)),
+                startPosition: (currentPage - 1) * listPerPage + 1,
+            }),
+            pageBreadcrumbJsonLd,
+        ];
 
         const hasFilters = Array.isArray(productList?.filters) && productList.filters.length > 0;
         const drawerId = `filters-drawer-${String(slug).replace(/[^a-z0-9_-]/gi, "-")}`;
@@ -1013,7 +1068,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                         ) : null}
                         <div
                             className="max-w-none text-[14px] leading-[1.7] text-[#4b5565] lg:text-[15px] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_b]:font-semibold [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline [&_*]:!text-inherit [&_*]:!text-[length:inherit]"
-                            dangerouslySetInnerHTML={{ __html: categoryDescriptionHtml }}
+                            dangerouslySetInnerHTML={{ __html: prepareContentHtml(categoryDescriptionHtml, menu.title || menu.name) }}
                         />
                     </div>
                 </div>
@@ -1023,11 +1078,9 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         return (
             <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
+                <JsonLd nodes={listingStructuredData} />
                 <Breadcrumb
-                    items={[
-                        { label: t.common.home, href: `/${normalizedLocale}` },
-                        { label: menu.name, isCurrent: true },
-                    ]}
+                    items={pageBreadcrumbItems}
                     className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                     showTitle
                     pageTitle={menu.title || menu.name}
@@ -1230,6 +1283,10 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
         const gridLastPage = isBlogView
             ? Math.max(1, Math.ceil(orderedItems.length / gridPerPage))
             : Math.max(1, Number(pageData?.meta?.last_page ?? 1));
+        if (requestedPage > gridLastPage) {
+            // The same rule as the product lists above: no such page.
+            notFound();
+        }
         const gridCurrentPage = isBlogView
             ? Math.min(Math.max(1, requestedPage), gridLastPage)
             : Math.max(1, Number(pageData?.meta?.page ?? requestedPage));
@@ -1257,19 +1314,44 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             return query ? `/${normalizedLocale}/${slug}?${query}` : `/${normalizedLocale}/${slug}`;
         };
 
+        const gridBreadcrumbItems = [
+            { label: t.common.home, href: `/${normalizedLocale}` },
+            ...(blogRoot?.slug && blogRoot.name && blogRoot.slug !== slug
+                ? [{ label: blogRoot.name, href: `/${normalizedLocale}/${blogRoot.slug}` }]
+                : []),
+            { label: menu.name, isCurrent: true as const },
+        ];
+        const gridName = toPlainText(menu.title || menu.name);
+        const gridStructuredData = [
+            isBlogView
+                ? blogJsonLd({
+                    name: gridName,
+                    url: pageUrlAt(gridCurrentPage),
+                    locale: normalizedLocale,
+                    posts: pageItems.map((item) => ({
+                        headline: String(item.name ?? ""),
+                        url: absoluteUrl(resolveGridItemHref(item)),
+                        image: item.main_photo || item.banner || null,
+                        datePublished: item.datetime1,
+                    })),
+                })
+                : collectionPageJsonLd({
+                    name: gridName,
+                    url: pageUrlAt(gridCurrentPage),
+                    itemUrls: pageItems.map((item) => absoluteUrl(resolveGridItemHref(item))),
+                    startPosition: (gridCurrentPage - 1) * gridPerPage + 1,
+                }),
+            breadcrumbJsonLd(gridBreadcrumbItems, pageUrl),
+        ];
+
         return (
             <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
+                <JsonLd nodes={gridStructuredData} />
                 {/* The breadcrumb stays outside the Roboto wrapper below, which
                     would otherwise shrink its type the way no other page does. */}
                 <Breadcrumb
-                    items={[
-                        { label: t.common.home, href: `/${normalizedLocale}` },
-                        ...(blogRoot?.slug && blogRoot.name && blogRoot.slug !== slug
-                            ? [{ label: blogRoot.name, href: `/${normalizedLocale}/${blogRoot.slug}` }]
-                            : []),
-                        { label: menu.name, isCurrent: true },
-                    ]}
+                    items={gridBreadcrumbItems}
                     className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                     showTitle
                     pageTitle={menu.title || menu.name}
@@ -1416,15 +1498,20 @@ const firstPhone =
         // Clicking the address opens the same pin the map below shows, so it
         // never lands on whatever Google matches the prose address to.
         const addressMapLink = resolveMapLink(projectSettings?.general.map_iframe, address);
+        const businessProfile = resolveBusinessProfile(await getPublicProjectSettingsResponse(normalizedLocale));
 
         return (
             <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
-                <Breadcrumb
-                    items={[
-                        { label: t.common.home, href: `/${normalizedLocale}` },
-                        { label: menu.name, isCurrent: true },
+                <JsonLd
+                    nodes={[
+                        contactPageJsonLd(toPlainText(menu.title || menu.name), pageUrl),
+                        businessProfile ? storeJsonLd(businessProfile, normalizedLocale) : null,
+                        pageBreadcrumbJsonLd,
                     ]}
+                />
+                <Breadcrumb
+                    items={pageBreadcrumbItems}
                     className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                     showTitle
                     pageTitle={menu.title || menu.name}
@@ -1545,11 +1632,9 @@ const firstPhone =
     return (
         <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords}>
                 <LocalizedLinks value={localizedLinks} />
+            <JsonLd nodes={[pageBreadcrumbJsonLd]} />
             <Breadcrumb
-                items={[
-                    { label: t.common.home, href: `/${normalizedLocale}` },
-                    { label: menu.name, isCurrent: true },
-                ]}
+                items={pageBreadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
                 showTitle
                 pageTitle={menu.title || menu.name}

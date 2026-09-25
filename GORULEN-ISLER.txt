@@ -1,0 +1,110 @@
+TVIM.AZ — GÖRÜLƏN İŞLƏR
+Tarix: 25 sentyabr 2026
+Son SEO düzəlişləri: feat/seo-audit-fixes branch-i
+
+
+ÖDƏNİŞ SƏHİFƏLƏRİ (PR #39–#44)
+
+1. Uğurlu ödəniş səhifəsi yaradıldı. Dizaynı xəta səhifəsi ilə eynidir, mətn və düymə yaşıldır.
+
+2. Ödəniş yönləndirmələri düzəldildi:
+   - kartla uğurlu ödəniş → /payment/success
+   - uğursuz və ya ləğv edilmiş ödəniş → /payment/error
+   - admində dilsiz ünvan yazılır, sayt istifadəçini öz dilinə (/az, /en, /ru) yönləndirir
+   - digər formalar əvvəlki kimi thank-you səhifəsinə gedir
+
+3. Qapıda ödənişlə verilən sifariş "Sifarişiniz qəbul edildi" ekranına gedir (yalnız başlıq).
+   Xəta səhifəsində "yenidən cəhd et" düyməsi yoxdur.
+
+
+AÇAR SÖZLƏR, BAŞLIQ VƏ AÇIQLAMALAR
+
+4. Meta keywords bütün dinamik səhifələrə (ana səhifə, məhsul, kateqoriya, brend, bloq,
+   korporativ) əlavə olundu. Eyni siyahı səhifənin sonunda, footerin üstündə də görünür.
+
+5. Açar söz qaydası: admində yazılıbsa, olduğu kimi götürülür. Boşdursa, səhifənin öz
+   mövzusundan (məhsul adı, brend, kateqoriya, məqalə adı) və saytın ümumi sözlərindən,
+   səhifənin dilində avtomatik qurulur.
+
+6. Bütün səhifələrin title və description-u düzəldildi: admində yazılanlar oxunur, boş
+   olanda 3 dildə hazır mətn istifadə olunur. Title ~60, description ~160 simvolla
+   məhdudlaşdırılır.
+
+7. Bütün endpointlərin (settings, menyu, məhsul, brend) keywords sahəsini göndərdiyi
+   yoxlanıldı. Ana səhifə üçün backend-ə og.keywords əlavə olundu.
+
+
+SEO AUDİTİ
+
+8. SEO audit sənədi (docx) hazırlandı: 12 problem, prioritetlər, səhifə növləri üzrə sxem
+   planı, admin tapşırıqları və iş ardıcıllığı. Admin üçün məlumat daxiletmə təlimatı və
+   Jira tapşırıq başlıqları da yazıldı.
+
+9. Saytın JS və CSS faylları yoxlanıldı: hamısı minify olunub, sıxılma və keşləmə düzgündür.
+
+
+SEO DÜZƏLİŞLƏRİ (audit sənədinə əsasən)
+
+10. Ana səhifələrin canonical-ı düzəldildi. /en və /ru artıq öz ünvanlarını göstərir
+    (əvvəl hamısı https://tvim.az göstərirdi və ayrıca indekslənmirdi).
+
+11. robots.txt-ə qoruyucu əlavə olundu. Google, Bing, Yandex, Apple, DuckDuckGo, Yahoo və
+    mesencerlərin link önizləmə botları admin siyahısında olsa belə bloklanmır.
+    Əvvəl Yandex saytı tamamilə görə bilmirdi.
+
+12. Sitemap-ə məhsullar əlavə olundu: hər dildə 4 433 məhsul (əvvəl 0 idi, səbəb API
+    limitinin aşılması idi). Məhsulların dil versiyaları bir-birinə bağlandı. Sitemap-də
+    cəmi 15 702 ünvan var.
+
+13. www.tvim.az ünvanları tvim.az-a daimi yönləndirilir.
+
+14. Strukturlaşdırılmış məlumat (JSON-LD) əlavə olundu:
+    - ana səhifə: şirkət, sayt və mağaza (ünvan, telefon, iş saatları, xəritə koordinatı)
+    - məhsul: qiymət (AZN), stok, brend, SKU, xüsusiyyətlər və breadcrumb
+    - kateqoriya, brend və brendlər siyahısı: siyahıdakı məhsullar/brendlər və breadcrumb
+    - bloq siyahısı, bloq və korporativ məqalələr
+    - əlaqə səhifəsi: mağaza məlumatı
+
+15. Bloq məqalələrinin az/en/ru versiyaları hreflang ilə bir-birinə bağlandı.
+
+16. Səhifələnmə düzəldildi: ?page=2, 3 ... səhifələri indekslənir, hər birinin öz canonical-ı
+    və başlıqda "— Səhifə N" var. Filtr, sıralama və axtarış olan linklər indekslənmir.
+    Mövcud olmayan səhifələr (məs. ?page=999) 404 qaytarır.
+
+17. H1 düzəldildi: ana səhifəyə H1 əlavə olundu (ekranda görünmür, dizayn dəyişmir). Admin
+    mətnindəki H1-lər H2-yə endirilir (korporativ məqalədə 7 H1 → 1). Banneri olmayan
+    məqaləyə H1 verildi.
+
+18. Məqalə, səhifə və məhsul təsvirlərindəki alt mətni olmayan şəkillərə səhifənin və ya
+    məhsulun adı alt mətni kimi verilir.
+
+19. Font Awesome ikonları cdnjs-dən deyil, saytın öz faylları ilə yüklənir: kənar serverə
+    əlavə bağlantı yoxdur, fontlar 1 il keşlənir.
+    Deploy zamanı npm install lazımdır (yeni paket: @fortawesome/fontawesome-free).
+
+20. Open Graph bütün səhifələrə əlavə olundu: linki paylaşanda başlıq, mətn və şəkil
+    görünür. Məhsulda qalereya şəkli, brenddə loqo, digər səhifələrdə saytın şəkli.
+
+21. Xəta səhifələri:
+    - server xətasında 3 dildə brendli səhifə ("yenidən cəhd et" və ana səhifə düyməsi)
+    - 404 səhifəsinin başlığı: "Səhifə tapılmadı | TVİM" (3 dildə)
+    - cavablardan "X-Powered-By: Next.js" başlığı çıxarıldı
+    - nginx üçün hazır statik xəta səhifəsi: apps/tvim-web/public/errors/server-error.html
+
+22. Brendlər siyahısının x-default hreflang-ı ana səhifəyə göstərirdi — düzəldildi.
+
+Yoxlama: TypeScript və lint xətasızdır, production build uğurludur, bütün səhifə növləri
+dev serverdə yoxlanılıb. Server xətası səhifəsinin görünüşü brauzerdə yoxlanmayıb.
+
+
+KODDAN KƏNAR QALAN İŞLƏR
+
+- Admin: audit sənədindəki 13 tapşırıq (rus ana səhifə başlığındakı təkrar, azərbaycanca iş
+  saatlarının rusca yazılması, TikTok linkinin Facebook-a getməsi, 10 kateqoriyanın
+  tərcüməsi, robots siyahısının təmizlənməsi və s.)
+- Backend: /product/list cavabına updated_at (sitemap-də yenilənmə tarixi üçün)
+- DevOps: nginx-də server_tokens off, xəta səhifəsinin qoşulması, www yönləndirməsinin
+  nginx və ya Cloudflare-də də edilməsi
+- Deploydan sonra: Google Rich Results Test, sitemap-in Search Console, Yandex Webmaster və
+  Bing-ə göndərilməsi, PageSpeed ilə sürət ölçümü
+- Qərar lazımdır: footerin üstündəki açar söz blokunun məhdudlaşdırılması (məs. 10–15 söz)
