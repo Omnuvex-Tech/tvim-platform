@@ -55,11 +55,13 @@ type SitemapEntry = MetadataRoute.Sitemap[number];
 type ProductListResponse = {
     data?: {
         items?: Array<{
+            product_id?: number;
             slug?: string;
             updated_at?: string;
             published_at?: string;
             created_at?: string;
             variation?: {
+                id?: number;
                 slug?: string;
                 updated_at?: string;
             };
@@ -263,26 +265,46 @@ const collectBrandPaths = async (
     });
 };
 
-const collectProductPaths = async (locale: string, paths: Map<string, Date | undefined>) => {
-    const firstPage = (await fetchApiJson(config.endpoints.products.paginatedList, locale, {
-        page: "1",
-        per_page: "100",
-    })) as ProductListResponse | null;
+/**
+ * The largest page /product/list serves. It answers anything above this with a
+ * 422 ("Limit maksimum 60 ola bilər"), and asking for 100 left every product
+ * out of the sitemap: the first page failed and the list was taken as empty.
+ */
+const PRODUCTS_PER_PAGE = 60;
 
+/**
+ * How many product pages one language asks for at a time. The catalogue is
+ * some 75 pages per language and the three languages are collected together,
+ * so firing them all at once was a few hundred simultaneous requests.
+ */
+const PRODUCT_PAGE_CONCURRENCY = 4;
+
+const fetchProductPage = async (locale: string, page: number) => {
+    const query = { page: String(page), per_page: String(PRODUCTS_PER_PAGE) };
+    // One retry: a page lost to a passing error drops 60 products for the hour
+    // the result is cached.
+    const payload =
+        (await fetchApiJson(config.endpoints.products.paginatedList, locale, query)) ??
+        (await fetchApiJson(config.endpoints.products.paginatedList, locale, query));
+
+    return payload as ProductListResponse | null;
+};
+
+const collectProductPaths = async (
+    locale: string,
+    paths: Map<string, Date | undefined>,
+    groupKeyByPath: Map<string, string>,
+) => {
+    const firstPage = await fetchProductPage(locale, 1);
     const lastPage = Math.max(1, Number(firstPage?.data?.pagination?.last_page ?? 1));
     const pages = [firstPage];
 
-    if (lastPage > 1) {
-        const remainingPages = await Promise.all(
-            Array.from({ length: lastPage - 1 }, (_, index) =>
-                fetchApiJson(config.endpoints.products.paginatedList, locale, {
-                    page: String(index + 2),
-                    per_page: "100",
-                }) as Promise<ProductListResponse | null>
-            )
+    for (let start = 2; start <= lastPage; start += PRODUCT_PAGE_CONCURRENCY) {
+        const batch = Array.from(
+            { length: Math.min(PRODUCT_PAGE_CONCURRENCY, lastPage - start + 1) },
+            (_, index) => fetchProductPage(locale, start + index),
         );
-
-        pages.push(...remainingPages);
+        pages.push(...(await Promise.all(batch)));
     }
 
     pages.forEach((payload) => {
@@ -290,10 +312,20 @@ const collectProductPaths = async (locale: string, paths: Map<string, Date | und
         items.forEach((item) => {
             const slug = normalizePath(String(item.variation?.slug ?? item.slug ?? ""));
             if (!slug) return;
+
+            const path = `${locale}/products/${slug}`;
             paths.set(
-                `${locale}/products/${slug}`,
+                path,
                 toIsoDate(item.variation?.updated_at ?? item.updated_at ?? item.published_at ?? item.created_at)
             );
+
+            // A product's slug is translated too ("vintburan-…" in az,
+            // "cordless-screwdriver-…" in en), so its languages are paired by
+            // the variation's id, which every language shares.
+            const variationId = Number(item.variation?.id ?? item.product_id);
+            if (Number.isFinite(variationId) && variationId > 0) {
+                groupKeyByPath.set(path, `product:${variationId}`);
+            }
         });
     });
 };
@@ -320,7 +352,7 @@ const collectLocalePathEntries = async (locale: string) => {
 
     await Promise.all([
         collectBrandPaths(locale, paths, groupKeyByPath),
-        collectProductPaths(locale, paths),
+        collectProductPaths(locale, paths, groupKeyByPath),
     ]);
 
     return Array.from(paths.entries()).map(([path, lastModified]) => ({
@@ -372,7 +404,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const localeCodes = (languages.length > 0 ? languages : [{ code: defaultLocale }])
         .map((language) => toNormalizedLocale(String(language.code)))
         .filter(Boolean)
-    const localeEntries = localeCodes.map((locale) =>
+    // The default language's home is published at the bare domain, which /az
+    // names as its canonical; listing /az as well would put a url the page
+    // itself disowns into the sitemap.
+    const siteDefaultLocale = toNormalizedLocale(
+        String(languages.find((language) => language.is_default_site)?.code ?? config.project.defLang)
+    );
+    const localeEntries = localeCodes.filter((locale) => locale !== siteDefaultLocale).map((locale) =>
         buildEntry(
             normalizedSiteUrl,
             locale,
