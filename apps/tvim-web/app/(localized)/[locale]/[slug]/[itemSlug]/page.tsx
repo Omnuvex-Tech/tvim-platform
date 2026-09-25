@@ -1164,7 +1164,10 @@ export default async function GridDetailPage({
                             url: articleUrl,
                             description: clampDescription(toPlainText(item.content)) || undefined,
                             image,
-                            datePublished: item.datetime1,
+                            // Corporate items have no datetime1; the backend's seo carries their dates.
+                            datePublished: item.datetime1
+                                ?? (menuDetail.data as { seo?: { article?: { published_time?: string } } } | undefined)
+                                    ?.seo?.article?.published_time,
                             locale: normalizedLocale,
                         })
                         : null,
