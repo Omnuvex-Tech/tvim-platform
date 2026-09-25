@@ -442,7 +442,10 @@ export async function renderBrandNewsSlugPage({
                         url: articleUrl,
                         description: clampDescription(toPlainText(pageDescriptionHtml)) || undefined,
                         image: bannerImage || null,
-                        datePublished: mainItem?.datetime1,
+                        // Corporate items have no datetime1; the backend's seo carries their dates.
+                        datePublished: mainItem?.datetime1
+                            || (menuDetail?.data as { seo?: { article?: { published_time?: string } } } | undefined)
+                                ?.seo?.article?.published_time,
                         locale,
                     }),
                     breadcrumbJsonLd(breadcrumbItems, articleUrl),

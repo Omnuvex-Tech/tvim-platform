@@ -1166,7 +1166,7 @@ export default async function GridDetailPage({
                             image,
                             // Corporate items have no datetime1; the backend's seo carries their dates.
                             datePublished: item.datetime1
-                                ?? (menuDetail.data as { seo?: { article?: { published_time?: string } } } | undefined)
+                                || (menuDetail.data as { seo?: { article?: { published_time?: string } } } | undefined)
                                     ?.seo?.article?.published_time,
                             locale: normalizedLocale,
                         })
