@@ -31,7 +31,7 @@ import { resolveLegacyServicePath } from "@/lib/legacy-services";
 import { JsonLd } from "@/app/components/JsonLd/json-ld";
 import { prepareContentHtml } from "@/lib/content-html";
 import { absoluteUrl, articleJsonLd, breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
-import { readApiSchema } from "@/lib/api-schema";
+import { readApiSchema, readSeoSchema } from "@/lib/api-schema";
 
 type GridItem = {
     id?: number | string;
@@ -905,7 +905,7 @@ export default async function GridDetailPage({
         const productSku = String(active.sku ?? product?.sku ?? "").trim();
         const productModel = String(active.model ?? product?.model ?? "").trim();
         // The backend's schema when it sends one; the one built here until then.
-        const productStructuredData = readApiSchema(active.schema) ?? [
+        const productStructuredData = readApiSchema(active.schema) ?? readSeoSchema((product as { seo?: unknown } | undefined)?.seo) ?? [
             productJsonLd({
                 name: resolvedName,
                 url: productUrl,
@@ -1157,7 +1157,7 @@ export default async function GridDetailPage({
         >
             <LocalizedLinks value={itemLocalizedLinks} />
             <JsonLd
-                nodes={readApiSchema(item.seo?.schema) ?? [
+                nodes={readSeoSchema(item.seo) ?? [
                     articleHeadline
                         ? articleJsonLd({
                             headline: articleHeadline,

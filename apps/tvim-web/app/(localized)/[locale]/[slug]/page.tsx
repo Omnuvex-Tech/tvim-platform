@@ -40,7 +40,7 @@ import {
     storeJsonLd,
     type JsonLdNode,
 } from "@/lib/structured-data";
-import { nodesOfType, readApiSchema, withListing } from "@/lib/api-schema";
+import { nodesOfType, readSeoSchema, withListing, withLocalNodes } from "@/lib/api-schema";
 
 type MenuDetailData = {
     type: string;
@@ -587,7 +587,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
     // The page's schema as the backend builds it (page type and breadcrumb, with
     // the admin's edits). Every branch below prints it when it is there and builds
     // its own until the backend sends one.
-    const menuSchema = readApiSchema(menu.seo?.schema);
+    const menuSchema = readSeoSchema(menu.seo);
 
     const includedItems: any[] = menuDetail.included_items || [];
     const gridItems = Array.isArray(pageData?.items) ? pageData.items : [];
@@ -933,7 +933,7 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
             startPosition: (currentPage - 1) * listPerPage + 1,
         };
         const listingStructuredData = menuSchema
-            ? withListing(menuSchema, listing)
+            ? withLocalNodes(withListing(menuSchema, listing), [pageBreadcrumbJsonLd])
             : [collectionPageJsonLd({ name: toPlainText(menu.title || menu.name), ...listing }), pageBreadcrumbJsonLd];
 
         const hasFilters = Array.isArray(productList?.filters) && productList.filters.length > 0;
@@ -1348,12 +1348,15 @@ export default async function DynamicMenuPage({ params, searchParams }: Props) {
                     startPosition: (gridCurrentPage - 1) * gridPerPage + 1,
                 });
         const gridStructuredData = menuSchema
-            ? withListing(menuSchema, {
-                url: pageUrlAt(gridCurrentPage),
-                itemUrls: pageItems.map((item) => absoluteUrl(resolveGridItemHref(item))),
-                startPosition: (gridCurrentPage - 1) * gridPerPage + 1,
-                posts: (gridPageNode.blogPost as JsonLdNode[] | undefined) ?? [],
-            })
+            ? withLocalNodes(
+                withListing(menuSchema, {
+                    url: pageUrlAt(gridCurrentPage),
+                    itemUrls: pageItems.map((item) => absoluteUrl(resolveGridItemHref(item))),
+                    startPosition: (gridCurrentPage - 1) * gridPerPage + 1,
+                    posts: (gridPageNode.blogPost as JsonLdNode[] | undefined) ?? [],
+                }),
+                [breadcrumbJsonLd(gridBreadcrumbItems, pageUrl)],
+            )
             : [gridPageNode, breadcrumbJsonLd(gridBreadcrumbItems, pageUrl)];
 
         return (
@@ -1521,7 +1524,9 @@ const firstPhone =
                 <LocalizedLinks value={localizedLinks} />
                 <JsonLd
                     nodes={[
-                        ...(menuSchema ?? [contactPageJsonLd(toPlainText(menu.title || menu.name), pageUrl), pageBreadcrumbJsonLd]),
+                        ...(menuSchema
+                            ? withLocalNodes(menuSchema, [pageBreadcrumbJsonLd])
+                            : [contactPageJsonLd(toPlainText(menu.title || menu.name), pageUrl), pageBreadcrumbJsonLd]),
                         ...(storeNodes.length > 0
                             ? storeNodes
                             : [businessProfile ? storeJsonLd(businessProfile, normalizedLocale) : null]),
@@ -1649,7 +1654,7 @@ const firstPhone =
     return (
         <SitePageShell chrome={chrome} includeLogoutToast keywords={pageKeywords} extraSchema={pageExtraSchema}>
                 <LocalizedLinks value={localizedLinks} />
-            <JsonLd nodes={menuSchema ?? [pageBreadcrumbJsonLd]} />
+            <JsonLd nodes={menuSchema ? withLocalNodes(menuSchema, [pageBreadcrumbJsonLd]) : [pageBreadcrumbJsonLd]} />
             <Breadcrumb
                 items={pageBreadcrumbItems}
                 className="mx-auto w-full max-w-[1280px] px-1 lg:px-2"
