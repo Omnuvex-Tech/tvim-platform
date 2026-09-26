@@ -17,7 +17,7 @@ import { ProductStrip } from "@/app/components/ProductStrip/product-strip";
 import { JsonLd } from "@/app/components/JsonLd/json-ld";
 import { prepareContentHtml } from "@/lib/content-html";
 import { absoluteUrl, articleJsonLd, breadcrumbJsonLd } from "@/lib/structured-data";
-import { readApiSchema } from "@/lib/api-schema";
+import { readSeoSchema } from "@/lib/api-schema";
 
 type NewsVariation = {
     variation_id?: number;
@@ -436,7 +436,7 @@ export async function renderBrandNewsSlugPage({
         >
             <LocalizedLinks value={localizedLinks} />
             <JsonLd
-                nodes={readApiSchema(mainItem?.seo?.schema) ?? [
+                nodes={readSeoSchema(mainItem?.seo) ?? [
                     articleJsonLd({
                         headline: pageTitle,
                         url: articleUrl,

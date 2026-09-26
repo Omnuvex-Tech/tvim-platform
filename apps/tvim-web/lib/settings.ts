@@ -3,7 +3,7 @@ import type { ProjectSettingsData } from "@repo/types/types";
 import { htmlToText } from "@repo/shared/utils";
 import { config } from "@/config";
 import { buildKeywords } from "@/lib/seo-keywords";
-import { readApiSchema } from "@/lib/api-schema";
+import { readSeoSchema } from "@/lib/api-schema";
 import { extractMapCoordinates, resolveMapEmbedUrl, resolveMapLink } from "@/lib/map";
 
 const metaText = (value: unknown) => htmlToText(value) || undefined;
@@ -524,7 +524,7 @@ export const resolveSettingsSchema = (responseData: unknown) => {
     const payload = extractPayload(responseData);
     if (!payload) return null;
 
-    return readApiSchema(normalizeObject(payload.seo).schema);
+    return readSeoSchema(normalizeObject(payload.seo));
 };
 
 export const resolveSettingsRobotsText = (responseData: unknown): string | undefined => {

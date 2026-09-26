@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { config } from "@/config";
 import { api } from "@/lib/api";
 import { SUPPORTED_LOCALES, type SiteLocale } from "@/lib/site-locales";
-import { readApiSchema } from "@/lib/api-schema";
+import { readApiSchema, readSeoSchema } from "@/lib/api-schema";
 import type { JsonLdNode } from "@/lib/structured-data";
 
 /**
@@ -91,7 +91,7 @@ const fetchBrandList = unstable_cache(
             const metaKeywords = String(value?.meta_keywords ?? "").trim();
             const image = resolveBrandImage(value?.image);
             const extraSchema = value?.seo?.extra_schema ?? undefined;
-            const schema = readApiSchema(value?.schema);
+            const schema = readApiSchema(value?.schema) ?? readSeoSchema(value?.seo);
 
             acc.push({
                 valueId,
